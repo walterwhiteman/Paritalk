@@ -37,20 +37,47 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-        import { getDatabase, ref, get, set, onDisconnect, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js"; // Changed onValue to get
+        import { getDatabase, ref, get, set, onDisconnect, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
         // Supabase Client SDK (Needed for consistent init, even if not directly uploading here)
         import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
-        // Firebase Configuration (provided by Canvas environment)
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null; // Corrected access
+        // Firebase Configuration (provided by Canvas environment - now with more robust checks)
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null; 
 
         // Initialize Firebase
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getDatabase(app);
+        let app;
+        let auth;
+        let db;
+
+        // Function to display login errors
+        function displayLoginError(message) {
+            loginError.textContent = message;
+            loginError.classList.remove('hidden');
+        }
+
+        try {
+            if (firebaseConfig && Object.keys(firebaseConfig).length > 0) {
+                app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getDatabase(app);
+                console.log("Firebase initialized successfully.");
+            } else {
+                console.error("Firebase configuration is missing or empty.");
+                displayLoginError("App configuration error: Firebase is not set up correctly.");
+                // Prevent further script execution if Firebase is crucial
+                throw new Error("Firebase config missing.");
+            }
+        } catch (error) {
+            console.error("Error during Firebase initialization:", error.message);
+            displayLoginError(`Initialization error: ${error.message}. Please contact support.`);
+            // If Firebase init fails, subsequent Firebase-dependent code won't run.
+            // We exit here explicitly to prevent further errors cascading.
+            // You cannot simply "return" from a top-level script in a module,
+            // so throwing an error and catching it is a way to stop.
+            // For a browser environment, this will simply halt the script at this point.
+        }
 
         // Supabase Configuration (User's provided keys)
         const SUPABASE_URL = 'https://uokpkgybjzvpngoxasnm.supabase.com';
@@ -78,33 +105,43 @@
         let currentUserId = null;
 
         // --- Authentication ---
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                currentUserId = user.uid;
-                // Attempt to load saved credentials
-                const storedUsername = localStorage.getItem('paritalk_username');
-                const storedRoomCode = localStorage.getItem('paritalk_roomcode');
+        // Only proceed if Firebase was successfully initialized
+        if (auth) {
+            onAuthStateChanged(auth, async (user) => {
+                if (user) {
+                    currentUserId = user.uid;
+                    // Attempt to load saved credentials
+                    const storedUsername = localStorage.getItem('paritalk_username');
+                    const storedRoomCode = localStorage.getItem('paritalk_roomcode');
 
-                if (storedUsername) usernameInput.value = storedUsername;
-                if (storedRoomCode) roomcodeInput.value = storedRoomCode;
+                    if (storedUsername) usernameInput.value = storedUsername;
+                    if (storedRoomCode) roomcodeInput.value = storedRoomCode;
 
-            } else {
-                try {
-                    if (initialAuthToken) {
-                        await signInWithCustomToken(auth, initialAuthToken);
-                        console.log("Signed in with custom token.");
-                    } else {
-                        await signInAnonymously(auth);
-                        console.log("Signed in anonymously.");
+                } else {
+                    try {
+                        if (initialAuthToken) {
+                            await signInWithCustomToken(auth, initialAuthToken);
+                            console.log("Signed in with custom token.");
+                        } else {
+                            await signInAnonymously(auth);
+                            console.log("Signed in anonymously.");
+                        }
+                    } catch (error) {
+                        console.error("Error signing in:", error.message);
+                        displayLoginError(`Authentication error: ${error.message}. Please try again.`);
                     }
-                } catch (error) {
-                    console.error("Error signing in:", error.message);
                 }
-            }
-        });
+            });
+        }
+
 
         // --- Join Chat Logic ---
         joinChatButton.addEventListener('click', async () => {
+            if (!db || !auth) { // Check if Firebase core services are available
+                displayLoginError("App not ready: Firebase services unavailable.");
+                return;
+            }
+
             const username = usernameInput.value.trim();
             const roomCode = roomcodeInput.value.trim();
 
@@ -129,9 +166,16 @@
                     });
                 }
 
+                // Ensure currentUserId is available before checking for existing user
+                if (!currentUserId) {
+                    displayLoginError("User not authenticated yet. Please wait a moment and try again.");
+                    console.warn("Attempted to join before Firebase auth completed.");
+                    return;
+                }
+
                 // Check if the room is full with two OTHER unique users
                 // If the current user is already one of the two, they can rejoin
-                const isCurrentUserAlreadyInRoom = currentUserId && currentUsers[currentUserId] === username;
+                const isCurrentUserAlreadyInRoom = currentUsers[currentUserId] === username;
 
                 if (usersInRoomCount >= 2 && !isCurrentUserAlreadyInRoom) {
                     displayLoginError('This room is currently full. Please try a different room code.');
@@ -143,19 +187,13 @@
                 localStorage.setItem('paritalk_roomcode', roomCode);
 
                 // Redirect to chat.html, passing roomCode and username as URL parameters
-                // This is how different pages communicate state in plain HTML/JS
                 window.location.href = `chat.html?room=${encodeURIComponent(roomCode)}&user=${encodeURIComponent(username)}`;
 
             } catch (error) {
                 console.error("Error checking room presence or joining:", error);
-                displayLoginError('An error occurred. Please try again.');
+                displayLoginError(`Failed to join room: ${error.message}. Please try again.`);
             }
         });
-
-        function displayLoginError(message) {
-            loginError.textContent = message;
-            loginError.classList.remove('hidden');
-        }
 
         // Clear error message on input focus
         usernameInput.addEventListener('focus', () => loginError.classList.add('hidden'));
