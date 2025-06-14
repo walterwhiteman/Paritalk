@@ -1,1 +1,164 @@
 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Paritalk - Login</title>
+    <!-- Link to our custom styles.css -->
+    <link rel="stylesheet" href="styles.css">
+    <!-- Font Awesome CDN for icons (used in chat.html, but good to have here for consistency) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <div id="app-container">
+        <!-- Login Screen -->
+        <div id="login-screen">
+            <h1 class="text-4xl font-bold mb-4 text-blue-600">Paritalk</h1>
+            <p class="text-lg text-center mb-6">A private space for intimate conversation.</p>
+            <div class="login-box">
+                <div class="mb-5">
+                    <label for="roomcode-input">Room Code</label>
+                    <input type="text" id="roomcode-input" placeholder="Enter room code" required>
+                </div>
+                <div class="mb-6">
+                    <label for="username-input">Your Name</label>
+                    <input type="text" id="username-input" placeholder="Enter your username" required>
+                </div>
+                <button id="join-chat-button">Join Chat</button>
+                <p id="login-error" class="text-red-500 text-xs italic mt-4 hidden"></p>
+            </div>
+            <p class="privacy-message mt-8">
+                🔒 Your conversations are private and secure. Share the room code only with someone special.
+            </p>
+        </div>
+    </div>
+
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { getDatabase, ref, onValue, set, onDisconnect, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+        // Supabase Client SDK (Needed for consistent init, even if not directly uploading here)
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+
+        // Firebase Configuration (provided by Canvas environment)
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? initialAuthToken : null;
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getDatabase(app);
+
+        // Supabase Configuration (REPLACE WITH YOUR ACTUAL KEYS)
+        const SUPABASE_URL = 'YOUR_SUPABASE_URL'; // e.g., 'https://xyzabcdef.supabase.co'
+        const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY'; // e.g., 'eyJhbGciOiJIUzI1Ni...'
+
+        let supabase;
+        try {
+            if (SUPABASE_URL === 'YOUR_SUPABASE_URL' || SUPABASE_ANON_KEY === 'YOUR_SUPABASE_ANON_KEY') {
+                console.warn('Supabase URL or Anon Key not set. File uploads will not work in chat.html.');
+            } else {
+                supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            }
+        } catch (error) {
+            console.error('Failed to initialize Supabase:', error);
+            supabase = null;
+        }
+
+        // UI Elements
+        const usernameInput = document.getElementById('username-input');
+        const roomcodeInput = document.getElementById('roomcode-input');
+        const joinChatButton = document.getElementById('join-chat-button');
+        const loginError = document.getElementById('login-error');
+
+        let currentUserId = null;
+
+        // --- Authentication ---
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                currentUserId = user.uid;
+                // Attempt to load saved credentials
+                const storedUsername = localStorage.getItem('paritalk_username');
+                const storedRoomCode = localStorage.getItem('paritalk_roomcode');
+
+                if (storedUsername) usernameInput.value = storedUsername;
+                if (storedRoomCode) roomcodeInput.value = storedRoomCode;
+
+            } else {
+                try {
+                    if (initialAuthToken) {
+                        await signInWithCustomToken(auth, initialAuthToken);
+                        console.log("Signed in with custom token.");
+                    } else {
+                        await signInAnonymously(auth);
+                        console.log("Signed in anonymously.");
+                    }
+                } catch (error) {
+                    console.error("Error signing in:", error.message);
+                }
+            }
+        });
+
+        // --- Join Chat Logic ---
+        joinChatButton.addEventListener('click', async () => {
+            const username = usernameInput.value.trim();
+            const roomCode = roomcodeInput.value.trim();
+
+            if (!username || !roomCode) {
+                displayLoginError('Please enter both username and room code.');
+                return;
+            }
+
+            // Reference to the presence list for the chosen room
+            const roomPresenceRef = ref(db, `rooms/${roomCode}/presence`);
+
+            let usersInRoomCount = 0;
+            let currentUsers = {}; // To store userId:username mapping
+
+            // Fetch current room occupants to check limits
+            onValue(roomPresenceRef, (snapshot) => {
+                usersInRoomCount = 0;
+                currentUsers = {};
+                snapshot.forEach((childSnapshot) => {
+                    usersInRoomCount++;
+                    currentUsers[childSnapshot.key] = childSnapshot.val().username;
+                });
+            }, { onlyOnce: true }); // Get initial value and then proceed
+
+            // A small delay to ensure the onValue listener has a chance to execute
+            await new Promise(resolve => setTimeout(resolve, 100)); // Adjust delay as needed
+
+            // Check if the room is full with two OTHER unique users
+            // If the current user is already one of the two, they can rejoin
+            const isCurrentUserAlreadyInRoom = currentUsers[currentUserId] === username;
+
+            if (usersInRoomCount >= 2 && !isCurrentUserAlreadyInRoom) {
+                displayLoginError('This room is currently full. Please try a different room code.');
+                return;
+            }
+
+            // Save credentials to localStorage for auto-rejoin
+            localStorage.setItem('paritalk_username', username);
+            localStorage.setItem('paritalk_roomcode', roomCode);
+
+            // Redirect to chat.html, passing roomCode and username as URL parameters
+            // This is how different pages communicate state in plain HTML/JS
+            window.location.href = `chat.html?room=${encodeURIComponent(roomCode)}&user=${encodeURIComponent(username)}`;
+        });
+
+        function displayLoginError(message) {
+            loginError.textContent = message;
+            loginError.classList.remove('hidden');
+        }
+
+        // Clear error message on input focus
+        usernameInput.addEventListener('focus', () => loginError.classList.add('hidden'));
+        roomcodeInput.addEventListener('focus', () => loginError.classList.add('hidden'));
+
+    </script>
+</body>
+</html>
