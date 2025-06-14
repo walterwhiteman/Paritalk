@@ -37,7 +37,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-        import { getDatabase, ref, onValue, set, onDisconnect, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+        import { getDatabase, ref, get, set, onDisconnect, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js"; // Changed onValue to get
 
         // Supabase Client SDK (Needed for consistent init, even if not directly uploading here)
         import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
@@ -45,7 +45,7 @@
         // Firebase Configuration (provided by Canvas environment)
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
         const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null; // Corrected variable name access here
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null; // Corrected access
 
         // Initialize Firebase
         const app = initializeApp(firebaseConfig);
@@ -58,12 +58,11 @@
 
         let supabase;
         try {
-            // Only initialize if keys are valid (not default placeholders)
             if (SUPABASE_URL && SUPABASE_URL !== 'YOUR_SUPABASE_URL' && SUPABASE_ANON_KEY && SUPABASE_ANON_KEY !== 'YOUR_SUPABASE_ANON_KEY') {
                 supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
             } else {
                 console.warn('Supabase URL or Anon Key not set. File uploads will not work in chat.html. Please ensure keys are correctly set in login.html and chat.html.');
-                supabase = null; // Ensure supabase is null if not configured
+                supabase = null;
             }
         } catch (error) {
             console.error('Failed to initialize Supabase:', error);
@@ -120,47 +119,37 @@
             let usersInRoomCount = 0;
             let currentUsers = {}; // To store userId:username mapping
 
-            // Fetch current room occupants to check limits
-            // Using a temporary listener that detaches after fetching the current state
-            const unsubscribe = onValue(roomPresenceRef, (snapshot) => {
-                usersInRoomCount = 0;
-                currentUsers = {};
-                snapshot.forEach((childSnapshot) => {
-                    usersInRoomCount++;
-                    currentUsers[childSnapshot.key] = childSnapshot.val().username;
-                });
-                unsubscribe(); // Detach listener after getting initial data
-            }, { onlyOnce: true }); // Ensure this listener only fetches data once
+            try {
+                // Use get() to fetch the current state once
+                const snapshot = await get(roomPresenceRef);
+                if (snapshot.exists()) {
+                    snapshot.forEach((childSnapshot) => {
+                        usersInRoomCount++;
+                        currentUsers[childSnapshot.key] = childSnapshot.val().username;
+                    });
+                }
 
-            // A small delay to ensure the onValue listener has a chance to execute
-            await new Promise(resolve => setTimeout(resolve, 100)); // Adjust delay as needed, or use async/await with get() instead of onValue
+                // Check if the room is full with two OTHER unique users
+                // If the current user is already one of the two, they can rejoin
+                const isCurrentUserAlreadyInRoom = currentUserId && currentUsers[currentUserId] === username;
 
-            // Re-fetch (or ensure data is ready) just before making the decision
-            const currentSnapshot = await new Promise(resolve => onValue(roomPresenceRef, resolve, { onlyOnce: true }));
-            usersInRoomCount = 0;
-            currentUsers = {};
-            currentSnapshot.forEach((childSnapshot) => {
-                usersInRoomCount++;
-                currentUsers[childSnapshot.key] = childSnapshot.val().username;
-            });
+                if (usersInRoomCount >= 2 && !isCurrentUserAlreadyInRoom) {
+                    displayLoginError('This room is currently full. Please try a different room code.');
+                    return;
+                }
 
+                // Save credentials to localStorage for auto-rejoin
+                localStorage.setItem('paritalk_username', username);
+                localStorage.setItem('paritalk_roomcode', roomCode);
 
-            // Check if the room is full with two OTHER unique users
-            // If the current user is already one of the two, they can rejoin
-            const isCurrentUserAlreadyInRoom = currentUsers[currentUserId] === username;
+                // Redirect to chat.html, passing roomCode and username as URL parameters
+                // This is how different pages communicate state in plain HTML/JS
+                window.location.href = `chat.html?room=${encodeURIComponent(roomCode)}&user=${encodeURIComponent(username)}`;
 
-            if (usersInRoomCount >= 2 && !isCurrentUserAlreadyInRoom) {
-                displayLoginError('This room is currently full. Please try a different room code.');
-                return;
+            } catch (error) {
+                console.error("Error checking room presence or joining:", error);
+                displayLoginError('An error occurred. Please try again.');
             }
-
-            // Save credentials to localStorage for auto-rejoin
-            localStorage.setItem('paritalk_username', username);
-            localStorage.setItem('paritalk_roomcode', roomCode);
-
-            // Redirect to chat.html, passing roomCode and username as URL parameters
-            // This is how different pages communicate state in plain HTML/JS
-            window.location.href = `chat.html?room=${encodeURIComponent(roomCode)}&user=${encodeURIComponent(username)}`;
         });
 
         function displayLoginError(message) {
