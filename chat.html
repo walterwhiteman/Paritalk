@@ -42,7 +42,7 @@
             <!-- Message Input Area -->
             <div id="message-input-area">
                 <input type="text" id="message-input" placeholder="Type a message...">
-                <input type="file" id="image-upload" accept="image/*,video/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation" class="hidden">
+                <input type="file" id="image-upload" accept="image/*,video/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation" class="hidden">
                 <label for="image-upload" title="Attach File">
                     <i class="fa-solid fa-paperclip"></i>
                 </label>
@@ -101,7 +101,7 @@
         // Firebase Configuration (provided by Canvas environment)
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
         const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? initialAuthToken : null; // Corrected variable name
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null; // Corrected variable name access here
 
         // Initialize Firebase
         const app = initializeApp(firebaseConfig);
@@ -109,8 +109,8 @@
         const db = getDatabase(app);
 
         // Supabase Configuration (REPLACE WITH YOUR ACTUAL KEYS)
-        const SUPABASE_URL = 'YOUR_SUPABASE_URL'; // e.g., 'https://xyzabcdef.supabase.co'
-        const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY'; // e.g., 'eyJhbGciOiJIUzI1Ni...'
+        const SUPABASE_URL = 'https://uokpkgybjzvpngoxasnm.supabase.com'; // User's provided URL
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVva3BrZ3lianp2cG5nb3hhc25tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk5MjE4NTcsImV4cCI6MjA2NTQ5Nzg1N30.FNv_13S3oj7fjartmY2PzKL25T3AWbMxP2KRI0rFU2E'; // User's provided Key
 
         let supabase;
         try {
