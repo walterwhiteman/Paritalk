@@ -1,1 +1,774 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Paritalk - Chat</title>
+    <!-- Link to our custom styles.css -->
+    <link rel="stylesheet" href="styles.css">
+    <!-- Font Awesome CDN for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <div id="app-container">
+        <!-- Chat Screen -->
+        <div id="chat-screen">
+            <!-- Chat Header -->
+            <div id="chat-header">
+                <div class="flex flex-col items-start">
+                    <h2 id="current-room-display">Room: <span id="room-name"></span></h2>
+                    <span id="online-users-count" class="text-sm text-white opacity-80 mt-1">Online: 0</span>
+                </div>
+                <div class="flex items-center">
+                    <button id="video-call-button" title="Start Video Call">
+                        <i class="fa-solid fa-video"></i>
+                    </button>
+                    <button id="leave-room-button" title="Leave Room">
+                        <i class="fa-solid fa-sign-out-alt"></i>
+                    </button>
+                </div>
+            </div>
 
+            <!-- Message Area -->
+            <div id="messages-container">
+                <!-- Messages will be appended here -->
+            </div>
+
+            <!-- Typing Indicator -->
+            <div id="typing-indicator">
+                <span>.</span><span>.</span><span>.</span>
+            </div>
+
+            <!-- Message Input Area -->
+            <div id="message-input-area">
+                <input type="text" id="message-input" placeholder="Type a message...">
+                <input type="file" id="image-upload" accept="image/*,video/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation" class="hidden">
+                <label for="image-upload" title="Attach File">
+                    <i class="fa-solid fa-paperclip"></i>
+                </label>
+                <button id="send-button">
+                    <i class="fa-solid fa-paper-plane"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Jitsi Video Call Container -->
+        <div id="jitsi-container">
+            <iframe id="jitsi-iframe" allow="camera; microphone; display-capture; autoplay"></iframe>
+            <div id="jitsi-controls">
+                <button id="hangup-button" class="hangup">
+                    <i class="fa-solid fa-phone-slash"></i> End Call
+                </button>
+            </div>
+        </div>
+
+        <!-- Confirmation Modal -->
+        <div id="confirmation-modal" class="modal">
+            <div class="modal-content">
+                <p id="modal-message">Are you sure?</p>
+                <button id="modal-confirm" class="confirm-button">Yes</button>
+                <button id="modal-cancel" class="cancel-button">No</button>
+            </div>
+        </div>
+
+        <!-- Emoji Picker (hidden by default) -->
+        <div id="emoji-picker" class="absolute bg-white p-2 rounded-lg shadow-lg hidden" style="z-index: 50; top: 0; left: 0;">
+            <span class="emoji-option cursor-pointer text-2xl p-1 hover:bg-blue-100 rounded-md">👍</span>
+            <span class="emoji-option cursor-pointer text-2xl p-1 hover:bg-blue-100 rounded-md">❤️</span>
+            <span class="emoji-option cursor-pointer text-2xl p-1 hover:bg-blue-100 rounded-md">😂</span>
+            <span class="emoji-option cursor-pointer text-2xl p-1 hover:bg-blue-100 rounded-md">😭</span>
+            <span class="emoji-option cursor-pointer text-2xl p-1 hover:bg-blue-100 rounded-md">😡</span>
+            <span class="emoji-option cursor-pointer text-2xl p-1 hover:bg-blue-100 rounded-md">🤔</span>
+        </div>
+
+    </div>
+
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { getDatabase, ref, push, onChildAdded, onValue, set, remove, onDisconnect, serverTimestamp, runTransaction, child } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+        // Supabase Client SDK
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+
+        // Jitsi Meet External API
+        // JitsiMeetExternalAPI is globally available when script is loaded
+    </script>
+    <script src="https://meet.jit.si/external_api.js"></script>
+
+    <script type="module">
+        // Firebase Configuration (provided by Canvas environment)
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? initialAuthToken : null; // Corrected variable name
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getDatabase(app);
+
+        // Supabase Configuration (REPLACE WITH YOUR ACTUAL KEYS)
+        const SUPABASE_URL = 'YOUR_SUPABASE_URL'; // e.g., 'https://xyzabcdef.supabase.co'
+        const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY'; // e.g., 'eyJhbGciOiJIUzI1Ni...'
+
+        let supabase;
+        try {
+            if (SUPABASE_URL === 'YOUR_SUPABASE_URL' || SUPABASE_ANON_KEY === 'YOUR_SUPABASE_ANON_KEY') {
+                console.warn('Supabase URL or Anon Key not set. Image/file uploads will not work.');
+            } else {
+                supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            }
+        } catch (error) {
+            console.error('Failed to initialize Supabase:', error);
+            supabase = null; // Ensure supabase is null if initialization fails
+        }
+
+
+        // Global variables for chat state
+        let currentUserId = null;
+        let currentUsername = '';
+        let currentRoomCode = '';
+        let roomRef = null;
+        let presenceRef = null;
+        let messagesRef = null;
+        let typingRef = null; // Reference to current user's typing status
+        let jitsiApi = null;
+        let typingTimeout = null; // For debounce on typing indicator
+
+        // UI Elements
+        const chatScreen = document.getElementById('chat-screen');
+        const roomNameDisplay = document.getElementById('room-name');
+        const onlineUsersCountDisplay = document.getElementById('online-users-count'); // New element
+        const messagesContainer = document.getElementById('messages-container');
+        const messageInput = document.getElementById('message-input');
+        const sendButton = document.getElementById('send-button');
+        const imageUploadInput = document.getElementById('image-upload');
+        const videoCallButton = document.getElementById('video-call-button');
+        const leaveRoomButton = document.getElementById('leave-room-button');
+        const jitsiContainer = document.getElementById('jitsi-container');
+        const jitsiIframe = document.getElementById('jitsi-iframe');
+        const hangupButton = document.getElementById('hangup-button');
+        const typingIndicator = document.getElementById('typing-indicator');
+
+        // Emoji Picker elements
+        const emojiPicker = document.getElementById('emoji-picker');
+        let currentMessageElementForReaction = null; // To store which message bubble was clicked
+
+        // Modal elements
+        const confirmationModal = document.getElementById('confirmation-modal');
+        const modalMessage = document.getElementById('modal-message');
+        const modalConfirm = document.getElementById('modal-confirm');
+        const modalCancel = document.getElementById('modal-cancel');
+        let resolveModalPromise;
+
+
+        // --- Get Room Code and Username from URL ---
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlRoomCode = urlParams.get('room');
+        const urlUsername = urlParams.get('user');
+
+        if (!urlRoomCode || !urlUsername) {
+            // If missing, redirect back to login page
+            window.location.href = 'login.html';
+        } else {
+            currentRoomCode = decodeURIComponent(urlRoomCode);
+            currentUsername = decodeURIComponent(urlUsername);
+            roomNameDisplay.textContent = currentRoomCode;
+
+            // Display chat screen (it's hidden by default)
+            chatScreen.classList.remove('hidden');
+
+            // Save to localStorage immediately upon entering chat.html
+            // This is crucial for auto-rejoin on reload
+            localStorage.setItem('paritalk_username', currentUsername);
+            localStorage.setItem('paritalk_roomcode', currentRoomCode);
+        }
+
+
+        // --- Authentication & Initialization ---
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                currentUserId = user.uid;
+                // Set up Firebase references after userId is known
+                roomRef = ref(db, `rooms/${currentRoomCode}`);
+                presenceRef = ref(db, `rooms/${currentRoomCode}/presence/${currentUserId}`);
+                messagesRef = ref(db, `rooms/${currentRoomCode}/messages`);
+                typingRef = ref(db, `rooms/${currentRoomCode}/typing/${currentUserId}`);
+
+                try {
+                    // Set user presence
+                    await set(presenceRef, { username: currentUsername, lastSeen: serverTimestamp() });
+                    // Remove user from presence when disconnected (browser closed/reloaded, internet lost)
+                    onDisconnect(presenceRef).remove();
+
+                    // Send a "joined" message if not already present (e.g., from login.html)
+                    // We check if this is a fresh join or a rejoin by checking if an "onDisconnect" was set up.
+                    // This is a simple heuristic; a more robust check would involve checking Firebase directly.
+                    if (localStorage.getItem('paritalk_has_joined_session') !== currentRoomCode + currentUsername) {
+                         sendMessage(`**${currentUsername}** joined the chat.`, 'system');
+                         localStorage.setItem('paritalk_has_joined_session', currentRoomCode + currentUsername);
+                    }
+
+
+                    // Start listening for messages and presence
+                    listenForMessages();
+                    listenForPresence(); // This will now update the online user count
+                    listenForTyping();
+
+                    messageInput.focus(); // Focus on input field
+
+                } catch (error) {
+                    console.error("Error setting up chat:", error);
+                    // Redirect back to login with an error
+                    localStorage.removeItem('paritalk_username');
+                    localStorage.removeItem('paritalk_roomcode');
+                    window.location.href = `login.html?error=${encodeURIComponent('Failed to join room. Please try again.')}`;
+                }
+            } else {
+                // If not authenticated, ensure redirect to login
+                window.location.href = 'login.html';
+            }
+        });
+
+
+        // --- Helper Functions ---
+        function formatTimestamp(timestamp) {
+            if (!timestamp) return '';
+            const date = new Date(timestamp);
+            if (isNaN(date.getTime())) { // Check if date is valid
+                return '';
+            }
+            const options = { hour: 'numeric', minute: 'numeric', hour12: true };
+            return date.toLocaleTimeString('en-US', options);
+        }
+
+        // Show/Hide Confirmation Modal
+        function showModal(message) {
+            modalMessage.textContent = message;
+            confirmationModal.style.display = 'flex'; // Use flex to center
+            return new Promise(resolve => {
+                resolveModalPromise = resolve;
+            });
+        }
+
+        function hideModal() {
+            confirmationModal.style.display = 'none';
+        }
+
+        // --- Chat Logic ---
+        function listenForMessages() {
+            onChildAdded(messagesRef, (snapshot) => {
+                const message = snapshot.val();
+                const messageId = snapshot.key; // Get the message key for reactions
+                addMessageToChat(message, messageId);
+            });
+        }
+
+        function addMessageToChat(message, messageId) {
+            const messageElement = document.createElement('div');
+            messageElement.classList.add('message-bubble', 'flex', 'flex-col', 'max-w-[75%]', 'p-2', 'rounded-xl', 'shadow-sm', 'relative');
+            messageElement.dataset.messageId = messageId; // Store message ID on the element
+
+            let contentHTML = '';
+
+            if (message.type === 'system') {
+                messageElement.classList.add('system'); // Use dedicated system class
+                contentHTML = message.text;
+                messageElement.textContent = message.text;
+                messagesContainer.appendChild(messageElement);
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                return;
+            }
+
+            const isMine = message.sender === currentUsername;
+            messageElement.classList.add(isMine ? 'mine' : 'other');
+
+            if (message.type === 'text') {
+                contentHTML += `<p>${message.text}</p>`;
+            } else if (message.type === 'image') {
+                contentHTML += `<img src="${message.imageUrl}" alt="Shared Image" class="message-image" onclick="window.open('${message.imageUrl}', '_blank')">`;
+            } else if (message.type === 'file') {
+                let fileIcon = 'fa-file';
+                const fileExtension = message.fileName.split('.').pop().toLowerCase();
+                if (['pdf'].includes(fileExtension)) fileIcon = 'fa-file-pdf';
+                else if (['doc', 'docx'].includes(fileExtension)) fileIcon = 'fa-file-word';
+                else if (['xls', 'xlsx'].includes(fileExtension)) fileIcon = 'fa-file-excel';
+                else if (['ppt', 'pptx'].includes(fileExtension)) fileIcon = 'fa-file-powerpoint';
+                else if (['zip', 'rar', '7z'].includes(fileExtension)) fileIcon = 'fa-file-archive';
+                else if (['mp3', 'wav', 'ogg'].includes(fileExtension)) fileIcon = 'fa-file-audio';
+                else if (['mp4', 'mov', 'avi'].includes(fileExtension)) fileIcon = 'fa-file-video';
+
+                contentHTML += `
+                    <div class="message-file">
+                        <i class="fa-solid ${fileIcon}"></i>
+                        <a href="${message.fileUrl}" target="_blank">${message.fileName}</a>
+                    </div>
+                `;
+            }
+
+            messageElement.innerHTML += contentHTML;
+
+            // Add username and timestamp
+            const metaDiv = document.createElement('div');
+            metaDiv.classList.add('message-meta');
+            if (!isMine) {
+                metaDiv.innerHTML += `<span class="font-bold">${message.sender}</span>`;
+            }
+            metaDiv.innerHTML += `<span>${formatTimestamp(message.timestamp)}</span>`;
+            messageElement.appendChild(metaDiv);
+
+            // Add reactions container
+            const reactionsDiv = document.createElement('div');
+            reactionsDiv.classList.add('reactions-container', 'flex', 'flex-wrap', 'gap-1', 'mt-1');
+            messageElement.appendChild(reactionsDiv);
+
+            messagesContainer.appendChild(messageElement);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+            // Listen for reactions on this specific message
+            onValue(child(messagesRef, `${messageId}/reactions`), (snapshot) => {
+                reactionsDiv.innerHTML = ''; // Clear existing reactions
+                const reactions = snapshot.val();
+                if (reactions) {
+                    for (const emoji in reactions) {
+                        const count = reactions[emoji];
+                        if (count > 0) {
+                            const reactionSpan = document.createElement('span');
+                            reactionSpan.classList.add('text-sm', 'bg-blue-100', 'px-2', 'py-0.5', 'rounded-full', 'inline-flex', 'items-center', 'cursor-pointer');
+                            reactionSpan.innerHTML = `${emoji} <span class="ml-1 text-xs text-blue-700">${count}</span>`;
+                            reactionSpan.title = `Reacted with ${emoji}`;
+                            reactionSpan.dataset.emoji = emoji; // Store emoji for click handling
+
+                            // Allow users to remove their reaction or add to existing
+                            reactionSpan.addEventListener('click', (event) => {
+                                event.stopPropagation(); // Prevent message bubble click
+                                toggleReaction(messageId, emoji, currentUserId);
+                            });
+
+                            reactionsDiv.appendChild(reactionSpan);
+                        }
+                    }
+                }
+            });
+
+            // Add event listener for showing emoji picker on message click
+            messageElement.addEventListener('click', (event) => {
+                if (jitsiApi) return; // Don't show picker during a video call
+                currentMessageElementForReaction = messageElement; // Set which message was clicked
+                showEmojiPicker(event.clientX, event.clientY);
+            });
+        }
+
+
+        async function sendMessage(text, type = 'text', imageUrl = null, fileUrl = null, fileName = null) {
+            if (!currentUserId || !currentRoomCode) {
+                console.error("Not in a chat room or user ID is unknown.");
+                return;
+            }
+
+            const message = {
+                sender: currentUsername,
+                timestamp: serverTimestamp(),
+                type: type,
+            };
+
+            if (type === 'text') {
+                message.text = text;
+            } else if (type === 'image') {
+                message.imageUrl = imageUrl;
+                message.text = 'Image'; // Placeholder text
+            } else if (type === 'file') {
+                message.fileUrl = fileUrl;
+                message.fileName = fileName;
+                message.text = 'File'; // Placeholder text
+            }
+
+            try {
+                await push(messagesRef, message);
+                messageInput.value = ''; // Clear input after sending
+                setTypingStatus(false); // Clear typing status for self after sending a message
+            } catch (error) {
+                console.error("Error sending message:", error);
+            }
+        }
+
+        async function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            if (!supabase) {
+                showModal('Supabase is not configured. File uploads are disabled.').then(() => {});
+                console.error('Supabase client is not initialized. Please configure SUPABASE_URL and SUPABASE_ANON_KEY.');
+                return;
+            }
+
+            const fileName = `${currentRoomCode}/${currentUserId}/${Date.now()}_${file.name}`;
+            const fileType = file.type;
+
+            try {
+                addMessageToChat({
+                    sender: 'System',
+                    text: `Uploading "${file.name}"...`,
+                    type: 'system',
+                    timestamp: Date.now()
+                }, null); // No messageId for system messages
+
+                const { data, error } = await supabase.storage
+                    .from('parichat-files')
+                    .upload(fileName, file, {
+                        cacheControl: '3600',
+                        upsert: false
+                    });
+
+                if (error) {
+                    throw error;
+                }
+
+                const { data: publicUrlData } = supabase.storage
+                    .from('parichat-files')
+                    .getPublicUrl(fileName);
+
+                if (!publicUrlData || !publicUrlData.publicUrl) {
+                    throw new Error('Failed to get public URL for the uploaded file.');
+                }
+
+                if (fileType.startsWith('image/')) {
+                    await sendMessage('', 'image', publicUrlData.publicUrl, null, file.name);
+                } else {
+                    await sendMessage('', 'file', null, publicUrlData.publicUrl, file.name);
+                }
+
+            } catch (error) {
+                console.error("Error uploading file:", error);
+                addMessageToChat({
+                    sender: 'System',
+                    text: `Failed to upload "${file.name}": ${error.message}`,
+                    type: 'system',
+                    timestamp: Date.now()
+                }, null);
+            } finally {
+                imageUploadInput.value = ''; // Clear the input
+            }
+        }
+
+        // --- Emoji Reaction Logic ---
+        function showEmojiPicker(x, y) {
+            emojiPicker.style.display = 'flex';
+            // Position near the click, but ensure it stays within bounds
+            const pickerWidth = emojiPicker.offsetWidth;
+            const pickerHeight = emojiPicker.offsetHeight;
+            const containerRect = document.getElementById('app-container').getBoundingClientRect();
+
+            let left = x - containerRect.left;
+            let top = y - containerRect.top;
+
+            // Adjust if it goes off right edge
+            if (left + pickerWidth > containerRect.width) {
+                left = containerRect.width - pickerWidth - 10; // 10px margin
+            }
+            // Adjust if it goes off bottom edge
+            if (top + pickerHeight > containerRect.height) {
+                top = containerRect.height - pickerHeight - 10;
+            }
+            // Adjust if it goes off left edge
+            if (left < 0) left = 10;
+            // Adjust if it goes off top edge
+            if (top < 0) top = 10;
+
+            emojiPicker.style.left = `${left}px`;
+            emojiPicker.style.top = `${top}px`;
+
+            // Hide picker if clicked anywhere else
+            document.addEventListener('click', hideEmojiPickerOnClickOutside, { once: true });
+        }
+
+        function hideEmojiPicker() {
+            emojiPicker.style.display = 'none';
+            currentMessageElementForReaction = null;
+            document.removeEventListener('click', hideEmojiPickerOnClickOutside);
+        }
+
+        function hideEmojiPickerOnClickOutside(event) {
+            // Check if the click was inside the picker or a message bubble
+            if (!emojiPicker.contains(event.target) && !event.target.closest('.message-bubble')) {
+                hideEmojiPicker();
+            } else if (event.target.closest('.emoji-option')) {
+                // If an emoji option was clicked, the handler for that will run
+                // and then hide the picker. This prevents immediate hide on emoji click.
+            } else if (event.target.closest('.message-bubble')) {
+                // If another message bubble was clicked, the new click event will handle showing the picker for that message.
+                // We don't want to hide it immediately if another message is being selected.
+            }
+        }
+
+        // Add reaction to a message
+        async function toggleReaction(messageId, emoji, userId) {
+            if (!messagesRef || !messageId) {
+                console.error("Cannot add reaction: missing messageRef or messageId");
+                return;
+            }
+
+            const reactionPath = `messages/${messageId}/reactions/${emoji}`;
+            const messageReactionRef = ref(db, reactionPath);
+
+            try {
+                await runTransaction(messageReactionRef, (currentCount) => {
+                    // Initialize count if null, otherwise increment/decrement
+                    // For simplicity, we are just incrementing/decrementing a count
+                    // A more advanced system would track which users reacted to prevent double-counting
+                    return (currentCount || 0) + 1; // Always increment for simplicity.
+                                                     // To allow toggling (remove reaction), you'd need to store user IDs.
+                                                     // This example just adds reactions.
+                });
+            } catch (error) {
+                console.error("Transaction failed: ", error);
+            }
+            hideEmojiPicker(); // Hide picker after reacting
+        }
+
+
+        // Event listeners for emoji picker options
+        document.querySelectorAll('.emoji-option').forEach(emojiSpan => {
+            emojiSpan.addEventListener('click', (event) => {
+                event.stopPropagation(); // Prevent message bubble click
+                if (currentMessageElementForReaction) {
+                    const messageId = currentMessageElementForReaction.dataset.messageId;
+                    const emoji = event.target.textContent.trim();
+                    toggleReaction(messageId, emoji, currentUserId);
+                }
+            });
+        });
+
+
+        // --- Presence and Room Limit Logic ---
+        function listenForPresence() {
+            const roomPresenceRef = ref(db, `rooms/${currentRoomCode}/presence`);
+            onValue(roomPresenceRef, (snapshot) => {
+                const users = [];
+                snapshot.forEach((childSnapshot) => {
+                    const userData = childSnapshot.val();
+                    // Include all users in the count for the display, but exclude self for Jitsi check if needed
+                    if (userData.username) {
+                        users.push(userData.username);
+                    }
+                });
+
+                onlineUsersCountDisplay.textContent = `Online: ${users.length}`; // Update display
+
+                // Check if the other user has left during a Jitsi call
+                if (jitsiApi) {
+                    // Jitsi API getParticipantsInfo returns current participants in Jitsi meeting
+                    const jitsiParticipantsCount = jitsiApi.getParticipantsInfo().length;
+                    // Firebase users count (excluding self, to detect if OTHER person left)
+                    const firebaseOtherUsersCount = users.filter(u => u !== currentUsername).length;
+
+
+                    // If we're in a Jitsi call and Firebase shows no other users in the room,
+                    // and Jitsi also only has one participant (us), then the other person left.
+                    if (firebaseOtherUsersCount === 0 && jitsiParticipantsCount <= 1) {
+                        console.log("Other user left room (Firebase) and Jitsi, ending call.");
+                        endVideoCall();
+                        addMessageToChat({
+                            sender: 'System',
+                            text: 'The other user has left the room, ending the video call.',
+                            type: 'system',
+                            timestamp: Date.now()
+                        }, null);
+                    }
+                }
+            });
+        }
+
+
+        // --- Leave Room Logic ---
+        async function handleLeaveRoom() {
+            const confirmed = await showModal('Are you sure you want to leave the chat?');
+            if (confirmed) {
+                if (jitsiApi) {
+                    endVideoCall(); // End Jitsi call if active
+                }
+                if (presenceRef) {
+                    await set(presenceRef, null); // Explicitly remove user from presence
+                    sendMessage(`**${currentUsername}** left the chat.`, 'system'); // Send "left" message
+                }
+                // Clear localStorage for a clean exit
+                localStorage.removeItem('paritalk_username');
+                localStorage.removeItem('paritalk_roomcode');
+                localStorage.removeItem('paritalk_has_joined_session'); // Clear session marker
+
+                // Redirect to login page
+                window.location.href = 'login.html';
+            }
+            hideModal();
+        }
+
+        // --- Typing Indicator Logic ---
+        function setTypingStatus(isTyping) {
+            if (typingRef) {
+                set(typingRef, isTyping);
+            }
+        }
+
+        function listenForTyping() {
+            const allTypingRef = ref(db, `rooms/${currentRoomCode}/typing`);
+            onValue(allTypingRef, (snapshot) => {
+                const typingUsers = [];
+                snapshot.forEach((childSnapshot) => {
+                    // Check if it's not the current user and their status is true
+                    if (childSnapshot.key !== currentUserId && childSnapshot.val() === true) {
+                        typingUsers.push(childSnapshot.key);
+                    }
+                });
+
+                if (typingUsers.length > 0) {
+                    typingIndicator.textContent = 'Typing...';
+                    typingIndicator.classList.remove('hidden');
+                } else {
+                    typingIndicator.classList.add('hidden');
+                }
+            });
+        }
+
+        // --- Jitsi Video Call Logic ---
+        function startVideoCall() {
+            if (jitsiApi) {
+                console.log("Jitsi call already active.");
+                return;
+            }
+
+            const domain = 'meet.jit.si';
+            const options = {
+                roomName: `Paritalk_${currentRoomCode}`, // Unique room name based on chat room
+                width: '100%',
+                height: '100%',
+                parentNode: jitsiIframe.parentNode, // Use the parent of iframe
+                userInfo: {
+                    displayName: currentUsername
+                },
+                configOverwrite: {
+                    startWithAudioMuted: false,
+                    startWithVideoMuted: false,
+                    enableWelcomePage: false,
+                    prejoinPageEnabled: false,
+                    toolbarButtons: ['microphone', 'camera', 'desktop', 'fullscreen', 'fodeviceselection', 'hangup', 'profile', 'chat', 'raisehand', 'tileview', 'mute-everyone', 'security', 'settings', 'shortcuts', 'subject', 'toggle-camera']
+                },
+                interfaceConfigOverwrite: {
+                    SHOW_JITSI_WATERMARK: false,
+                    SHOW_WATERMARK_FOR_GUESTS: false,
+                    SHOW_BRAND_WATERMARK: false,
+                    // You can customize more here if needed
+                }
+            };
+
+            jitsiApi = new JitsiMeetExternalAPI(domain, options);
+
+            // Show Jitsi container
+            jitsiContainer.style.display = 'flex';
+            // Hide chat elements that would be under the call
+            messagesContainer.classList.add('hidden');
+            document.getElementById('chat-header').classList.add('hidden'); // Use ID for header
+            document.getElementById('message-input-area').classList.add('hidden'); // Use ID for input area
+
+
+            // Jitsi API Event Listeners (optional, but good for robust handling)
+            jitsiApi.addEventListener('participantLeft', (participant) => {
+                console.log('Jitsi Participant Left:', participant);
+                // The Firebase presence listener will handle ending the call if the other user leaves the room
+                // so we primarily rely on that for overall room state.
+            });
+
+            jitsiApi.addEventListener('readyToClose', () => {
+                console.log('Jitsi API ready to close event fired.');
+                // This event fires when the Jitsi meeting is explicitly ended from within Jitsi UI
+                endVideoCall();
+            });
+
+            // Ensure our hangup button also ends the Jitsi call
+            hangupButton.onclick = endVideoCall;
+        }
+
+        function endVideoCall() {
+            if (jitsiApi) {
+                jitsiApi.dispose();
+                jitsiApi = null;
+            }
+            jitsiContainer.style.display = 'none';
+            // Show chat elements again
+            messagesContainer.classList.remove('hidden');
+            document.getElementById('chat-header').classList.remove('hidden');
+            document.getElementById('message-input-area').classList.remove('hidden');
+        }
+
+        // --- Event Listeners ---
+        messageInput.addEventListener('input', () => {
+            // Set typing status to true
+            setTypingStatus(true);
+            // Clear any existing timeout and set a new one
+            clearTimeout(typingTimeout);
+            typingTimeout = setTimeout(() => {
+                setTypingStatus(false);
+            }, 2000); // Set to false after 2 seconds of no typing
+        });
+
+        messageInput.addEventListener('blur', () => {
+            // If user clicks away from input, stop typing immediately
+            setTypingStatus(false);
+            clearTimeout(typingTimeout);
+        });
+
+        messageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                const messageText = messageInput.value.trim();
+                if (messageText) {
+                    sendMessage(messageText, 'text');
+                }
+            }
+        });
+
+        sendButton.addEventListener('click', () => {
+            const messageText = messageInput.value.trim();
+            if (messageText) {
+                sendMessage(messageText, 'text');
+            }
+        });
+
+        imageUploadInput.addEventListener('change', handleFileUpload);
+        videoCallButton.addEventListener('click', startVideoCall);
+        leaveRoomButton.addEventListener('click', handleLeaveRoom);
+
+        // Modal event listeners
+        modalConfirm.addEventListener('click', () => {
+            if (resolveModalPromise) resolveModalPromise(true);
+            hideModal();
+        });
+        modalCancel.addEventListener('click', () => {
+            if (resolveModalPromise) resolveModalPromise(false);
+            hideModal();
+        });
+
+
+        // Handle browser window close/reload
+        window.addEventListener('beforeunload', async (e) => {
+            if (presenceRef) {
+                // Explicitly remove user from presence when window is closing
+                await set(presenceRef, null);
+                if (jitsiApi) {
+                    jitsiApi.dispose(); // Dispose Jitsi API
+                }
+                // Clearing localStorage here would prevent rejoining, so avoid it on 'beforeunload'
+                // The login.html will check localStorage on load.
+            }
+            // No e.preventDefault() to allow the browser to close without prompt
+        });
+
+        // Add a click listener to the entire document to hide the emoji picker when clicking outside
+        document.addEventListener('click', (event) => {
+            if (!emojiPicker.classList.contains('hidden') && !emojiPicker.contains(event.target) && !event.target.closest('.message-bubble')) {
+                hideEmojiPicker();
+            }
+        });
+
+    </script>
+</body>
+</html>
