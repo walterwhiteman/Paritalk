@@ -591,7 +591,7 @@
 
         // Modified to accept a room name/callId
         async function initializeJitsiInstance(callIdToJoin = currentCallId) { // Default to currentCallId
-            const jitsiRoomName = callIdToJoin; // Use the passed callId as Jitsi room name
+            const jitsiRoomName = callIdToJoin; // Use the unique Jitsi room name
             console.log("Attempting to initialize Jitsi with room name:", jitsiRoomName);
 
 
@@ -622,50 +622,65 @@
                     displayName: currentUsername
                 },
                 configOverwrite: {
-                    // Existing options (already set to false in previous versions)
+                    // Core settings that should already be false
                     startWithAudioMuted: false,
                     startWithVideoMuted: false,
                     disableSelfView: false,
                     enableClosePage: false,
-                    prejoinPageEnabled: false, // Explicitly disable prejoin page (lobby)
                     enableWelcomePage: false,
                     startSilent: false,
-                    // More aggressive attempts to prevent authentication/lobby
+
+                    // AGGRESSIVE SETTINGS TO BYPASS AUTHENTICATION/LOBBY ON PUBLIC JITSI INSTANCE
+                    // Explicitly disable prejoin and lobby
+                    prejoinPageEnabled: false,
+                    enableLobby: false,
+                    // These are crucial for unauthenticated access
                     requireDisplayName: false, // Ensure display name is not strictly required for authentication
-                    enableUserRolesBasedOnToken: false, // Do not try to assign roles based on a token we aren't providing
-                    enableLobby: false, // Explicitly disable the lobby feature
-                    // Additional options to prevent implicit auth/lobby behavior
-                    disableModeratorIndicator: true, // Hide any moderator UI elements
+                    enableUserRolesBasedOnToken: false, // We are not providing JWT tokens
+                    openBridgeChannel: true, // Should ensure connection is open
+                    // Hide any dialogs that might implicitly block connection for unauthenticated users
+                    doNotDisplayLobbyChat: true,
+                    // More settings to ensure public room behavior
+                    tokenAuthUrl: null, // No authentication server
+                    disableDeepLinking: true,
+                    disableProfile: true,
+                    readOnlyName: true,
+                    // Prevent any implied moderation that might require auth
+                    disableModeratorIndicator: true,
                     remoteVideoMenu: {
-                        disableKick: true, // Prevent kicking, implies public room
-                        disableForceMute: true, // Prevent force mute
+                        disableKick: true,
+                        disableForceMute: true,
+                        disableGrantModerator: true, // Ensure no moderator grants
+                        disablePrivateChat: true, // No private chat for simplicity
                     },
                     p2p: {
-                        enabled: true, // Prefer P2P for smaller groups
-                        stunServers: [ // Standard STUN servers for NAT traversal
+                        enabled: true,
+                        stunServers: [
                             { urls: 'stun:stun.l.google.com:19302' },
                             { urls: 'stun:stun1.l.google.com:19302' },
                             { urls: 'stun:stun2.l.google.com:19302' },
                         ],
-                        // Disable direct call establishment if it implies auth
                         preferPrivateEstablishment: false,
                     },
                     analytics: {
-                        disabled: true, // Disable analytics to minimize external calls
+                        disabled: true,
                     },
-                    disablePoweredBy: true, // Remove Jitsi watermark if desired
-                    autoPinLobby: false, // Don't auto-pin lobby for participants
-                    // Ensure these are explicitly false if any are true by default
-                    channelLastN: -1, // Fetch all participants
+                    disablePoweredBy: true,
+                    autoPinLobby: false,
+                    channelLastN: -1,
                     enableLayerSuspension: false,
-                    stereo: false, // No stereo for simpler audio
-                    enforceReadonly: false, // Allow participation
-                    // These are generally good to have for public access without authentication
-                    disablePolls: true, // Disable polls feature
-                    disableReactions: true, // Disable reactions
+                    stereo: false,
+                    enforceReadonly: false,
+                    disablePolls: true,
+                    disableReactions: true,
                     e2ee: {
-                        enabled: false // Disable end-to-end encryption if not strictly needed (simpler)
-                    }
+                        enabled: false // Crucial for public rooms without JWT auth. If true, it might require specific server setup.
+                    },
+                    // Even more specific overrides if previous ones don't work
+                    inviteMore: false, // Hide invite button
+                    peopleEnabled: false, // Hide people panel if it causes issues
+                    startAudioOnly: false, // Ensure video attempts to start
+                    startVideoOnly: false, // Ensure audio also starts
                 },
                 interfaceConfigOverwrite: {
                     APP_NAME: 'Paritalk',
@@ -677,18 +692,21 @@
                         'settings', 'tileview', 'toggle-raise-hand',
                         'videoquality', 'filmstrip',
                     ],
-                    // Ensure no UI elements related to authentication/lobby are shown
                     HIDE_INVITE_MORE_TOOLBAR_BUTTON: true,
                     HIDE_LOBBY_MODE_BUTTON: true,
-                    JITSI_WATERMARK_LINK: 'https://meet.jit.si', // Optional: you can change or remove this
-                    DISABLE_JOIN_LEAVE_NOTIFICATIONS: true, // Disable notifications for join/leave
-                    ENFORCE_PREJOIN_PAGE: false, // Double-check this is false
+                    JITSI_WATERMARK_LINK: 'https://meet.jit.si',
+                    DISABLE_JOIN_LEAVE_NOTIFICATIONS: true,
+                    ENFORCE_PREJOIN_PAGE: false,
                     DISABLE_AUDIO_LEVEL_INDICATOR: false,
                     ENABLE_REMOTE_MUTE: true,
-                    // More specific UI tweaks
-                    SETTINGS_SECTIONS: ['devices', 'language', 'profile', 'calendar'], // Only show relevant settings
-                    SHOW_JITSI_WATERMARK: false, // Explicitly hide the Jitsi watermark
-                    SHOW_POWERED_BY: false // Explicitly hide 'Powered by Jitsi'
+                    SETTINGS_SECTIONS: ['devices', 'language', 'profile', 'calendar'],
+                    SHOW_JITSI_WATERMARK: false,
+                    SHOW_POWERED_BY: false,
+                    // Hide any UI elements that might imply authentication or moderation
+                    SETTINGS_SECTIONS: ['devices', 'language'], // Only essential settings
+                    SHOW_CHROME_EXTENSION_BANNER: false,
+                    SHOW_DEEPLINKING_LOGO: false,
+                    TOOLBAR_ALWAYS_VISIBLE: true, // Ensure toolbar is always there
                 }
             };
 
@@ -703,7 +721,7 @@
                 });
 
                 jitsiApi.addEventListener('readyToClose', () => {
-                    console.log("Jitsi: Ready to close event detected.");
+                    console.log('Jitsi Event: readyToClose event fired. Calling endVideoCall.');
                     hangUpCall();
                 });
                 jitsiApi.addEventListener('videoConferenceLeft', () => {
