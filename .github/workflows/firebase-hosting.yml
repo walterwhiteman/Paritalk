@@ -28,7 +28,7 @@ jobs:
           repoToken: '${{ secrets.GITHUB_TOKEN }}' # Provided by GitHub Actions automatically
           firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT_PARITALK }}' # Name of your new secret
           projectId: 'paritalk' # Your Firebase Project ID. Can be hardcoded or use a secret if preferred.
-          # channelId: 'live' # Optional: deploy to 'live' channel (default if not specified)
+          channelId: 'live' # UNCOMMENTED: Deploy to the 'live' channel, which is typically your main public site.
           # target: 'your-hosting-target' # Optional: if you have multiple hosting sites
         env:
           # This variable is no longer used by the action but kept for reference or if you run other firebase commands
