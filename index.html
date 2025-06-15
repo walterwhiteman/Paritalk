@@ -63,9 +63,9 @@
             loginError.classList.remove('hidden');
         }
 
-        // --- Firebase Configuration (YOUR ACTUAL CONFIG) ---
+        // --- Firebase Configuration (Your Actual Config) ---
         const firebaseConfig = {
-            apiKey: "AIzaSyA8Yj1Z1Mpv2lyt9SRxJ_w4U04BXt8hajk", // Replace with your actual API Key
+            apiKey: "AIzaSyA8Yj1Z1Mpv2lyt9SRxJ_w4U04BXt8hajk",
             authDomain: "paritalk.firebaseapp.com",
             databaseURL: "https://paritalk-default-rtdb.firebaseio.com",
             projectId: "paritalk",
@@ -115,8 +115,8 @@
                             console.error("Error signing in during onAuthStateChanged:", error.message);
                             displayLoginError(`Authentication error: ${error.message}. Please try again.`);
                         }
-                    } // <-- CLOSING BRACE FOR THE 'else' BLOCK
-                }); // <-- CLOSING BRACE FOR THE 'onAuthStateChanged' CALLBACK FUNCTION
+                    }
+                });
 
             } else {
                 console.error("Firebase configuration is incomplete or invalid.");
@@ -127,19 +127,17 @@
             displayLoginError(`Initialization error: ${error.message}.`);
         }
 
-        // --- Supabase Initialization (moved outside onAuthStateChanged) ---
-        // Ensure you define SUPABASE_URL and SUPABASE_ANON_KEY if you're using Supabase.
-        // For local development or production, these should ideally be in environment variables.
-        const SUPABASE_URL = 'YOUR_SUPABASE_URL'; // Replace with your Supabase URL
-        const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY'; // Replace with your Supabase Anon Key
+        // --- Supabase Initialization ---
+        const SUPABASE_URL = 'https://uokpkgybjzvpngoxasnm.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVva3BrZ3lianp2cG5nb3hhc25tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk5MjE4NTcsImV4cCI6MjA2NTQ5Nzg1N30.FNv_13S3oj7fjartmY2PzKL25T3AWbMxP2KRI0rFU2E';
 
         let supabase;
         try {
-            if (SUPABASE_URL && SUPABASE_ANON_KEY && SUPABASE_URL !== 'YOUR_SUPABASE_URL') { // Check for placeholder value
+            if (SUPABASE_URL && SUPABASE_ANON_KEY) {
                 supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
                 console.log("Supabase client initialized successfully in index.html.");
             } else {
-                console.warn('Supabase URL or Anon Key not set or using placeholder. File uploads will not work. Please ensure keys are correctly set.');
+                console.warn('Supabase URL or Anon Key not set. File uploads will not work. Please ensure keys are correctly set.');
                 supabase = null;
             }
         } catch (error) {
@@ -151,7 +149,6 @@
         // --- Join Chat Logic ---
         joinChatButton.addEventListener('click', async () => {
             // Ensure Firebase and Auth are ready before proceeding
-            // currentUserId should be set by onAuthStateChanged after initial sign-in
             if (!db || !auth || !auth.currentUser || !currentUserId) {
                 displayLoginError("App is not fully loaded or authenticated. Please wait a moment and try again.");
                 console.warn("Attempted to join before Firebase auth or DB was ready.");
