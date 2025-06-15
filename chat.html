@@ -622,6 +622,7 @@
                     displayName: currentUsername
                 },
                 configOverwrite: {
+                    // Existing options (already set to false in previous versions)
                     startWithAudioMuted: false,
                     startWithVideoMuted: false,
                     disableSelfView: false,
@@ -629,16 +630,42 @@
                     prejoinPageEnabled: false, // Explicitly disable prejoin page (lobby)
                     enableWelcomePage: false,
                     startSilent: false,
-                    toolbarButtons: [
-                        'microphone', 'camera', 'desktop', 'fullscreen',
-                        'fodeviceselection', 'hangup', 'profile', 'chat',
-                        'settings', 'tileview', 'toggle-raise-hand',
-                        'videoquality', 'filmstrip',
-                    ],
-                    // Add these to explicitly disable authentication features if they are being inadvertently enabled
+                    // More aggressive attempts to prevent authentication/lobby
                     requireDisplayName: false, // Ensure display name is not strictly required for authentication
                     enableUserRolesBasedOnToken: false, // Do not try to assign roles based on a token we aren't providing
                     enableLobby: false, // Explicitly disable the lobby feature
+                    // Additional options to prevent implicit auth/lobby behavior
+                    disableModeratorIndicator: true, // Hide any moderator UI elements
+                    remoteVideoMenu: {
+                        disableKick: true, // Prevent kicking, implies public room
+                        disableForceMute: true, // Prevent force mute
+                    },
+                    p2p: {
+                        enabled: true, // Prefer P2P for smaller groups
+                        stunServers: [ // Standard STUN servers for NAT traversal
+                            { urls: 'stun:stun.l.google.com:19302' },
+                            { urls: 'stun:stun1.l.google.com:19302' },
+                            { urls: 'stun:stun2.l.google.com:19302' },
+                        ],
+                        // Disable direct call establishment if it implies auth
+                        preferPrivateEstablishment: false,
+                    },
+                    analytics: {
+                        disabled: true, // Disable analytics to minimize external calls
+                    },
+                    disablePoweredBy: true, // Remove Jitsi watermark if desired
+                    autoPinLobby: false, // Don't auto-pin lobby for participants
+                    // Ensure these are explicitly false if any are true by default
+                    channelLastN: -1, // Fetch all participants
+                    enableLayerSuspension: false,
+                    stereo: false, // No stereo for simpler audio
+                    enforceReadonly: false, // Allow participation
+                    // These are generally good to have for public access without authentication
+                    disablePolls: true, // Disable polls feature
+                    disableReactions: true, // Disable reactions
+                    e2ee: {
+                        enabled: false // Disable end-to-end encryption if not strictly needed (simpler)
+                    }
                 },
                 interfaceConfigOverwrite: {
                     APP_NAME: 'Paritalk',
@@ -649,7 +676,19 @@
                         'fodeviceselection', 'hangup', 'profile', 'chat',
                         'settings', 'tileview', 'toggle-raise-hand',
                         'videoquality', 'filmstrip',
-                    ]
+                    ],
+                    // Ensure no UI elements related to authentication/lobby are shown
+                    HIDE_INVITE_MORE_TOOLBAR_BUTTON: true,
+                    HIDE_LOBBY_MODE_BUTTON: true,
+                    JITSI_WATERMARK_LINK: 'https://meet.jit.si', // Optional: you can change or remove this
+                    DISABLE_JOIN_LEAVE_NOTIFICATIONS: true, // Disable notifications for join/leave
+                    ENFORCE_PREJOIN_PAGE: false, // Double-check this is false
+                    DISABLE_AUDIO_LEVEL_INDICATOR: false,
+                    ENABLE_REMOTE_MUTE: true,
+                    // More specific UI tweaks
+                    SETTINGS_SECTIONS: ['devices', 'language', 'profile', 'calendar'], // Only show relevant settings
+                    SHOW_JITSI_WATERMARK: false, // Explicitly hide the Jitsi watermark
+                    SHOW_POWERED_BY: false // Explicitly hide 'Powered by Jitsi'
                 }
             };
 
@@ -675,6 +714,12 @@
                     console.log("Jitsi: Participant left:", participant);
                 });
 
+                // Add event listener for CONNECTION_FAILED to log the error specifically
+                jitsiApi.addEventListener('conference.connectionFailed', (error) => {
+                    console.error("Jitsi Conference Connection Failed:", error);
+                    alert(`Video call connection failed: ${error.message || error.error}`);
+                    hangUpCall();
+                });
 
                 console.log("Jitsi API initialized and event listeners attached.");
 
