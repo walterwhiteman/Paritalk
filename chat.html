@@ -588,14 +588,17 @@
 
                 const existingScript = document.querySelector('script[src="https://meet.jit.si/external_api.js"]');
                 if (existingScript) {
-                    // If script element exists but not fully loaded (e.g., if previous load failed)
-                    // We'll rely on the window.JitsiMeetExternalAPI check below after a short delay
-                    console.log("Jitsi script element already in DOM.");
-                    if (window.JitsiMeetExternalAPI) { // Check if it's already available
+                    // If script element exists but not fully loaded, wait for it
+                    if (window.JitsiMeetExternalAPI) {
                         jitsiScriptLoaded = true;
                         return resolve();
+                    } else {
+                        // If script element exists but JitsiMeetExternalAPI isn't ready,
+                        // this might be a failed previous load or a very slow one.
+                        // We will re-append it, browser handles duplicates safely.
+                        console.warn("Jitsi script element found but JitsiMeetExternalAPI not ready. Re-attempting load.");
+                        existingScript.remove(); // Remove the old one to ensure a fresh load
                     }
-                     // If exists but not loaded, wait a bit or try to re-attach listeners if it failed
                 }
 
                 const script = document.createElement('script');
@@ -649,11 +652,16 @@
         }
 
         async function initializeJitsiInstance() {
+            // Use a unique room name for Jitsi to avoid conflicts with locked rooms or lingering sessions
+            const jitsiRoomName = `${currentRoomCode}-${Date.now()}`; // Or use currentCallId if you want consistent room for this specific call message
+            console.log("Attempting to initialize Jitsi with room name:", jitsiRoomName);
+
+
             if (!window.JitsiMeetExternalAPI) {
                 // This check should ideally pass now due to loadJitsiScript()
                 console.error('JitsiMeetExternalAPI not found. This should not happen if loadJitsiScript was successful.');
                 alert('Jitsi video call service not ready. Please try again.');
-                hangUpCall();
+                hangUpCall(); // Ensure cleanup if something went wrong
                 return;
             }
 
@@ -668,7 +676,7 @@
 
             const domain = 'meet.jit.si';
             const options = {
-                roomName: currentRoomCode, // Use Firebase room code as Jitsi room name
+                roomName: jitsiRoomName, // Use the unique Jitsi room name
                 width: '100%',
                 height: '100%',
                 parentNode: document.querySelector('#jitsi-meet-api'),
