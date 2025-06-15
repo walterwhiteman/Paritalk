@@ -42,7 +42,7 @@ body {
 }
 
 /* App Container (overall wrapper for login/chat views) */
-.login-page-container, #app-container { /* Applies to both login and chat main containers */
+.login-page-container, .chat-app-container-premium { /* Applies to both login and chat main containers */
     display: flex;
     justify-content: center;
     align-items: center;
@@ -51,7 +51,7 @@ body {
 }
 
 /* Specific styling for the main app container on chat.html */
-#app-container { /* Specific to the chat.html's main container */
+.chat-app-container-premium {
     background-color: var(--color-white);
     border-radius: 0; /* No border-radius on small screens for full coverage */
     box-shadow: none; /* No shadow on small screens for full coverage */
@@ -64,12 +64,12 @@ body {
 
 /* Responsive adjustment for larger screens (e.g., tablets and desktops) */
 @media (min-width: 600px) {
-    .login-page-container, #app-container {
+    .login-page-container, .chat-app-container-premium {
         height: 95vh; /* Slightly less than full height on desktop */
         margin: 2.5vh auto; /* Center vertically */
     }
 
-    #app-container {
+    .chat-app-container-premium {
         border-radius: var(--border-radius-large); /* Rounded corners on larger screens */
         box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08); /* Subtle, diffused shadow */
         max-width: 420px; /* iPhone Pro Max width for consistent mobile feel on desktop */
@@ -121,7 +121,7 @@ body {
 .app-brand-icon {
     font-size: 45px; /* Adjusted for mobile */
     color: var(--color-primary-blue);
-    font-variation-settings: 'FILL' 1;
+    font-variation-settings: 'FILL' 1; /* Filled icon for branding */
 }
 
 @media (min-width: 600px) {
@@ -326,7 +326,7 @@ body {
     flex-direction: column;
     height: 100%;
     width: 100%;
-    background-color: var(--color-off-white); /* Matches the outer body background */
+    background-color: var(--color-off-white);
 }
 
 /* Chat Header */
@@ -602,18 +602,51 @@ body {
     }
 }
 
-/* Image and File Messages */
-.message-image-premium {
-    max-width: 100%;
-    height: auto;
+/* --- Media (Image/File/Video) Previews within Chat Bubbles --- */
+.message-image-preview {
+    max-width: 150px; /* Fixed width for image preview */
+    max-height: 100px; /* Fixed height for image preview */
+    overflow: hidden;
     border-radius: var(--border-radius-small);
     margin-top: 0.4rem;
+    position: relative; /* For overlay icon */
     cursor: pointer;
-    object-fit: cover;
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    display: flex; /* To center content within */
+    justify-content: center;
+    align-items: center;
+    background-color: var(--color-light-gray); /* Placeholder background */
 }
 
-.message-file-premium {
+.message-image-premium-thumb {
+    width: 100%;
+    height: 100%;
+    object-fit: cover; /* Cover the container */
+    display: block;
+    transition: opacity 0.2s ease;
+}
+
+.message-image-preview .message-media-overlay-icon {
+    position: absolute;
+    font-size: 30px; /* Larger icon */
+    color: rgba(255, 255, 255, 0.9); /* White icon */
+    background-color: rgba(0, 0, 0, 0.4); /* Dark overlay for icon */
+    border-radius: var(--border-radius-full);
+    padding: 0.4rem;
+    transition: background-color 0.2s ease, transform 0.2s ease;
+    opacity: 0; /* Hidden by default */
+}
+
+.message-image-preview:hover .message-media-overlay-icon {
+    opacity: 1; /* Show on hover */
+    transform: scale(1.1);
+}
+.message-image-preview:hover .message-image-premium-thumb {
+    opacity: 0.8; /* Dim image slightly on hover */
+}
+
+
+.message-file-premium-preview {
     display: flex;
     align-items: center;
     gap: 0.4rem;
@@ -624,22 +657,55 @@ body {
     color: var(--color-primary-blue);
     font-weight: 500;
     word-break: break-all;
+    max-width: 200px; /* Fixed max width for file bubble */
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    transition: background-color 0.2s ease;
+    position: relative; /* For download icon */
 }
 
-.message-file-premium .material-symbols-outlined {
+.message-file-premium-preview:hover {
+    background-color: rgba(52, 105, 245, 0.2); /* Slightly darker blue on hover */
+}
+
+.message-file-premium-preview .file-icon {
     font-size: 20px;
     color: var(--color-primary-blue);
     flex-shrink: 0;
 }
 
-.message-file-premium a {
+.message-file-premium-preview .file-name-link {
     text-decoration: none;
     color: inherit;
     word-break: break-all;
+    flex-grow: 1; /* Allow link to take space */
+    white-space: nowrap; /* Prevent wrapping initially */
+    overflow: hidden; /* Hide overflow */
+    text-overflow: ellipsis; /* Show ellipsis for long names */
+    max-width: calc(100% - 60px); /* Adjust max-width considering icon and download button */
 }
-.message-file-premium a:hover {
+.message-file-premium-preview .file-name-link:hover {
     text-decoration: underline;
 }
+
+.message-file-premium-preview .download-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-primary-blue);
+    text-decoration: none;
+    padding: 0.2rem;
+    border-radius: var(--border-radius-full);
+    transition: background-color 0.2s ease;
+    flex-shrink: 0;
+}
+.message-file-premium-preview .download-icon:hover {
+    background-color: rgba(52, 105, 245, 0.1);
+}
+.message-file-premium-preview .download-icon .material-symbols-outlined {
+    font-size: 20px;
+    font-variation-settings: 'FILL' 0; /* Outlined download icon */
+}
+
 
 /* Typing Indicator */
 .typing-indicator-premium {
@@ -880,6 +946,122 @@ body {
         font-size: 32px;
     }
 }
+
+/* --- Full Media Modal (New) --- */
+#full-media-modal {
+    position: fixed; /* Fixed to viewport */
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.9); /* Darker, more opaque overlay */
+    z-index: 200; /* Above all other content, even Jitsi */
+    display: none; /* Hidden by default */
+    justify-content: center;
+    align-items: center;
+}
+
+.full-media-content-premium {
+    position: relative;
+    max-width: 90%;
+    max-height: 90%;
+    background-color: #000; /* Black background for media */
+    border-radius: var(--border-radius-medium);
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.5);
+    overflow: hidden; /* Hide anything outside content area */
+}
+
+.full-media-close-button {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background-color: rgba(255, 255, 255, 0.2);
+    color: var(--color-white);
+    border: none;
+    border-radius: var(--border-radius-full);
+    width: 36px;
+    height: 36px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    font-size: 20px;
+    z-index: 201; /* Above media content */
+    transition: background-color 0.2s ease;
+}
+.full-media-close-button:hover {
+    background-color: rgba(255, 255, 255, 0.4);
+}
+
+.full-media-display-area {
+    flex-grow: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    overflow: auto; /* Allow scrolling for large media */
+}
+
+.full-media-image, .full-media-video, .full-media-document {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain; /* Contain within the display area */
+    border-radius: var(--border-radius-small);
+}
+
+.full-media-video {
+    width: 100%; /* Ensure video takes full width of its container */
+    height: auto;
+}
+
+.full-media-document {
+    width: 100%;
+    height: 100%;
+    min-height: 300px; /* Ensure iframe has a minimum height */
+}
+
+.full-media-info-text {
+    color: var(--color-medium-gray);
+    font-size: 1rem;
+    text-align: center;
+}
+
+.full-media-controls {
+    background-color: rgba(0, 0, 0, 0.7);
+    padding: 10px 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-shrink: 0; /* Don't shrink */
+    gap: 1rem;
+}
+
+.full-media-download-button {
+    background-color: var(--color-primary-blue);
+    color: var(--color-white);
+    border: none;
+    border-radius: var(--border-radius-small);
+    padding: 0.8rem 1.5rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    transition: background-color 0.2s ease, transform 0.2s ease;
+}
+.full-media-download-button:hover {
+    background-color: var(--color-primary-blue-dark);
+    transform: translateY(-1px);
+}
+.full-media-download-button .material-symbols-outlined {
+    font-size: 20px;
+    font-variation-settings: 'FILL' 0; /* Outlined */
+}
+
 
 /* --- Confirmation Modal (responsive) --- */
 .modal-premium {
