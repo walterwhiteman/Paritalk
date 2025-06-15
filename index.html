@@ -80,7 +80,7 @@
                 app = initializeApp(firebaseConfig);
                 auth = getAuth(app);
                 db = getDatabase(app);
-                console.log("Firebase initialized successfully.");
+                console.log("Firebase initialized successfully in index.html.");
 
                 // --- Authentication ---
                 onAuthStateChanged(auth, async (user) => {
@@ -112,25 +112,26 @@
                 throw new Error("Firebase config incomplete."); // Halt execution
             }
         } catch (error) {
-            console.error("Error during Firebase initialization:", error.message);
+            console.error("Error during Firebase initialization in index.html:", error.message);
             displayLoginError(`Initialization error: ${error.message}. Make sure your Firebase config is correct.`);
         }
 
 
         // Supabase Configuration (User's provided keys)
-        const SUPABASE_URL = 'https://uokpkgybjzvpngoxasnm.supabase.com';
+        const SUPABASE_URL = 'https://uokpkgybjzvpngoxasnm.supabase.co'; // Using the confirmed .co URL
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVva3BrZ3lianp2cG5nb3hhc25tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk5MjE4NTcsImV4cCI6MjA2NTQ5Nzg1N30.FNv_13S3oj7fjartmY2PzKL25T3AWbMxP2KRI0rFU2E';
 
-        let supabase;
+        let supabase; // Declare supabase here so it's accessible globally within the module
         try {
-            if (SUPABASE_URL && SUPABASE_URL !== 'YOUR_SUPABASE_URL' && SUPABASE_ANON_KEY && SUPABASE_ANON_KEY !== 'YOUR_SUPABASE_ANON_KEY') {
+            if (SUPABASE_URL && SUPABASE_ANON_KEY) {
                 supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                console.log("Supabase client initialized successfully in index.html.");
             } else {
-                console.warn('Supabase URL or Anon Key not set. File uploads will not work in chat.html. Please ensure keys are correctly set in login.html and chat.html.');
+                console.warn('Supabase URL or Anon Key not set. File uploads will not work in chat.html. Please ensure keys are correctly set.');
                 supabase = null;
             }
         } catch (error) {
-            console.error('Failed to initialize Supabase:', error);
+            console.error('Failed to initialize Supabase in index.html:', error);
             supabase = null;
         }
 
@@ -178,6 +179,7 @@
                 localStorage.setItem('paritalk_roomcode', roomCode);
 
                 // Redirect to chat.html
+                // Using encodeURIComponent to ensure special characters in room/user are handled correctly
                 window.location.href = `chat.html?room=${encodeURIComponent(roomCode)}&user=${encodeURIComponent(username)}`;
 
             } catch (error) {
