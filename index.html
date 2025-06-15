@@ -33,13 +33,14 @@
         </div>
     </div>
 
-    <!-- Firebase SDKs -->
+    <!-- Combined Firebase and Supabase JS -->
     <script type="module">
+        // Firebase SDK Imports
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
         import { getDatabase, ref, get, set, onDisconnect, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
-        // Supabase Client SDK (Needed for consistent init, even if not directly uploading here)
+        // Supabase Client SDK Import
         import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
         // --- UI Elements (Declared First to avoid 'access before initialization' error) ---
@@ -65,9 +66,7 @@
             appId: "1:441945619664:web:045e0c872e67e0eb9fb2d5"
         };
 
-        // The initialAuthToken is usually provided by specific environments (like Canvas).
-        // For GitHub Pages, we will primarily rely on anonymous sign-in without a custom token.
-        const initialAuthToken = null; // Set to null for GitHub Pages deployment.
+        const initialAuthToken = null; // Not used for GitHub Pages deployment.
 
 
         // Initialize Firebase
@@ -110,11 +109,9 @@
             } else {
                 console.error("Firebase configuration is incomplete. Please ensure apiKey, projectId, and databaseURL are set.");
                 displayLoginError("App configuration error: Firebase is not set up correctly. See console for details.");
-                // Prevent further execution of Firebase-dependent code
-                throw new Error("Firebase config incomplete.");
+                throw new Error("Firebase config incomplete."); // Halt execution
             }
         } catch (error) {
-            // This catch block handles errors from initializeApp itself
             console.error("Error during Firebase initialization:", error.message);
             displayLoginError(`Initialization error: ${error.message}. Make sure your Firebase config is correct.`);
         }
