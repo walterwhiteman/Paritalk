@@ -103,8 +103,6 @@
             font-size: 0.9em;
             font-weight: 500;
         }
-
-
     </style>
 </head>
 <body>
@@ -219,6 +217,7 @@
 
         // Jitsi Meet API (will be loaded dynamically)
         let jitsiApi = null;
+        let jitsiScriptLoaded = false; // Flag to track if Jitsi script is loaded
 
         // DOM Elements
         const loadingOverlay = document.getElementById('loading-overlay'); // Get loading overlay
@@ -241,7 +240,7 @@
         const typingIndicator = document.getElementById('typing-indicator');
         const typingUsernameSpan = document.getElementById('typing-username');
 
-        // Modal Elements (Keep these if you intend to use showConfirmationModal for video call)
+        // Modal Elements
         const confirmationModal = document.getElementById('confirmation-modal');
         const modalMessage = document.getElementById('modal-message');
         const modalConfirmButton = document.getElementById('modal-confirm');
@@ -262,7 +261,7 @@
 
         // --- Utility Functions ---
 
-        // Show Confirmation Modal (still used for video call, remove if not needed at all)
+        // Show Confirmation Modal
         async function showConfirmationModal(message) {
             modalMessage.textContent = message;
             confirmationModal.classList.remove('hidden');
@@ -579,6 +578,44 @@
 
         // --- Jitsi Integration ---
 
+        // Function to load the Jitsi Meet external API script
+        function loadJitsiScript() {
+            return new Promise((resolve, reject) => {
+                if (jitsiScriptLoaded && window.JitsiMeetExternalAPI) {
+                    console.log("Jitsi script already loaded.");
+                    return resolve();
+                }
+
+                const existingScript = document.querySelector('script[src="https://meet.jit.si/external_api.js"]');
+                if (existingScript) {
+                    // If script element exists but not fully loaded (e.g., if previous load failed)
+                    // We'll rely on the window.JitsiMeetExternalAPI check below after a short delay
+                    console.log("Jitsi script element already in DOM.");
+                    if (window.JitsiMeetExternalAPI) { // Check if it's already available
+                        jitsiScriptLoaded = true;
+                        return resolve();
+                    }
+                     // If exists but not loaded, wait a bit or try to re-attach listeners if it failed
+                }
+
+                const script = document.createElement('script');
+                script.src = 'https://meet.jit.si/external_api.js';
+                script.async = true;
+                script.onload = () => {
+                    console.log("Jitsi external_api.js loaded successfully.");
+                    jitsiScriptLoaded = true;
+                    resolve();
+                };
+                script.onerror = (e) => {
+                    console.error('Failed to load Jitsi API script:', e);
+                    jitsiScriptLoaded = false;
+                    reject(new Error('Failed to load Jitsi API script.'));
+                };
+                document.body.appendChild(script);
+            });
+        }
+
+
         async function startVideoCall() {
             const confirmed = await showConfirmationModal('Are you sure you want to start a video call?');
             if (!confirmed) {
@@ -586,26 +623,35 @@
                 return;
             }
 
-            // Generate a unique call ID for this session
-            const callId = `${currentRoomCode}-${Date.now()}`;
-            currentCallId = callId; // Store the active call ID
+            try {
+                // First, ensure the Jitsi script is loaded
+                await loadJitsiScript();
 
-            // Add system message to chat that video call has started
-            await push(messagesRef, {
-                type: 'system',
-                action: 'videoCallStarted', // New action type
-                text: `${currentUsername} started a video call.`,
-                callId: callId, // Include the unique call ID
-                timestamp: serverTimestamp()
-            });
+                // Generate a unique call ID for this session
+                const callId = `${currentRoomCode}-${Date.now()}`;
+                currentCallId = callId; // Store the active call ID
 
-            // Proceed with Jitsi initialization
-            initializeJitsiInstance();
+                // Add system message to chat that video call has started
+                await push(messagesRef, {
+                    type: 'system',
+                    action: 'videoCallStarted', // New action type
+                    text: `${currentUsername} started a video call.`,
+                    callId: callId, // Include the unique call ID
+                    timestamp: serverTimestamp()
+                });
+
+                // Proceed with Jitsi initialization
+                initializeJitsiInstance();
+            } catch (error) {
+                console.error("Error preparing for video call:", error);
+                alert('Could not start video call. Check console for details.');
+            }
         }
 
         async function initializeJitsiInstance() {
             if (!window.JitsiMeetExternalAPI) {
-                console.error('JitsiMeetExternalAPI not found. Script might not have loaded correctly or quickly enough.');
+                // This check should ideally pass now due to loadJitsiScript()
+                console.error('JitsiMeetExternalAPI not found. This should not happen if loadJitsiScript was successful.');
                 alert('Jitsi video call service not ready. Please try again.');
                 hangUpCall();
                 return;
@@ -660,10 +706,8 @@
             try {
                 jitsiApi = new JitsiMeetExternalAPI(domain, options);
 
-                // Add event listeners to detect when the Jitsi iFrame is ready to be interacted with
                 jitsiApi.addEventListener('iframe-ready', () => {
                     console.log("Jitsi iFrame is ready.");
-                    // You can perform more actions here if needed once the iFrame is fully loaded
                 });
                 jitsiApi.addEventListener('participantJoined', (participant) => {
                     console.log("Jitsi: Participant joined:", participant);
@@ -679,8 +723,6 @@
                 });
                 jitsiApi.addEventListener('participantLeft', (participant) => {
                     console.log("Jitsi: Participant left:", participant);
-                    // If the other participant leaves, consider ending the call for everyone
-                    // This is more advanced and requires coordinating via Firebase
                 });
 
 
@@ -719,6 +761,7 @@
             const jitsiScript = document.querySelector('script[src="https://meet.jit.si/external_api.js"]');
             if (jitsiScript) {
                 jitsiScript.remove();
+                jitsiScriptLoaded = false; // Reset flag
                 console.log("Jitsi API script removed from DOM.");
             }
         }
@@ -794,7 +837,7 @@
         });
 
         // Handle clicking on message images/files to open full modal
-        messagesContainer.addEventListener('click', (event) => {
+        messagesContainer.addEventListener('click', async (event) => { // Added async here
             const imagePreview = event.target.closest('.message-image-preview');
             const filePreview = event.target.closest('.message-file-premium-preview');
             const downloadIcon = event.target.closest('.download-icon');
@@ -811,9 +854,14 @@
                 showFullMediaModal(url, type, name);
             } else if (joinCallButton) { // Handle join call button click
                 console.log("Join video call button clicked!");
-                // The 'startVideoCall' function implicitly uses currentRoomCode
-                // and will try to join the Jitsi meeting.
-                initializeJitsiInstance(); // Directly initialize the instance
+                // Crucial: Load the Jitsi script first, then initialize
+                try {
+                    await loadJitsiScript(); // Ensure script is loaded on receiver's side
+                    initializeJitsiInstance(); // Then initialize Jitsi
+                } catch (error) {
+                    console.error("Error joining video call:", error);
+                    alert("Failed to join video call. Please try again.");
+                }
             }
         });
 
@@ -911,7 +959,7 @@
             }
             localStorage.removeItem('paritalk_username');
             localStorage.removeItem('paritalk_roomcode');
-            console.log("Local storage cleared.");
+                console.log("Local storage cleared.");
             window.location.href = 'index.html'; // Redirect to login
             console.log("Redirecting to index.html...");
         }
