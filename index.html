@@ -86,10 +86,9 @@
                 onAuthStateChanged(auth, async (user) => {
                     if (user) {
                         currentUserId = user.uid;
-                        const storedUsername = localStorage.getItem('paritalk_username');
-                        const storedRoomCode = localStorage.getItem('paritalk_roomcode');
-                        if (storedUsername) usernameInput.value = storedUsername;
-                        if (storedRoomCode) roomcodeInput.value = storedRoomCode;
+                        // REMOVED: localStorage.getItem to pre-fill inputs
+                        // If you want to automatically log in the user if they were previously in a room,
+                        // this logic can be re-added, but for now we're removing it as requested.
                     } else {
                         try {
                             if (initialAuthToken) {
@@ -121,7 +120,7 @@
         const SUPABASE_URL = 'https://uokpkgybjzvpngoxasnm.supabase.co'; // Using the confirmed .co URL
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVva3BrZ3lianp2cG5nb3hhc25tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk5MjE4NTcsImV4cCI6MjA2NTQ5Nzg1N30.FNv_13S3oj7fjartmY2PzKL25T3AWbMxP2KRI0rFU2E';
 
-        let supabase; // Declare supabase here so it's accessible globally within the module
+        let supabase;
         try {
             if (SUPABASE_URL && SUPABASE_ANON_KEY) {
                 supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -174,12 +173,10 @@
                     return;
                 }
 
-                // Save credentials to localStorage for auto-rejoin
-                localStorage.setItem('paritalk_username', username);
-                localStorage.setItem('paritalk_roomcode', roomCode);
+                // REMOVED: localStorage.setItem('paritalk_username', username);
+                // REMOVED: localStorage.setItem('paritalk_roomcode', roomCode);
 
                 // Redirect to chat.html
-                // Using encodeURIComponent to ensure special characters in room/user are handled correctly
                 window.location.href = `chat.html?room=${encodeURIComponent(roomCode)}&user=${encodeURIComponent(username)}`;
 
             } catch (error) {
