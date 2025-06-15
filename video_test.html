@@ -39,10 +39,32 @@
             height: 100%;
             border: none;
         }
-        #call-button-container {
+        #call-control-container {
             margin-top: 1.5rem;
             display: flex;
             gap: 1rem;
+            align-items: center;
+            flex-wrap: wrap; /* Allow wrapping on smaller screens */
+            justify-content: center;
+        }
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+        .input-group label {
+            font-weight: 500;
+            color: #4a5568;
+            margin-bottom: 0.25rem;
+        }
+        .input-group input {
+            padding: 0.5rem 0.75rem;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 1rem;
+            width: 100%;
+            max-width: 250px; /* Limit input width */
         }
         button {
             padding: 0.75rem 1.5rem;
@@ -88,8 +110,11 @@
             border-radius: 12px;
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
             text-align: center;
-            max-width: 400px;
+            max-width: 500px; /* Slightly wider for URL */
             width: 90%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
         .modal-content button {
             margin: 0.5rem;
@@ -103,13 +128,40 @@
         .modal-content .cancel-button {
             background-color: #f44336;
         }
+        .modal-content .close-button {
+            background-color: #007bff; /* Blue for 'Close' */
+            color: white;
+        }
+        #room-url-display {
+            background-color: #e2e8f0;
+            padding: 0.75rem;
+            border-radius: 8px;
+            word-break: break-all;
+            margin-top: 1rem;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+            color: #2d3748;
+            border: 1px dashed #a0aec0;
+            cursor: copy; /* Indicate it's copyable */
+        }
+        #room-url-display:hover {
+            background-color: #cbd5e1;
+        }
     </style>
 </head>
 <body>
     <div id="app-container">
         <h1 class="text-3xl font-bold text-gray-800 mb-6">Jitsi Meet Video Test</h1>
 
-        <div id="call-button-container">
+        <div id="call-control-container">
+            <div class="input-group">
+                <label for="test-room-name">Room Name:</label>
+                <input type="text" id="test-room-name" placeholder="Enter a room name" value="MySecretCall" class="rounded-md">
+            </div>
+            <div class="input-group">
+                <label for="test-user-name">Your Name:</label>
+                <input type="text" id="test-user-name" placeholder="Enter your name" value="TestUser" class="rounded-md">
+            </div>
             <button id="start-call-button">Start Video Call</button>
             <button id="end-call-button">End Call</button>
         </div>
@@ -122,44 +174,93 @@
         <div id="confirmation-modal" class="modal">
             <div class="modal-content">
                 <p id="modal-message" class="mb-4 text-lg text-gray-700"></p>
-                <button id="modal-confirm" class="confirm-button">OK</button>
-                <button id="modal-cancel" class="cancel-button">Cancel</button>
+                <p id="room-url-message" class="text-sm text-gray-600 hidden">Share this URL with the other person:</p>
+                <code id="room-url-display" class="hidden"></code>
+                <p id="mobile-app-suggestion" class="text-sm text-gray-600 mt-2 hidden">
+                    For best results on mobile, open this link using the <a href="https://jitsi.org/downloads/" target="_blank" class="text-blue-500 hover:underline">Jitsi Meet app</a>.
+                </p>
+                <div class="flex gap-4 mt-4">
+                    <button id="modal-confirm" class="confirm-button">OK</button>
+                    <button id="modal-cancel" class="cancel-button">Cancel</button>
+                    <button id="modal-close" class="close-button hidden">Close</button>
+                </div>
             </div>
         </div>
     </div>
 
     <script>
-        // Jitsi Meet External API script is loaded in the <head>
-
         const startCallButton = document.getElementById('start-call-button');
         const endCallButton = document.getElementById('end-call-button');
         const jitsiWrapper = document.getElementById('jitsi-wrapper');
         const jitsiIframe = document.getElementById('jitsi-iframe');
+        const testRoomNameInput = document.getElementById('test-room-name');
+        const testUserNameInput = document.getElementById('test-user-name');
 
         const confirmationModal = document.getElementById('confirmation-modal');
         const modalMessage = document.getElementById('modal-message');
         const modalConfirm = document.getElementById('modal-confirm');
         const modalCancel = document.getElementById('modal-cancel');
+        const modalCloseButton = document.getElementById('modal-close');
+        const roomUrlDisplay = document.getElementById('room-url-display');
+        const roomUrlMessage = document.getElementById('room-url-message');
+        const mobileAppSuggestion = document.getElementById('mobile-app-suggestion');
+
         let resolveModalPromise;
+        let jitsiApi = null;
 
-        let jitsiApi = null; // Variable to hold the JitsiMeetExternalAPI instance
-
-        // Simple modal function for alerts/confirmations
-        function showModal(message, isConfirm = false) {
+        // Simple modal function for alerts/confirmations/information display
+        function showModal(message, type = 'alert', urlToDisplay = null) {
             modalMessage.textContent = message;
-            modalConfirm.style.display = isConfirm ? 'inline-block' : 'none'; // Only show OK for simple messages
-            modalCancel.style.display = isConfirm ? 'inline-block' : 'none'; // Only show Cancel for confirmations
+            roomUrlDisplay.textContent = '';
+            roomUrlDisplay.classList.add('hidden');
+            roomUrlMessage.classList.add('hidden');
+            mobileAppSuggestion.classList.add('hidden');
 
-            // Set button text for simple alerts
-            if (!isConfirm) {
-                modalConfirm.textContent = 'OK';
+            modalConfirm.style.display = 'none';
+            modalCancel.style.display = 'none';
+            modalCloseButton.style.display = 'none';
+
+            if (type === 'confirm') {
                 modalConfirm.style.display = 'inline-block';
-            } else {
+                modalCancel.style.display = 'inline-block';
                 modalConfirm.textContent = 'Yes';
                 modalCancel.textContent = 'No';
+            } else if (type === 'info') {
+                if (urlToDisplay) {
+                    roomUrlDisplay.textContent = urlToDisplay;
+                    roomUrlDisplay.classList.remove('hidden');
+                    roomUrlMessage.classList.remove('hidden');
+                    mobileAppSuggestion.classList.remove('hidden');
+                    // Automatically copy URL to clipboard
+                    navigator.clipboard.writeText(urlToDisplay).then(() => {
+                        console.log('Room URL copied to clipboard!');
+                    }).catch(err => {
+                        console.warn('Failed to copy room URL to clipboard:', err);
+                        // Fallback for browsers not supporting navigator.clipboard
+                        // Or if not in a secure context
+                        roomUrlDisplay.title = 'Click to copy to clipboard';
+                        roomUrlDisplay.onclick = () => {
+                            const range = document.createRange();
+                            range.selectNode(roomUrlDisplay);
+                            window.getSelection().removeAllRanges();
+                            window.getSelection().addRange(range);
+                            try {
+                                document.execCommand('copy');
+                                roomUrlDisplay.title = 'Copied!';
+                            } catch (err) {
+                                console.error('Fallback copy failed:', err);
+                            }
+                            window.getSelection().removeAllRanges();
+                        };
+                    });
+                }
+                modalCloseButton.style.display = 'inline-block';
+            } else { // 'alert' type
+                modalConfirm.style.display = 'inline-block';
+                modalConfirm.textContent = 'OK';
             }
 
-            confirmationModal.style.display = 'flex'; // Show the modal
+            confirmationModal.style.display = 'flex';
             return new Promise(resolve => {
                 resolveModalPromise = resolve;
             });
@@ -167,6 +268,7 @@
 
         function hideModal() {
             confirmationModal.style.display = 'none';
+            roomUrlDisplay.onclick = null; // Clear click handler
         }
 
         modalConfirm.addEventListener('click', () => {
@@ -177,34 +279,47 @@
             if (resolveModalPromise) resolveModalPromise(false);
             hideModal();
         });
+        modalCloseButton.addEventListener('click', () => {
+            if (resolveModalPromise) resolveModalPromise(false); // Resolve false for a close button
+            hideModal();
+        });
 
-        // Function to start the Jitsi video call
+
         function startVideoCall() {
-            // Check if JitsiMeetExternalAPI is available
             if (typeof JitsiMeetExternalAPI === 'undefined') {
-                showModal("Jitsi Meet API is not loaded. Please ensure you have an internet connection and try again.", false);
+                showModal("Jitsi Meet API is not loaded. Please ensure you have an internet connection and try again.", 'alert');
                 console.error("JitsiMeetExternalAPI is not defined. Jitsi script might not have loaded correctly.");
                 return;
             }
 
             if (jitsiApi) {
                 console.log("Jitsi call already active.");
-                showModal("A call is already active.", false);
+                showModal("A call is already active. Please end the current call before starting a new one.", 'alert');
                 return;
             }
 
-            // Define a unique room name for testing.
-            // In a real app, this would come from your chat room code.
-            const roomName = `ParitalkTestRoom_${Math.random().toString(36).substring(7)}`; // Unique room for testing
-            const userName = `Tester_${Math.random().toString(36).substring(5)}`; // Random username for testing
+            const roomName = testRoomNameInput.value.trim();
+            const userName = testUserNameInput.value.trim();
 
-            const domain = 'meet.jit.si'; // Using the public Jitsi Meet instance
+            if (!roomName) {
+                showModal("Please enter a Room Name to start the call.", 'alert');
+                return;
+            }
+            if (!userName) {
+                showModal("Please enter Your Name.", 'alert');
+                return;
+            }
+
+            const domain = 'meet.jit.si';
+            // Construct the full Jitsi Meet URL for sharing
+            const fullJitsiUrl = `https://${domain}/${encodeURIComponent(roomName)}`;
+
 
             const options = {
                 roomName: roomName,
                 width: '100%',
                 height: '100%',
-                parentNode: jitsiIframe.parentNode, // This places the iframe inside jitsi-wrapper
+                parentNode: jitsiIframe.parentNode,
                 userInfo: {
                     displayName: userName
                 },
@@ -213,7 +328,7 @@
                     startWithVideoMuted: false,
                     enableWelcomePage: false,
                     prejoinPageEnabled: false,
-                    toolbarButtons: [ // Customize toolbar buttons
+                    toolbarButtons: [
                         'microphone', 'camera', 'desktop', 'fullscreen', 'fodeviceselection',
                         'hangup', 'profile', 'chat', 'raisehand', 'tileview',
                         'mute-everyone', 'security', 'settings', 'shortcuts', 'subject', 'toggle-camera'
@@ -226,7 +341,7 @@
                     SHOW_JITSI_WATERMARK: false,
                     SHOW_WATERMARK_FOR_GUESTS: false,
                     SHOW_BRAND_WATERMARK: false,
-                    TILE_VIEW_MAX_COLUMNS: 2 // Example: limit tile view columns
+                    TILE_VIEW_MAX_COLUMNS: 2
                 }
             };
 
@@ -235,15 +350,15 @@
                 console.log("Jitsi API initialized for room:", roomName, "by user:", userName);
                 console.log("E2EE is enabled in Jitsi config.");
 
-                // Show the Jitsi iframe and hide the start button
                 jitsiWrapper.style.display = 'flex';
                 startCallButton.style.display = 'none';
                 endCallButton.style.display = 'inline-block';
 
-                // Add event listeners for Jitsi API events
+                showModal(`Video call started! You are in room "${roomName}".`, 'info', fullJitsiUrl);
+
+
                 jitsiApi.addEventListener('participantLeft', (participant) => {
                     console.log('Jitsi Participant Left:', participant);
-                    // You could add logic here to end the call if all other participants leave
                 });
 
                 jitsiApi.addEventListener('readyToClose', () => {
@@ -253,37 +368,49 @@
 
             } catch (error) {
                 console.error("Error initializing Jitsi Meet API:", error);
-                showModal(`Failed to start video call: ${error.message}. Please check console for details.`, false);
-                endVideoCall(); // Clean up if initialization failed
+                showModal(`Failed to start video call: ${error.message}. Please check console for details.`, 'alert');
+                endVideoCall();
             }
         }
 
-        // Function to end the Jitsi video call
         function endVideoCall() {
             if (jitsiApi) {
                 try {
-                    jitsiApi.dispose(); // This closes the Jitsi meeting in the iframe
+                    jitsiApi.dispose();
                     jitsiApi = null;
                     console.log("Jitsi API disposed.");
                 } catch (error) {
                     console.error("Error disposing Jitsi API:", error);
                 }
             }
-            // Hide the Jitsi iframe and show the start button again
             jitsiWrapper.style.display = 'none';
             startCallButton.style.display = 'inline-block';
             endCallButton.style.display = 'none';
         }
 
-        // Attach event listeners to buttons
         startCallButton.addEventListener('click', startVideoCall);
         endCallButton.addEventListener('click', endVideoCall);
 
-        // Ensure cleanup if the browser tab is closed
         window.addEventListener('beforeunload', () => {
             if (jitsiApi) {
                 jitsiApi.dispose();
             }
+        });
+
+        // Pre-fill inputs from localStorage if available (optional)
+        document.addEventListener('DOMContentLoaded', () => {
+            const storedRoom = localStorage.getItem('jitsiTestRoom');
+            const storedUser = localStorage.getItem('jitsiTestUser');
+            if (storedRoom) testRoomNameInput.value = storedRoom;
+            if (storedUser) testUserNameInput.value = storedUser;
+
+            // Save values to localStorage when changed
+            testRoomNameInput.addEventListener('input', () => {
+                localStorage.setItem('jitsiTestRoom', testRoomNameInput.value);
+            });
+            testUserNameInput.addEventListener('input', () => {
+                localStorage.setItem('jitsiTestUser', testUserNameInput.value);
+            });
         });
     </script>
 </body>
