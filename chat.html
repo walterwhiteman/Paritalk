@@ -3,25 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Paritalk - Chat</title>
-    <!-- Link to our custom styles.css - IMPORTANT: Stays in root as per your structure -->
-    <link rel="stylesheet" href="style.css">
+    <title>Paritalk - Chat Room</title>
     <!-- Google Fonts: Roboto (clean, modern, Apple-like feel) -->
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
     <!-- Google Material Symbols (Premium Icon Feel) -->
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
-    
+    <!-- Link to our custom styles.css - IMPORTANT: Stays in root as per your structure -->
+    <link rel="stylesheet" href="style.css">
+
     <!-- Jitsi Meet External API - IMPORTANT: MUST be loaded as a regular script before module scripts use it -->
     <script src="https://meet.jit.si/external_api.js"></script>
 </head>
 <body>
-    <div id="app-container" class="chat-app-container-premium"> <!-- Added class for consistency with new styling -->
-        <!-- Chat Screen -->
-        <div id="chat-screen" class="chat-screen-premium"> <!-- Added class for consistency -->
+    <div id="app-container" class="chat-app-container-premium">
+
+        <!-- Chat Content Wrapper: This div holds all the main chat UI elements -->
+        <!-- It will be hidden/shown by Jitsi video call logic -->
+        <div id="chat-content-wrapper">
             <!-- Chat Header -->
             <header class="chat-header-premium">
                 <div class="chat-header-info">
-                    <!-- Material Symbol for avatar, replacing Font Awesome -->
                     <span class="material-symbols-outlined chat-header-avatar-icon">person</span>
                     <div class="chat-header-details">
                         <h2 id="current-room-display" class="chat-room-display-name">Room: <span id="room-name"></span></h2>
@@ -29,7 +30,6 @@
                     </div>
                 </div>
                 <div class="chat-header-actions">
-                    <!-- Material Symbols for actions, replacing Font Awesome -->
                     <span class="material-symbols-outlined chat-action-icon" id="video-call-button" title="Start Video Call">videocam</span>
                     <span class="material-symbols-outlined chat-action-icon" id="leave-room-button" title="Leave Room">logout</span>
                 </div>
@@ -50,29 +50,26 @@
                 <input type="text" id="message-input" placeholder="Type a message...">
                 <input type="file" id="image-upload" accept="image/*,video/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation" class="hidden">
                 <label for="image-upload" title="Attach File" class="attach-file-button">
-                    <!-- Material Symbol for attachment, replacing Font Awesome -->
                     <span class="material-symbols-outlined">attach_file</span>
                 </label>
                 <button id="send-button" class="send-message-button">
-                    <!-- Material Symbol for send, replacing Font Awesome -->
                     <span class="material-symbols-outlined">send</span>
                 </button>
             </footer>
-        </div> <!-- End #chat-screen -->
+        </div> <!-- End #chat-content-wrapper -->
 
         <!-- Jitsi Video Call Container -->
-        <div id="jitsi-container" class="jitsi-container-premium hidden"> <!-- Added hidden class and new class name -->
+        <div id="jitsi-container" class="jitsi-container-premium hidden">
             <iframe id="jitsi-iframe" allow="camera; microphone; display-capture; autoplay; fullscreen"></iframe>
             <div id="jitsi-controls" class="jitsi-controls-premium">
                 <button id="hangup-button" class="hangup-button-premium">
-                    <!-- Material Symbol for hangup, replacing Font Awesome -->
                     <span class="material-symbols-outlined">call_end</span> End Call
                 </button>
             </div>
         </div>
 
         <!-- Confirmation Modal -->
-        <div id="confirmation-modal" class="modal-premium hidden"> <!-- Added hidden class and new class name -->
+        <div id="confirmation-modal" class="modal-premium hidden">
             <div class="modal-content-premium">
                 <p id="modal-message" class="modal-message-text-premium"></p>
                 <div class="modal-actions-premium">
@@ -88,7 +85,7 @@
             </div>
         </div>
 
-        <!-- Emoji Picker (hidden by default) - if it was functional, its logic will remain in JS -->
+        <!-- Emoji Picker (hidden by default) - if needed, re-add in chat_main.js for visibility control -->
         <div id="emoji-picker" class="emoji-picker-premium hidden">
             <span class="emoji-option-premium">👍</span>
             <span class="emoji-option-premium">❤️</span>
@@ -100,7 +97,7 @@
 
     </div>
 
-    <!-- Combined Firebase and Supabase JS - THIS BLOCK REMAINS UNCHANGED -->
+    <!-- Combined Firebase and Supabase JS - THIS BLOCK IS PRESERVED AND ADAPTED -->
     <script type="module">
         // Firebase SDK Imports
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
@@ -175,9 +172,8 @@
         let jitsiApi = null;
         let typingTimeout = null;
 
-        // UI Elements
-        // IMPORTANT: These IDs match your original HTML. If you changed them, this needs to be updated.
-        const chatScreen = document.getElementById('chat-screen');
+        // UI Elements - UPDATED SELECTORS FOR PREMIUM DESIGN HTML
+        const chatContentWrapper = document.getElementById('chat-content-wrapper'); // New: wraps entire chat UI
         const roomNameDisplay = document.getElementById('room-name'); // This is the SPAN inside h2
         const onlineUsersCountDisplay = document.getElementById('online-users-count');
         const messagesContainer = document.getElementById('messages-container');
@@ -191,12 +187,12 @@
         const hangupButton = document.getElementById('hangup-button');
         const typingIndicator = document.getElementById('typing-indicator');
 
-        // Emoji Picker elements (if used)
+        // Emoji Picker elements
         const emojiPicker = document.getElementById('emoji-picker');
         let currentMessageElementForReaction = null;
 
         // Modal elements
-        const confirmationModal = document.getElementById('confirmation-modal'); // Corrected ID from 'confirmationModal'
+        const confirmationModal = document.getElementById('confirmation-modal');
         const modalMessage = document.getElementById('modal-message');
         const modalConfirm = document.getElementById('modal-confirm');
         const modalCancel = document.getElementById('modal-cancel');
@@ -218,8 +214,8 @@
                 roomNameDisplay.textContent = currentRoomCode; // Update the span inside the h2
             }
             // Ensure chat screen is visible initially, or handle visibility via Jitsi logic later
-            if (chatScreen) {
-                 chatScreen.classList.remove('hidden'); // Ensure chat screen is visible
+            if (chatContentWrapper) { // Changed from chatScreen to chatContentWrapper
+                 chatContentWrapper.classList.remove('hidden'); // Ensure chat screen is visible
             }
         }
 
@@ -234,7 +230,7 @@
             return date.toLocaleTimeString('en-US', options);
         }
 
-        // --- Modal Functions (Extracted from modal_service.js but kept inline for now) ---
+        // --- Modal Functions (Adapted for premium class names) ---
         let resolveModalPromise;
 
         function showModal(message, isConfirm = true) {
@@ -250,11 +246,13 @@
             modalCancel.style.display = 'inline-block';
 
             if (isConfirm) {
-                modalConfirm.textContent = 'Confirm';
-                modalCancel.textContent = 'Cancel';
+                modalConfirm.querySelector('span:last-child').textContent = 'Confirm'; // Target span for text
+                modalCancel.querySelector('span:last-child').textContent = 'Cancel'; // Target span for text
+                modalConfirm.classList.remove('hidden');
+                modalCancel.classList.remove('hidden');
             } else {
-                modalConfirm.textContent = 'OK';
-                modalCancel.style.display = 'none'; // Hide cancel button for 'OK' mode
+                modalConfirm.querySelector('span:last-child').textContent = 'OK'; // Target span for text
+                modalCancel.classList.add('hidden'); // Hide cancel button for 'OK' mode
             }
 
             confirmationModal.classList.remove('hidden'); // Show the modal
@@ -270,32 +268,31 @@
             }
         }
 
-        // --- Jitsi Service Functions (Extracted from jitsi_service.js but kept inline for now) ---
+        // --- Jitsi Service Functions (Adapted for premium class names and chatContentWrapper) ---
         // JitsiMeetExternalAPI is globally available from the script tag
-        // let jitsiApi = null; // Declared globally in main script
+        // jitsiApi is global
         let currentJitsiRoomName = '';
         // currentUsername is global
         // jitsiIframe is global
         // jitsiContainer is global
-        const chatContentWrapperElement = document.getElementById('chat-screen'); // The div containing all chat UI elements
+        // chatContentWrapperElement is global (re-using the one defined at the top of script)
         // hangupButton is global
 
-        function initializeJitsiService(roomCode, username, iframeElement, containerElement, chatContentWrapperDiv, hangupBtnElement, onJitsiCloseCallback) {
-            currentJitsiRoomName = `Paritalk_${roomCode}`; // Jitsi room names often benefit from a prefix
-            // currentUsername = username; // Already global
-            // jitsiIframe = iframeElement; // Already global
-            // jitsiContainer = containerElement; // Already global
-            // chatContentWrapperElement = chatContentWrapperDiv; // Already assigned above
-            // hangupButton = hangupBtnElement; // Already global
-
-            // Attach click listener for our custom hangup button
+        // This function acts as the equivalent of initializeJitsiService from a separate module
+        function initializeJitsiInChat() {
+            // No direct initialization needed here as JitsiMeetExternalAPI is global
+            // and the options are passed directly to startVideoCall.
+            // This function exists mainly for conceptual clarity and to match the old external module's signature.
+            currentJitsiRoomName = `Paritalk_${currentRoomCode}`; // Ensure Jitsi room name is consistent
+            
             if (hangupButton) {
                 hangupButton.onclick = () => {
                     endVideoCall(); // Call our wrapper function
-                    if (onJitsiCloseCallback) onJitsiCloseCallback(); // Also call the external callback
+                    // No onJitsiCloseCallback here as the inline script handles direct calls
                 };
             }
         }
+
 
         function startVideoCall() { // Renamed from startJitsiCall to match inline
             if (jitsiApi) {
@@ -347,8 +344,8 @@
             if (jitsiContainer) {
                 jitsiContainer.classList.remove('hidden'); // Show Jitsi container
             }
-            if (chatContentWrapperElement) {
-                chatContentWrapperElement.classList.add('hidden'); // Hide chat content
+            if (chatContentWrapper) { // Changed from chatScreen to chatContentWrapper
+                chatContentWrapper.classList.add('hidden'); // Hide chat content
             }
         }
 
@@ -362,8 +359,8 @@
             if (jitsiContainer) {
                 jitsiContainer.classList.add('hidden'); // Hide Jitsi container
             }
-            if (chatContentWrapperElement) {
-                chatContentWrapperElement.classList.remove('hidden'); // Show chat content
+            if (chatContentWrapper) { // Changed from chatScreen to chatContentWrapper
+                chatContentWrapper.classList.remove('hidden'); // Show chat content
             }
         }
 
@@ -576,9 +573,7 @@
                     messageInput.focus();
 
                     // Initialize Jitsi service (JitsiMeetExternalAPI is globally available)
-                    initializeJitsiService(currentRoomCode, currentUsername, jitsiIframe, jitsiContainer, chatScreen, hangupButton, () => {
-                        endVideoCall(); // Callback when Jitsi's internal "readyToClose" fires
-                    });
+                    initializeJitsiInChat(); // Call the renamed initialization function
 
                 } catch (error) {
                     console.error("Error setting up chat listeners/presence:", error);
@@ -717,36 +712,42 @@
 
         imageUploadInput.addEventListener('change', handleFileUpload);
 
-        // Ensure button elements are selected correctly for event listeners
-        if (videoCallButton) { // Changed from videoCallButtonElement
+        // Event listeners for video call and leave room buttons
+        if (videoCallButton) {
             videoCallButton.addEventListener('click', startVideoCall);
             console.log("Video Call button event listener attached.");
         } else {
             console.error("Video Call button element not found!");
         }
 
-        if (leaveRoomButton) { // Changed from leaveRoomButtonElement
+        if (leaveRoomButton) {
             leaveRoomButton.addEventListener('click', handleLeaveRoom);
             console.log("Leave Room button event listener attached.");
         } else {
             console.error("Leave Room button element not found!");
         }
 
-        if (hangupButton) { // For the inline Jitsi logic
+        if (hangupButton) {
             hangupButton.addEventListener('click', () => {
                 endVideoCall();
             });
         }
 
+        // Event listeners for modal buttons
+        if (modalConfirm) { // Added check
+            modalConfirm.addEventListener('click', () => {
+                if (resolveModalPromise) resolveModalPromise(true);
+                hideModal();
+            });
+        } else { console.error("Modal Confirm button not found!"); }
+        
+        if (modalCancel) { // Added check
+            modalCancel.addEventListener('click', () => {
+                if (resolveModalPromise) resolveModalPromise(false);
+                hideModal();
+            });
+        } else { console.error("Modal Cancel button not found!"); }
 
-        modalConfirm.addEventListener('click', () => {
-            if (resolveModalPromise) resolveModalPromise(true);
-            hideModal();
-        });
-        modalCancel.addEventListener('click', () => {
-            if (resolveModalPromise) resolveModalPromise(false);
-            hideModal();
-        });
 
         window.addEventListener('beforeunload', async (e) => {
             if (presenceRef) {
@@ -759,9 +760,11 @@
         });
 
         document.addEventListener('click', (event) => {
-            if (emojiPicker && !emojiPicker.classList.contains('hidden') && !emojiPicker.contains(event.target) && !event.target.closest('.message-bubble-premium')) { // Updated message-bubble class
-                // hideEmojiPicker(); // Assuming this function exists for the emoji picker
-                emojiPicker.classList.add('hidden'); // Simple hide
+            // Updated class name for message bubbles
+            if (emojiPicker && !emojiPicker.classList.contains('hidden') && !emojiPicker.contains(event.target) && !event.target.closest('.message-bubble-premium')) {
+                // If you had a dedicated hideEmojiPicker function, call it here.
+                // For now, directly hide it as per your previous snippet.
+                emojiPicker.classList.add('hidden');
             }
         });
 
