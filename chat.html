@@ -447,287 +447,126 @@
         // --- Jitsi Integration ---
 
         async function startVideoCall() {
-            const confirmed = await showConfirmationModal('Are you sure you want to start a video call?');
-            if (!confirmed) return;
+        // The confirmation for video call is still here, you can remove this too if desired.
+        // If you remove it, delete the 'confirmed' variable and the 'if (!confirmed) return;' line.
+        const confirmed = await showConfirmationModal('Are you sure you want to start a video call?');
+        if (!confirmed) return;
 
-            jitsiContainer.classList.remove('hidden');
+        jitsiContainer.classList.remove('hidden');
 
-            const domain = 'meet.jit.si';
-            const options = {
-                roomName: currentRoomCode, // Use Firebase room code as Jitsi room name
-                width: '100%',
-                height: '100%',
-                parentNode: document.querySelector('#jitsi-meet-api'),
-                userInfo: {
-                    displayName: currentUsername
-                },
-                configOverwrite: {
-                    startWithAudioMuted: false,
-                    startWithVideoMuted: false,
-                    disableSelfView: false, // Ensure you can see yourself
-                    enableClosePage: false, // Prevent user from closing page directly from Jitsi
-                    prejoinPageEnabled: false, // Skip prejoin page
-                    enableWelcomePage: false, // Skip welcome page
-                    toolbarButtons: [ // Customize toolbar
-                        'microphone', 'camera', 'desktop', 'fullscreen',
-                        'fodeviceselection', 'hangup', 'profile', 'chat',
-                        'settings', 'tileview', 'toggle-raise-hand',
-                        'videoquality', 'filmstrip',
-                    ]
-                },
-                interfaceConfigOverwrite: {
-                    APP_NAME: 'Paritalk',
-                    DEFAULT_BACKGROUND: '#F9F9F9',
-                    NATIVE_APP_NAME: 'Paritalk',
-                    TOOLBAR_BUTTONS: [ // Repeat toolbar buttons here for interface config
-                        'microphone', 'camera', 'desktop', 'fullscreen',
-                        'fodeviceselection', 'hangup', 'profile', 'chat',
-                        'settings', 'tileview', 'toggle-raise-hand',
-                        'videoquality', 'filmstrip',
-                    ]
-                }
-            };
-
-            // Load Jitsi API script dynamically
-            const script = document.createElement('script');
-            script.src = 'https://meet.jit.si/external_api.js';
-            script.onload = () => {
-                if (window.JitsiMeetExternalAPI) {
-                    jitsiApi = new JitsiMeetExternalAPI(domain, options);
-
-                    jitsiApi.addEventListener('readyToClose', () => {
-                        console.log("Jitsi: Ready to close event detected.");
-                        hangUpCall();
-                    });
-                    jitsiApi.addEventListener('videoConferenceLeft', () => {
-                        console.log("Jitsi: Video conference left.");
-                        hangUpCall();
-                    });
-                    jitsiApi.addEventListener('participantLeft', (participant) => {
-                        console.log("Jitsi: Participant left:", participant);
-                    });
-                    jitsiApi.addEventListener('participantJoined', (participant) => {
-                        console.log("Jitsi: Participant joined:", participant);
-                    });
-
-                } else {
-                    console.error('JitsiMeetExternalAPI not found after script load.');
-                    alert('Failed to load video call. Please try again.');
-                    hangUpCall(); // Hide container if API fails to load
-                }
-            };
-            script.onerror = (e) => {
-                console.error('Failed to load Jitsi API script:', e);
-                alert('Could not load video call features. Please check your internet connection.');
-                hangUpCall(); // Hide container if script fails
-            };
-            document.body.appendChild(script);
-        }
-
-        function hangUpCall() {
-            if (jitsiApi) {
-                jitsiApi.dispose();
-                jitsiApi = null;
+        const domain = 'meet.jit.si';
+        const options = {
+            roomName: currentRoomCode,
+            width: '100%',
+            height: '100%',
+            parentNode: document.querySelector('#jitsi-meet-api'),
+            userInfo: {
+                displayName: currentUsername
+            },
+            configOverwrite: {
+                startWithAudioMuted: false,
+                startWithVideoMuted: false,
+                disableSelfView: false,
+                enableClosePage: false,
+                prejoinPageEnabled: false,
+                enableWelcomePage: false,
+                toolbarButtons: [
+                    'microphone', 'camera', 'desktop', 'fullscreen',
+                    'fodeviceselection', 'hangup', 'profile', 'chat',
+                    'settings', 'tileview', 'toggle-raise-hand',
+                    'videoquality', 'filmstrip',
+                ]
+            },
+            interfaceConfigOverwrite: {
+                APP_NAME: 'Paritalk',
+                DEFAULT_BACKGROUND: '#F9F9F9',
+                NATIVE_APP_NAME: 'Paritalk',
+                TOOLBAR_BUTTONS: [
+                    'microphone', 'camera', 'desktop', 'fullscreen',
+                    'fodeviceselection', 'hangup', 'profile', 'chat',
+                    'settings', 'tileview', 'toggle-raise-hand',
+                    'videoquality', 'filmstrip',
+                ]
             }
-            jitsiContainer.classList.add('hidden');
-            // Remove the dynamically added Jitsi script if it exists
-            const jitsiScript = document.querySelector('script[src="https://meet.jit.si/external_api.js"]');
-            if (jitsiScript) {
-                jitsiScript.remove();
-            }
-        }
+        };
 
-        // --- Event Listeners ---
+        const script = document.createElement('script');
+        script.src = 'https://meet.jit.si/external_api.js';
+        script.onload = () => {
+            if (window.JitsiMeetExternalAPI) {
+                jitsiApi = new JitsiMeetExternalAPI(domain, options);
 
-        // Send message on button click
-        sendMessageButton.addEventListener('click', () => {
-            sendMessage(messageInput.value);
-        });
+                jitsiApi.addEventListener('readyToClose', () => {
+                    console.log("Jitsi: Ready to close event detected.");
+                    hangUpCall();
+                });
+                jitsiApi.addEventListener('videoConferenceLeft', () => {
+                    console.log("Jitsi: Video conference left.");
+                    hangUpCall();
+                });
+                jitsiApi.addEventListener('participantLeft', (participant) => {
+                    console.log("Jitsi: Participant left:", participant);
+                });
+                jitsiApi.addEventListener('participantJoined', (participant) => {
+                    console.log("Jitsi: Participant joined:", participant);
+                });
 
-        // Send message on Enter key press
-        messageInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                sendMessage(messageInput.value);
-            }
-        });
-
-        // Handle typing status
-        messageInput.addEventListener('input', () => {
-            if (typingTimeout) {
-                clearTimeout(typingTimeout);
-            }
-            updateTypingStatus(true);
-            typingTimeout = setTimeout(() => {
-                updateTypingStatus(false);
-            }, 3000); // User stops typing after 3 seconds
-        });
-
-        // Handle blur to reset typing status
-        messageInput.addEventListener('blur', () => {
-            if (typingTimeout) {
-                clearTimeout(typingTimeout);
-            }
-            updateTypingStatus(false);
-        });
-
-        // Start video call
-        videoCallButton.addEventListener('click', startVideoCall);
-
-        // Hang up video call
-        hangupButton.addEventListener('click', hangUpCall);
-
-        // Leave room
-        if (leaveRoomButton) {
-            leaveRoomButton.addEventListener('click', handleLeaveRoom);
-            console.log("Leave Room button event listener attached.");
-        } else {
-            console.error("Leave Room button element not found!");
-        }
-
-        // Attach file button click
-        attachFileButton.addEventListener('click', () => {
-            fileInput.click(); // Trigger the hidden file input
-        });
-
-        // Handle file input change
-        fileInput.addEventListener('change', async (event) => {
-            const file = event.target.files[0];
-            if (file) {
-                // Optional: Show a loading indicator
-                console.log("Uploading file:", file.name);
-                try {
-                    const uploadedFileDetails = await uploadFile(file);
-                    await sendMessage('', uploadedFileDetails); // Send message with file details
-                    console.log("File message sent!");
-                } catch (error) {
-                    console.error("Failed to upload or send file:", error);
-                    alert("Failed to send file. Please try again.");
-                } finally {
-                    // Optional: Hide loading indicator
-                    fileInput.value = ''; // Clear file input value
-                }
-            }
-        });
-
-        // Handle clicking on message images/files to open full modal
-        messagesContainer.addEventListener('click', (event) => {
-            const imagePreview = event.target.closest('.message-image-preview');
-            const filePreview = event.target.closest('.message-file-premium-preview');
-            const downloadIcon = event.target.closest('.download-icon');
-
-            if (imagePreview) {
-                const url = imagePreview.dataset.url;
-                const type = imagePreview.dataset.type;
-                showFullMediaModal(url, type);
-            } else if (filePreview && !downloadIcon) { // Ensure clicking on the file name/bubble, not just download icon
-                const url = filePreview.dataset.url;
-                const type = filePreview.dataset.type;
-                const name = filePreview.dataset.name;
-                showFullMediaModal(url, type, name);
-            }
-        });
-
-        // Close full media modal
-        fullMediaCloseButton.addEventListener('click', closeFullMediaModal);
-
-        // --- Initialization ---
-
-        // Get room code and username from URL parameters
-        function getQueryParams() {
-            const params = {};
-            const queryString = window.location.search.substring(1);
-            const regex = /([^&=]+)=([^&]*)/g;
-            let m;
-            while ((m = regex.exec(queryString))) {
-                params[decodeURIComponent(m[1])] = decodeURIComponent(m[2]);
-            }
-            return params;
-        }
-
-        const queryParams = getQueryParams();
-        currentRoomCode = queryParams.room;
-        currentUsername = queryParams.user;
-
-        if (!currentRoomCode || !currentUsername) {
-            alert('Room code or username missing. Redirecting to login.');
-            window.location.href = 'index.html';
-        } else {
-            roomCodeDisplay.textContent = currentRoomCode;
-            messagesRef = ref(db, `rooms/${currentRoomCode}/messages`);
-
-            onAuthStateChanged(auth, async (user) => {
-                if (user) {
-                    currentUserId = user.uid;
-                    console.log("Authenticated with Firebase UID:", currentUserId);
-
-                    await setupPresence();
-                    updateOnlineUsersCount();
-
-                    // Load last 50 messages
-                    onValue(query(messagesRef, limitToLast(50), orderByChild('timestamp')), (snapshot) => {
-                        messagesContainer.innerHTML = ''; // Clear existing messages
-                        snapshot.forEach((childSnapshot) => {
-                            displayMessage(childSnapshot.val());
-                        });
-                        scrollToBottom();
-                    });
-
-                    // Add a system message for user joining
-                    await push(messagesRef, {
-                        type: 'system',
-                        text: `${currentUsername} has joined the room.`,
-                        timestamp: serverTimestamp()
-                    });
-
-                } else {
-                    console.error("No user authenticated. Redirecting to login.");
-                    alert('Authentication failed. Please log in again.');
-                    window.location.href = 'index.html';
-                }
-            });
-        }
-
-
-        // Handle leaving the room logic
-        async function handleLeaveRoom() {
-            console.log("Entering handleLeaveRoom function."); // New log
-            const confirmed = await showConfirmationModal('Are you sure you want to leave this private conversation?');
-            console.log("Confirmation modal result:", confirmed); // New log
-
-            if (confirmed) {
-                console.log("User confirmed to leave."); // New log
-                if (presenceRef && currentUserId) {
-                    console.log("presenceRef is valid:", presenceRef.toString()); // New log
-                    console.log("currentUserId is valid:", currentUserId); // New log
-                    try {
-                        await remove(presenceRef); // Remove user's presence from DB
-                        console.log("SUCCESS: User presence removed from room:", currentRoomCode); // New log
-                        // Add a system message for user leaving
-                        await push(messagesRef, {
-                            type: 'system',
-                            text: `${currentUsername} has left the room.`,
-                            timestamp: serverTimestamp()
-                        });
-                    } catch (error) {
-                        console.error("ERROR: Failed to remove presence on leave:", error); // Existing error log
-                        alert("Failed to leave room. Please try again. Check console for details.");
-                        // Potentially notify user if leaving fails due to network/rules
-                    }
-                } else {
-                    console.warn("WARNING: presenceRef or currentUserId not available. Cannot remove presence."); // New log
-                }
-                if (jitsiApi) {
-                    jitsiApi.dispose(); // End Jitsi call if active
-                    jitsiApi = null;
-                    console.log("Jitsi API disposed."); // New log
-                }
-                localStorage.removeItem('paritalk_username');
-                localStorage.removeItem('paritalk_roomcode');
-                console.log("Local storage cleared."); // New log
-                window.location.href = 'index.html'; // Redirect to login
-                console.log("Redirecting to index.html..."); // This might not show if redirect is instant
             } else {
-                console.log("User cancelled leaving the room."); // New log
+                console.error('JitsiMeetExternalAPI not found after script load.');
+                alert('Failed to load video call. Please try again.');
+                hangUpCall();
+            }
+        };
+        script.onerror = (e) => {
+            console.error('Failed to load Jitsi API script:', e);
+            alert('Could not load video call features. Please check your internet connection.');
+            hangUpCall();
+        };
+        document.body.appendChild(script);
+    }
+
+    // ... (rest of your Jitsi functions) ...
+
+    // Handle leaving the room logic
+    async function handleLeaveRoom() {
+        console.log("Entering handleLeaveRoom function.");
+
+        // Removed the confirmation modal logic
+        // const confirmed = await showConfirmationModal('Are you sure you want to leave this private conversation?');
+        // console.log("Confirmation modal result:", confirmed);
+
+        // All the logic that was inside `if (confirmed)` is now executed directly
+        console.log("Proceeding to leave the room (no confirmation).");
+        if (presenceRef && currentUserId) {
+            console.log("presenceRef is valid:", presenceRef.toString());
+            console.log("currentUserId is valid:", currentUserId);
+            try {
+                await remove(presenceRef); // Remove user's presence from DB
+                console.log("SUCCESS: User presence removed from room:", currentRoomCode);
+                // Add a system message for user leaving
+                await push(messagesRef, {
+                    type: 'system',
+                    text: `${currentUsername} has left the room.`,
+                    timestamp: serverTimestamp()
+                });
+            } catch (error) {
+                console.error("ERROR: Failed to remove presence on leave:", error);
+                // You might still want to alert the user if there's a Firebase error during cleanup
+                alert("Failed to perform all leave operations. Check console for details, then you'll be redirected.");
+            }
+        } else {
+            console.warn("WARNING: presenceRef or currentUserId not available. Cannot remove presence.");
+        }
+        if (jitsiApi) {
+            jitsiApi.dispose(); // End Jitsi call if active
+            jitsiApi = null;
+            console.log("Jitsi API disposed.");
+        }
+            localStorage.removeItem('paritalk_username');
+            localStorage.removeItem('paritalk_roomcode');
+            console.log("Local storage cleared.");
+            window.location.href = 'index.html'; // Redirect to login
+            console.log("Redirecting to index.html...");
             }
         }
 
