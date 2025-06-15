@@ -8,6 +8,9 @@
     <link rel="stylesheet" href="styles.css">
     <!-- Font Awesome CDN for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
+    <!-- Jitsi Meet External API - IMPORTANT: MUST be loaded as a regular script before module scripts use it -->
+    <script src="https://meet.jit.si/external_api.js"></script>
 </head>
 <body>
     <div id="app-container">
@@ -42,7 +45,7 @@
             <!-- Message Input Area -->
             <div id="message-input-area">
                 <input type="text" id="message-input" placeholder="Type a message...">
-                <input type="file" id="image-upload" accept="image/*,video/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation" class="hidden">
+                <input type="file" id="image-upload" accept="image/*,video/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation" class="hidden">
                 <label for="image-upload" title="Attach File">
                     <i class="fa-solid fa-paperclip"></i>
                 </label>
@@ -93,9 +96,8 @@
         // Supabase Client SDK Import
         import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
-        // Jitsi Meet External API (Note: This script is already loaded via <script src="..."> tag above)
-        // No import needed here, JitsiMeetExternalAPI is globally available.
-
+        // JitsiMeetExternalAPI is available globally because its script is loaded above as a regular script.
+        // No import for Jitsi needed here.
 
         // --- Firebase Configuration (YOUR ACTUAL CONFIG) ---
         const firebaseConfig = {
@@ -141,8 +143,9 @@
         try {
             if (SUPABASE_URL && SUPABASE_URL !== 'YOUR_SUPABASE_URL' && SUPABASE_ANON_KEY && SUPABASE_ANON_KEY !== 'YOUR_SUPABASE_ANON_KEY') {
                 supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                console.log("Supabase client initialized successfully."); // Added log
             } else {
-                console.warn('Supabase URL or Anon Key not set. Image/file uploads will not work. Please ensure keys are correctly set in login.html and chat.html.');
+                console.warn('Supabase URL or Anon Key not set. File uploads will not work. Please ensure keys are correctly set in login.html and chat.html.');
                 supabase = null; // Ensure supabase is null if not configured
             }
         } catch (error) {
@@ -692,6 +695,13 @@
 
         // --- Jitsi Video Call Logic ---
         function startVideoCall() {
+            // Check if JitsiMeetExternalAPI is defined before trying to use it
+            if (typeof JitsiMeetExternalAPI === 'undefined') {
+                console.error("JitsiMeetExternalAPI is not defined. Jitsi script might not have loaded correctly.");
+                showModal("Video call services are currently unavailable. Please try again later.");
+                return;
+            }
+
             if (jitsiApi) {
                 console.log("Jitsi call already active.");
                 return;
