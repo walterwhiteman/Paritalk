@@ -34,7 +34,6 @@ body {
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    /* REMOVED: display: flex; justify-content: center; align-items: center; from body */
     min-height: 100vh; /* Full viewport height */
     overflow-x: hidden; /* Prevent horizontal scrolling */
 }
@@ -60,7 +59,7 @@ body {
     box-shadow: none; /* No shadow on small screens for full coverage */
     max-width: 100%; /* Take full width on mobile */
     height: 100vh;
-    overflow: hidden;
+    overflow: hidden; /* Important for fixed header/footer to work correctly */
     position: relative; /* For overlays like Jitsi/modals */
     flex-direction: column; /* Default flex direction for chat content */
 }
@@ -77,7 +76,6 @@ body {
         margin: 0; /* Ensure no external margins push it in */
         border-radius: 0; /* Removed rounded corners on large screens for true edge-to-edge */
         box-shadow: none; /* Removed shadow on large screens */
-        /* REMOVED: max-width: 420px; to allow it to expand on desktop */
     }
 }
 
@@ -343,7 +341,7 @@ body {
     background-color: var(--color-white);
     color: var(--color-dark-gray);
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
-    position: sticky;
+    position: fixed; /* Changed from sticky to fixed */
     top: 0;
     width: 100%;
     z-index: 10;
@@ -474,8 +472,8 @@ body {
     flex-grow: 1;
     overflow-y: auto;
     padding: 0.8rem; /* Adjusted for mobile */
-    padding-top: 4.5rem; /* Space for fixed header */
-    padding-bottom: 4.5rem; /* Space for fixed footer */
+    padding-top: 4.5rem; /* Space for fixed header - calculated based on header height */
+    padding-bottom: 4.5rem; /* Space for fixed footer - calculated based on footer height */
     display: flex;
     flex-direction: column;
     gap: 0.4rem; /* Adjusted for tighter gap between bubbles */
@@ -485,8 +483,8 @@ body {
 @media (min-width: 600px) {
     .messages-container-premium {
         padding: 1em;
-        padding-top: 5em;
-        padding-bottom: 5em;
+        padding-top: 5em; /* Adjusted for desktop header height */
+        padding-bottom: 5em; /* Adjusted for desktop footer height */
         gap: 0.5rem; /* Adjusted for tighter gap */
     }
 }
@@ -539,12 +537,13 @@ body {
 .system-message-premium {
     background-color: transparent;
     box-shadow: none;
-    text-align: center;
+    text-align: center; /* Keeps the text centered within the bubble */
     font-size: 0.75em; /* Adjusted for mobile */
     color: var(--color-medium-gray);
     font-style: italic;
-    width: 100%;
+    width: 100%; /* Ensures the bubble itself tries to take full width */
     margin: 0.3rem 0; /* Adjusted for mobile */
+    align-self: center; /* ADDED: Centers the entire system message bubble horizontally */
 }
 
 @media (min-width: 600px) {
@@ -703,7 +702,7 @@ body {
     color: var(--color-medium-gray);
     padding: 0.4rem 1em;
     text-align: left;
-    position: absolute;
+    position: absolute; /* Changed to absolute to position relative to chat-app-container-premium */
     bottom: 4.5rem; /* Based on footer height */
     left: 0;
     width: 100%;
@@ -736,7 +735,7 @@ body {
     padding: 0.6rem 0.8em; /* Adjusted for mobile */
     background-color: var(--color-white);
     box-shadow: 0 -1px 4px rgba(0, 0, 0, 0.08);
-    position: sticky;
+    position: fixed; /* Changed from sticky to fixed */
     bottom: 0;
     width: 100%;
     z-index: 10;
