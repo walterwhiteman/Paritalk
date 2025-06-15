@@ -42,7 +42,7 @@
             <!-- Message Input Area -->
             <div id="message-input-area">
                 <input type="text" id="message-input" placeholder="Type a message...">
-                <input type="file" id="image-upload" accept="image/*,video/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.openxmlformats-officedocument.presentationml.presentation" class="hidden">
+                <input type="file" id="image-upload" accept="image/*,video/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation" class="hidden">
                 <label for="image-upload" title="Attach File">
                     <i class="fa-solid fa-paperclip"></i>
                 </label>
@@ -83,21 +83,20 @@
 
     </div>
 
-    <!-- Firebase SDKs -->
+    <!-- Combined Firebase and Supabase JS -->
     <script type="module">
+        // Firebase SDK Imports
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
         import { getDatabase, ref, push, onChildAdded, onValue, set, remove, onDisconnect, serverTimestamp, runTransaction, child } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
-        // Supabase Client SDK
+        // Supabase Client SDK Import
         import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
-        // Jitsi Meet External API
-        // JitsiMeetExternalAPI is globally available when script is loaded
-    </script>
-    <script src="https://meet.jit.si/external_api.js"></script>
+        // Jitsi Meet External API (Note: This script is already loaded via <script src="..."> tag above)
+        // No import needed here, JitsiMeetExternalAPI is globally available.
 
-    <script type="module">
+
         // --- Firebase Configuration (YOUR ACTUAL CONFIG) ---
         const firebaseConfig = {
             apiKey: "AIzaSyA8Yj1Z1Mpv2lyt9SRxJ_w4U04BXt8hajk",
