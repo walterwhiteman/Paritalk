@@ -139,7 +139,7 @@
         try {
             if (SUPABASE_URL && SUPABASE_ANON_KEY) {
                 supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-                console.log("Supabase client initialized successfully with URL:", SUPABASE_URL); // Log the exact URL used
+                console.log("Supabase client initialized successfully with URL:", SUPABASE_URL);
             } else {
                 console.warn('Supabase URL or Anon Key not set. File uploads will not work. Please ensure keys are correctly set.');
                 supabase = null;
@@ -193,8 +193,8 @@
         const urlRoomCode = urlParams.get('room');
         const urlUsername = urlParams.get('user');
 
-        console.log("Chat Init: urlRoomCode =", urlRoomCode);
-        console.log("Chat Init: urlUsername =", urlUsername);
+        console.log("Chat Init: urlRoomCode =", urlRoomCode); // Debugging
+        console.log("Chat Init: urlUsername =", urlUsername); // Debugging
 
 
         if (!urlRoomCode || !urlUsername) {
@@ -222,6 +222,14 @@
                     currentUserId = user.uid;
                     console.log("Authenticated with Firebase. User ID:", currentUserId); // Log auth status
                     // Initialize Firebase references ONLY AFTER currentUserId is set
+                    // Defensive check: only proceed if currentRoomCode is valid
+                    if (!currentRoomCode) {
+                        console.error("onAuthStateChanged: currentRoomCode is null or empty. Cannot initialize Firebase references.");
+                        showModal('Error: Room information missing. Please re-enter room code.').then(() => {
+                            window.location.href = 'index.html'; // Redirect to login if room code is missing
+                        });
+                        return;
+                    }
                     roomRef = ref(db, `rooms/${currentRoomCode}`);
                     presenceRef = ref(db, `rooms/${currentRoomCode}/presence/${currentUserId}`);
                     messagesRef = ref(db, `rooms/${currentRoomCode}/messages`);
@@ -242,7 +250,7 @@
                             onDisconnect(presenceRef).remove();
                             console.log("User presence set in Firebase. Path:", presenceRef.toString()); // Log presence update
                         } else {
-                             console.error("PresenceRef is null, cannot set user presence.");
+                             console.error("PresenceRef is null, cannot set user presence. Check currentRoomCode.");
                         }
 
 
@@ -288,15 +296,18 @@
             return date.toLocaleTimeString('en-US', options);
         }
 
+        // Show/Hide Confirmation Modal (Enhanced for debugging)
         function showModal(message) {
+            console.log("showModal called with message:", message); // Debugging
             modalMessage.textContent = message;
-            confirmationModal.style.display = 'flex';
+            confirmationModal.style.display = 'flex'; // Use flex to center
             return new Promise(resolve => {
                 resolveModalPromise = resolve;
             });
         }
 
         function hideModal() {
+            console.log("hideModal called."); // Debugging
             confirmationModal.style.display = 'none';
         }
 
@@ -411,7 +422,7 @@
 
         async function sendMessage(text, type = 'text', imageUrl = null, fileUrl = null, fileName = null) {
             console.log("sendMessage called. Type:", type, "Text:", text);
-            console.log("sendMessage: currentUserId =", currentUserId, "currentRoomCode =", currentRoomCode, "messagesRef =", messagesRef); // New log
+            console.log("sendMessage: currentUserId =", currentUserId, "currentRoomCode =", currentRoomCode, "messagesRef =", messagesRef);
 
             if (!currentUserId || !currentRoomCode) {
                 console.error("sendMessage: Not in a chat room or user ID is unknown. Cannot send message.");
@@ -450,8 +461,8 @@
         }
 
         async function handleFileUpload(event) {
-            console.log("handleFileUpload called."); // New log
-            console.log("handleFileUpload: currentUserId =", currentUserId, "currentRoomCode =", currentRoomCode); // New log
+            console.log("handleFileUpload called.");
+            console.log("handleFileUpload: currentUserId =", currentUserId, "currentRoomCode =", currentRoomCode);
 
             const file = event.target.files[0];
             if (!file) {
@@ -465,7 +476,7 @@
                 return;
             }
             if (!currentRoomCode || !currentUserId) {
-                console.error("handleFileUpload: Room code or user ID is missing. Cannot upload file.");
+                console.error("handleFileUpload: Room code or user ID is missing. Cannot upload file. currentRoomCode:", currentRoomCode, "currentUserId:", currentUserId);
                 showModal('Cannot upload file: Room information missing. Please rejoin chat.');
                 return;
             }
@@ -484,7 +495,7 @@
 
                 console.log(`Attempting Supabase upload to bucket 'parichat-files' with path: ${fileName}`);
                 const { data, error } = await supabase.storage
-                    .from('parichat-files') // Ensure this bucket exists in Supabase Storage
+                    .from('parichat-files')
                     .upload(fileName, file, {
                         cacheControl: '3600',
                         upsert: false
@@ -634,25 +645,45 @@
             });
         }
 
-        // --- Leave Room Logic ---
+        // --- Leave Room Logic (Enhanced for debugging) ---
         async function handleLeaveRoom() {
-            const confirmed = await showModal('Are you sure you want to leave the chat?');
-            if (confirmed) {
-                if (jitsiApi) {
-                    endVideoCall();
-                }
-                if (presenceRef) {
-                    console.log("Removing user presence from Firebase.");
-                    await set(presenceRef, null);
-                    sendMessage(`**${currentUsername}** left the chat.`, 'system');
-                }
-                localStorage.removeItem('paritalk_username');
-                localStorage.removeItem('paritalk_roomcode');
-                localStorage.removeItem('paritalk_has_joined_session');
+            console.log("handleLeaveRoom called."); // Debugging
+            try {
+                const confirmed = await showModal('Are you sure you want to leave the chat?');
+                console.log("Modal confirmed status:", confirmed); // Debugging
 
-                window.location.href = 'index.html';
+                if (confirmed) {
+                    if (jitsiApi) {
+                        endVideoCall();
+                        console.log("Jitsi API ended."); // Debugging
+                    }
+                    if (presenceRef) {
+                        console.log("Removing user presence from Firebase at path:", presenceRef.toString()); // Debugging
+                        await set(presenceRef, null); // Explicitly remove user from presence
+                        console.log("User presence removed from Firebase."); // Debugging
+                        sendMessage(`**${currentUsername}** left the chat.`, 'system'); // Send "left" message
+                    } else {
+                        console.warn("presenceRef was null when attempting to leave room. User might not have fully connected."); // Debugging
+                    }
+
+                    // Clear localStorage for a clean exit
+                    localStorage.removeItem('paritalk_username');
+                    localStorage.removeItem('paritalk_roomcode');
+                    localStorage.removeItem('paritalk_has_joined_session');
+                    console.log("LocalStorage cleared."); // Debugging
+
+                    // Redirect to login page (index.html)
+                    console.log("Attempting redirect to index.html..."); // Debugging
+                    window.location.href = 'index.html';
+                    // Return to prevent any further execution after redirection
+                    return;
+                }
+            } catch (error) {
+                console.error("Error during handleLeaveRoom:", error); // Debugging
+                showModal(`Error leaving room: ${error.message}`).then(() => {}); // Show error in modal
+            } finally {
+                hideModal(); // Ensure modal is hidden in all cases
             }
-            hideModal();
         }
 
         // --- Typing Indicator Logic ---
@@ -794,8 +825,24 @@
         });
 
         imageUploadInput.addEventListener('change', handleFileUpload);
-        videoCallButton.addEventListener('click', startVideoCall);
-        leaveRoomButton.addEventListener('click', handleLeaveRoom);
+
+        // Ensure button elements are selected correctly for event listeners
+        const videoCallButtonElement = document.getElementById('video-call-button');
+        if (videoCallButtonElement) {
+            videoCallButtonElement.addEventListener('click', startVideoCall);
+            console.log("Video Call button event listener attached."); // Debugging
+        } else {
+            console.error("Video Call button element not found!"); // Debugging
+        }
+
+        const leaveRoomButtonElement = document.getElementById('leave-room-button');
+        if (leaveRoomButtonElement) {
+            leaveRoomButtonElement.addEventListener('click', handleLeaveRoom);
+            console.log("Leave Room button event listener attached."); // Debugging
+        } else {
+            console.error("Leave Room button element not found!"); // Debugging
+        }
+
 
         modalConfirm.addEventListener('click', () => {
             if (resolveModalPromise) resolveModalPromise(true);
