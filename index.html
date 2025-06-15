@@ -42,44 +42,85 @@
         // Supabase Client SDK (Needed for consistent init, even if not directly uploading here)
         import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
-        // Firebase Configuration (provided by Canvas environment - now with more robust checks)
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null; 
+        // --- UI Elements (Declared First to avoid 'access before initialization' error) ---
+        const usernameInput = document.getElementById('username-input');
+        const roomcodeInput = document.getElementById('roomcode-input');
+        const joinChatButton = document.getElementById('join-chat-button');
+        const loginError = document.getElementById('login-error');
 
-        // Initialize Firebase
-        let app;
-        let auth;
-        let db;
-
-        // Function to display login errors
+        // Function to display login errors (can now be defined as UI elements exist)
         function displayLoginError(message) {
             loginError.textContent = message;
             loginError.classList.remove('hidden');
         }
 
+        // --- Firebase Configuration (YOUR ACTUAL CONFIG) ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyA8Yj1Z1Mpv2lyt9SRxJ_w4U04BXt8hajk",
+            authDomain: "paritalk.firebaseapp.com",
+            databaseURL: "https://paritalk-default-rtdb.firebaseio.com",
+            projectId: "paritalk",
+            storageBucket: "paritalk.firebasestorage.app",
+            messagingSenderId: "441945619664",
+            appId: "1:441945619664:web:045e0c872e67e0eb9fb2d5"
+        };
+
+        // The initialAuthToken is usually provided by specific environments (like Canvas).
+        // For GitHub Pages, we will primarily rely on anonymous sign-in without a custom token.
+        const initialAuthToken = null; // Set to null for GitHub Pages deployment.
+
+
+        // Initialize Firebase
+        let app;
+        let auth;
+        let db;
+        let currentUserId = null;
+
         try {
-            if (firebaseConfig && Object.keys(firebaseConfig).length > 0) {
+            if (firebaseConfig && firebaseConfig.apiKey && firebaseConfig.projectId && firebaseConfig.databaseURL) {
                 app = initializeApp(firebaseConfig);
                 auth = getAuth(app);
                 db = getDatabase(app);
                 console.log("Firebase initialized successfully.");
+
+                // --- Authentication ---
+                onAuthStateChanged(auth, async (user) => {
+                    if (user) {
+                        currentUserId = user.uid;
+                        const storedUsername = localStorage.getItem('paritalk_username');
+                        const storedRoomCode = localStorage.getItem('paritalk_roomcode');
+                        if (storedUsername) usernameInput.value = storedUsername;
+                        if (storedRoomCode) roomcodeInput.value = storedRoomCode;
+                    } else {
+                        try {
+                            if (initialAuthToken) {
+                                await signInWithCustomToken(auth, initialAuthToken);
+                                console.log("Signed in with custom token.");
+                            } else {
+                                await signInAnonymously(auth); // Sign in anonymously
+                                console.log("Signed in anonymously.");
+                            }
+                        } catch (error) {
+                            console.error("Error signing in:", error.message);
+                            displayLoginError(`Authentication error: ${error.message}. Please try again.`);
+                        }
+                    }
+                });
+
             } else {
-                console.error("Firebase configuration is missing or empty.");
-                displayLoginError("App configuration error: Firebase is not set up correctly.");
-                // Prevent further script execution if Firebase is crucial
-                throw new Error("Firebase config missing.");
+                console.error("Firebase configuration is incomplete. Please ensure apiKey, projectId, and databaseURL are set.");
+                displayLoginError("App configuration error: Firebase is not set up correctly. See console for details.");
+                // Prevent further execution of Firebase-dependent code
+                throw new Error("Firebase config incomplete.");
             }
         } catch (error) {
+            // This catch block handles errors from initializeApp itself
             console.error("Error during Firebase initialization:", error.message);
-            displayLoginError(`Initialization error: ${error.message}. Please contact support.`);
-            // If Firebase init fails, subsequent Firebase-dependent code won't run.
-            // We exit here explicitly to prevent further errors cascading.
-            // You cannot simply "return" from a top-level script in a module,
-            // so throwing an error and catching it is a way to stop.
-            // For a browser environment, this will simply halt the script at this point.
+            displayLoginError(`Initialization error: ${error.message}. Make sure your Firebase config is correct.`);
         }
 
-        // Supabase Configuration (User's provided keys)
+
+        // Supabase Configuration (User's provided keys - these are correct)
         const SUPABASE_URL = 'https://uokpkgybjzvpngoxasnm.supabase.com';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVva3BrZ3lianp2cG5nb3hhc25tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk5MjE4NTcsImV4cCI6MjA2NTQ5Nzg1N30.FNv_13S3oj7fjartmY2PzKL25T3AWbMxP2KRI0rFU2E';
 
@@ -96,49 +137,13 @@
             supabase = null;
         }
 
-        // UI Elements
-        const usernameInput = document.getElementById('username-input');
-        const roomcodeInput = document.getElementById('roomcode-input');
-        const joinChatButton = document.getElementById('join-chat-button');
-        const loginError = document.getElementById('login-error');
-
-        let currentUserId = null;
-
-        // --- Authentication ---
-        // Only proceed if Firebase was successfully initialized
-        if (auth) {
-            onAuthStateChanged(auth, async (user) => {
-                if (user) {
-                    currentUserId = user.uid;
-                    // Attempt to load saved credentials
-                    const storedUsername = localStorage.getItem('paritalk_username');
-                    const storedRoomCode = localStorage.getItem('paritalk_roomcode');
-
-                    if (storedUsername) usernameInput.value = storedUsername;
-                    if (storedRoomCode) roomcodeInput.value = storedRoomCode;
-
-                } else {
-                    try {
-                        if (initialAuthToken) {
-                            await signInWithCustomToken(auth, initialAuthToken);
-                            console.log("Signed in with custom token.");
-                        } else {
-                            await signInAnonymously(auth);
-                            console.log("Signed in anonymously.");
-                        }
-                    } catch (error) {
-                        console.error("Error signing in:", error.message);
-                        displayLoginError(`Authentication error: ${error.message}. Please try again.`);
-                    }
-                }
-            });
-        }
-
 
         // --- Join Chat Logic ---
         joinChatButton.addEventListener('click', async () => {
-            if (!db || !auth) { // Check if Firebase core services are available
-                displayLoginError("App not ready: Firebase services unavailable.");
+            // Ensure Firebase and Auth are ready before proceeding
+            if (!db || !auth || !auth.currentUser || !currentUserId) {
+                displayLoginError("App is not fully loaded. Please wait a moment and try again.");
+                console.warn("Attempted to join before Firebase auth or DB was ready.");
                 return;
             }
 
@@ -150,15 +155,13 @@
                 return;
             }
 
-            // Reference to the presence list for the chosen room
             const roomPresenceRef = ref(db, `rooms/${roomCode}/presence`);
 
-            let usersInRoomCount = 0;
-            let currentUsers = {}; // To store userId:username mapping
-
             try {
-                // Use get() to fetch the current state once
+                // Fetch current room occupants once
                 const snapshot = await get(roomPresenceRef);
+                let usersInRoomCount = 0;
+                let currentUsers = {}; // userId: username map
                 if (snapshot.exists()) {
                     snapshot.forEach((childSnapshot) => {
                         usersInRoomCount++;
@@ -166,16 +169,7 @@
                     });
                 }
 
-                // Ensure currentUserId is available before checking for existing user
-                if (!currentUserId) {
-                    displayLoginError("User not authenticated yet. Please wait a moment and try again.");
-                    console.warn("Attempted to join before Firebase auth completed.");
-                    return;
-                }
-
-                // Check if the room is full with two OTHER unique users
-                // If the current user is already one of the two, they can rejoin
-                const isCurrentUserAlreadyInRoom = currentUsers[currentUserId] === username;
+                const isCurrentUserAlreadyInRoom = currentUserId && currentUsers[currentUserId] === username;
 
                 if (usersInRoomCount >= 2 && !isCurrentUserAlreadyInRoom) {
                     displayLoginError('This room is currently full. Please try a different room code.');
@@ -186,12 +180,12 @@
                 localStorage.setItem('paritalk_username', username);
                 localStorage.setItem('paritalk_roomcode', roomCode);
 
-                // Redirect to chat.html, passing roomCode and username as URL parameters
+                // Redirect to chat.html
                 window.location.href = `chat.html?room=${encodeURIComponent(roomCode)}&user=${encodeURIComponent(username)}`;
 
             } catch (error) {
                 console.error("Error checking room presence or joining:", error);
-                displayLoginError(`Failed to join room: ${error.message}. Please try again.`);
+                displayLoginError(`Failed to join room: ${error.message}. Please check your Firebase rules and internet connection.`);
             }
         });
 
