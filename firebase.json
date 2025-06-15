@@ -1,1 +1,17 @@
 
+{
+  "hosting": {
+    "public": ".",  // This means your static files are in the root directory
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
+  }
+}
