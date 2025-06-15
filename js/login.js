@@ -1,6 +1,10 @@
 // js/login.js
 
-import { auth, db, get, ref, onAuthStateChanged, signInAnonymously, signInWithCustomToken } from './firebase-init.js';
+// Import Firebase services and functions directly from their respective Firebase SDK modules
+import { auth, onAuthStateChanged, signInAnonymously, signInWithCustomToken } from './firebase-init.js';
+// Import get, ref directly from firebase-database
+import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
+
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 import { showModal, hideModal } from './modal.js';
 
@@ -29,11 +33,21 @@ const joinChatButton = document.getElementById('join-chat-button');
 const loginError = document.getElementById('login-error'); // Still 'login-error' ID
 
 let currentUserId = null;
+let db; // Declare db here, will be assigned after firebase-init.js is loaded and db is passed or retrieved
 
-// Firebase Auth listener for anonymous sign-in
+// Use onAuthStateChanged to ensure Firebase app and db are ready
 onAuthStateChanged(auth, async (user) => {
     if (user) {
         currentUserId = user.uid;
+        // Access db AFTER Firebase is initialized, through initializeFirebase function or global setup
+        // In a modular setup, db instance would ideally be passed or directly imported if initialized globally.
+        // Assuming getDatabase is called in firebase-init.js and exported, or we call it here.
+        // For simplicity, let's assume `db` instance will be available via the firebase-init.js exports.
+        // For this specific error, we need `get` to work, which uses the `db` instance.
+        // Let's get the db instance from firebase-init.js.
+        const firebaseInit = await import('./firebase-init.js');
+        db = firebaseInit.db;
+
         console.log("Authenticated with Firebase. User ID:", currentUserId);
         // Attempt to retrieve username/room from localStorage for auto-join
         const storedUsername = localStorage.getItem('paritalk_username');
@@ -78,9 +92,9 @@ function displayLoginError(message) {
 
 // Join Chat Logic
 async function handleJoinChat(isAutoJoin = false) {
-    if (!auth || !auth.currentUser || !currentUserId) {
+    if (!auth || !auth.currentUser || !currentUserId || !db) { // Ensure db is also initialized
         if (!isAutoJoin) {
-            displayLoginError("App not ready. Please wait for authentication.");
+            displayLoginError("App not ready. Please wait for authentication and database initialization.");
         }
         return;
     }
@@ -98,7 +112,7 @@ async function handleJoinChat(isAutoJoin = false) {
     const roomPresenceRef = ref(db, `rooms/${roomCode}/presence`);
 
     try {
-        const snapshot = await get(roomPresenceRef);
+        const snapshot = await get(roomPresenceRef); // `get` is now correctly imported
         let usersInRoomCount = 0;
         let currentUsers = {};
         if (snapshot.exists()) {
