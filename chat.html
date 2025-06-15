@@ -131,13 +131,13 @@
         }
 
 
-        // Supabase Configuration (User's provided keys)
-        const SUPABASE_URL = 'https://uokpkgybjzvpngoxasnm.supabase.com';
+        // Supabase Configuration (Using your confirmed URL and provided Anon Key)
+        const SUPABASE_URL = 'https://uokpkgybjzvpngoxasnm.supabase.co'; // CORRECTED URL
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVva3BrZ3lianp2cG5nb3hhc25tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk5MjE4NTcsImV4cCI6MjA2NTQ5Nzg1N30.FNv_13S3oj7fjartmY2PzKL25T3AWbMxP2KRI0rFU2E';
 
         let supabase;
         try {
-            if (SUPABASE_URL && SUPABASE_URL !== 'YOUR_SUPABASE_URL' && SUPABASE_ANON_KEY && SUPABASE_ANON_KEY !== 'YOUR_SUPABASE_ANON_KEY') {
+            if (SUPABASE_URL && SUPABASE_ANON_KEY) { // Removed 'YOUR_SUPABASE_URL' checks
                 supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
                 console.log("Supabase client initialized successfully.");
             } else {
@@ -311,15 +311,13 @@
             if (message.type === 'text') {
                 contentHTML += `<p>${message.text}</p>`;
             } else if (message.type === 'image') {
-                // Apply fixed size for image previews and ensure it opens full size on click
                 contentHTML += `
-                    <img src="${message.imageUrl}" alt="Shared Image" 
-                         class="message-image max-h-32 object-cover rounded-md cursor-pointer" 
+                    <img src="${message.imageUrl}" alt="Shared Image"
+                         class="message-image max-h-32 object-cover rounded-md cursor-pointer"
                          onclick="window.open('${message.imageUrl}', '_blank')">`;
             } else if (message.type === 'file') {
                 let fileIcon = 'fa-file';
                 const fileExtension = message.fileName.split('.').pop().toLowerCase();
-                // Specific icons for known file types
                 if (['pdf'].includes(fileExtension)) fileIcon = 'fa-file-pdf';
                 else if (['doc', 'docx'].includes(fileExtension)) fileIcon = 'fa-file-word';
                 else if (['xls', 'xlsx'].includes(fileExtension)) fileIcon = 'fa-file-excel';
@@ -328,7 +326,6 @@
                 else if (['mp3', 'wav', 'ogg'].includes(fileExtension)) fileIcon = 'fa-file-audio';
                 else if (['mp4', 'mov', 'avi'].includes(fileExtension)) fileIcon = 'fa-file-video';
 
-                // Fixed size for file previews (using Tailwind for flex/truncation within the bubble)
                 contentHTML += `
                     <div class="message-file flex items-center gap-2 p-2 bg-gray-100 rounded-md max-w-xs overflow-hidden">
                         <i class="fa-solid ${fileIcon} text-xl text-gray-600 flex-shrink-0"></i>
@@ -680,9 +677,8 @@
                     enableWelcomePage: false,
                     prejoinPageEnabled: false,
                     toolbarButtons: ['microphone', 'camera', 'desktop', 'fullscreen', 'fodeviceselection', 'hangup', 'profile', 'chat', 'raisehand', 'tileview', 'mute-everyone', 'security', 'settings', 'shortcuts', 'subject', 'toggle-camera'],
-                    // >>>>>>> E2EE ENABLED HERE <<<<<<<
                     e2ee: {
-                        enabled: true // This line enables E2EE
+                        enabled: true
                     }
                 },
                 interfaceConfigOverwrite: {
