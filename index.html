@@ -1,489 +1,337 @@
-/* styles.css */
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Paritalk - Login</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome CDN for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Link to our custom styles.css -->
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="app-container" class="relative">
+        <!-- Login Screen -->
+        <div id="login-screen" class="flex flex-col items-center justify-center h-full p-6 bg-gradient-to-br from-blue-100 to-white text-gray-800">
+            <h1 class="text-4xl font-bold mb-8 text-blue-600">Paritalk</h1>
+            <p class="text-lg text-center mb-6">Connect privately with your loved one.</p>
+            <div class="login-box bg-white p-8 rounded-xl shadow-lg w-full max-w-sm">
+                <div class="mb-5">
+                    <label for="username-input" class="block text-gray-700 text-sm font-medium mb-2">Your Name</label>
+                    <input type="text" id="username-input" placeholder="Enter your username"
+                           class="shadow-sm appearance-none border rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition duration-200" required>
+                </div>
+                <div class="mb-6">
+                    <label for="roomcode-input" class="block text-gray-700 text-sm font-medium mb-2">Room Code</label>
+                    <input type="text" id="roomcode-input" placeholder="Enter room code"
+                           class="shadow-sm appearance-none border rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition duration-200" required>
+                </div>
+                <button id="join-chat-button"
+                        class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-4 rounded-xl focus:outline-none focus:shadow-outline transition duration-300 transform hover:scale-105">
+                    Join Chat
+                </button>
+                <p id="login-error" class="text-red-500 text-xs italic mt-4 hidden"></p>
+            </div>
+            <p class="privacy-message mt-8">
+                🔒 Your conversations are private and secure. Share the room code only with someone special.
+            </p>
+        </div>
+    </div>
 
-/* Import Roboto font from Google Fonts */
-@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
+    <!-- Main Login Logic (Module) -->
+    <script type="module">
+        import { initializeFirebase, auth, db, get, ref, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from './js/firebase_service.js';
+        import { createSupabaseClient } => {
+            const file = event.target.files[0];
+            if (!file) return;
 
-/* General Body and App Container Styles */
-body {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 100vh; /* Full viewport height */
-    background-color: #e0f2fe; /* Lightest blue background */
-    font-family: 'Roboto', sans-serif; /* Changed to Roboto */
-    margin: 0; /* Remove default body margin */
-    padding: 0; /* Remove default body padding */
-    overflow: hidden; /* Prevent body scroll, app container handles its own scroll */
-}
+            if (!supabase) {
+                alert('Supabase is not configured. File uploads are disabled.'); // TODO: Replace with custom modal
+                return;
+            }
 
-#app-container {
-    width: 100%;
-    max-width: 480px; /* Max width to give a mobile app feel on larger screens */
-    height: 100vh; /* Full viewport height on small screens */
-    max-height: 900px; /* Max height for app container on desktop */
-    display: flex;
-    flex-direction: column;
-    border-radius: 1.5rem; /* Large rounded corners for the entire app */
-    overflow: hidden; /* Hide anything that overflows the rounded corners */
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1); /* Subtle shadow for depth */
-    background-color: #ffffff; /* White background for the app's content */
-}
+            const fileName = `${currentRoomCode}/${currentUserId}/${Date.now()}_${file.name}`;
+            const fileType = file.type;
 
-/* Responsive Adjustments for Larger Screens */
-@media (min-width: 640px) {
-    #app-container {
-        height: 95vh; /* Slightly less than full height on desktop, allowing background to show */
-        margin: 2.5vh auto; /* Center vertically on desktop */
-    }
-}
+            try {
+                // Show a temporary message indicating upload
+                addMessageToChat({
+                    sender: 'System',
+                    text: `Uploading "${file.name}"...`,
+                    type: 'system',
+                    timestamp: Date.now()
+                }, null);
 
-/* --- Login Screen Styles --- */
-#login-screen {
-    flex-grow: 1; /* Make login screen fill available space */
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 1.5rem; /* Standard padding */
-    background: linear-gradient(to bottom right, #e0f7fa, #ffffff); /* Soft gradient background */
-    color: #374151; /* Dark gray for text */
-    text-align: center;
-}
+                const { data, error } = await supabase.storage
+                    .from('parichat-files') // You might need to create this bucket in Supabase
+                    .upload(fileName, file, {
+                        cacheControl: '3600',
+                        upsert: false
+                    });
 
-#login-screen h1 {
-    font-size: 2.5rem; /* Large font for app title */
-    font-weight: bold;
-    margin-bottom: 2rem;
-    color: #2563eb; /* A vibrant blue for the app name */
-}
+                if (error) {
+                    throw error;
+                }
 
-#login-screen p {
-    font-size: 1.125rem; /* Slightly larger text for taglines/messages */
-    margin-bottom: 1.5rem;
-}
+                // Get public URL
+                const { data: publicUrlData } = supabase.storage
+                    .from('parichat-files')
+                    .getPublicUrl(fileName);
 
-#login-screen .login-box {
-    background-color: #ffffff;
-    padding: 2rem;
-    border-radius: 1rem; /* Rounded corners for the login box */
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); /* Soft shadow */
-    width: 100%;
-    max-width: 384px; /* Max width for login box */
-}
+                if (!publicUrlData || !publicUrlData.publicUrl) {
+                    throw new Error('Failed to get public URL for the uploaded file.');
+                }
 
-#login-screen label {
-    display: block;
-    color: #4b5563; /* Darker gray for labels */
-    font-size: 0.875rem; /* Small font for labels */
-    font-weight: 500; /* Medium weight */
-    margin-bottom: 0.5rem;
-    text-align: left; /* Align labels to the left */
-}
+                if (fileType.startsWith('image/')) {
+                    await sendMessage('', 'image', publicUrlData.publicUrl, null, file.name);
+                } else {
+                    await sendMessage('', 'file', null, publicUrlData.publicUrl, file.name);
+                }
 
-#login-screen input[type="text"] {
-    width: 100%;
-    padding: 0.75rem 1rem;
-    border: 1px solid #d1d5db; /* Light gray border */
-    border-radius: 0.5rem; /* Rounded input fields */
-    color: #1f2937; /* Dark text in input */
-    line-height: 1.25;
-    transition: all 0.2s ease-in-out; /* Smooth transition for focus */
-    box-shadow: inset 0 1px 2px rgba(0,0,0,0.06); /* Subtle inner shadow */
-}
+                // Consider removing the "uploading" system message here or replacing it with success/failure
+            } catch (error) {
+                console.error("Error uploading file:", error);
+                addMessageToChat({
+                    sender: 'System',
+                    text: `Failed to upload "${file.name}": ${error.message}`,
+                    type: 'system',
+                    timestamp: Date.now()
+                }, null);
+            } finally {
+                imageUploadInput.value = ''; // Clear the input so same file can be re-selected
+            }
+        }
 
-#login-screen input[type="text"]:focus {
-    outline: none;
-    border-color: #60a5fa; /* Blue border on focus */
-    box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.5); /* Blue ring on focus */
-}
 
-#login-screen button {
-    width: 100%;
-    background-color: #3b82f6; /* Blue button */
-    color: white;
-    font-weight: bold;
-    padding: 0.75rem 1rem;
-    border-radius: 0.75rem; /* Rounded button */
-    transition: all 0.3s ease-in-out; /* Smooth transition for hover effects */
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-}
+        // --- Presence and Room Limit Logic ---
+        function listenForPresence() {
+            const roomPresenceRef = ref(db, `rooms/${currentRoomCode}/presence`);
+            onValue(roomPresenceRef, (snapshot) => {
+                const users = [];
+                snapshot.forEach((childSnapshot) => {
+                    const userData = childSnapshot.val();
+                    // Include all users in the count for the display
+                    if (userData.username) {
+                        users.push(userData.username);
+                    }
+                });
 
-#login-screen button:hover {
-    background-color: #2563eb; /* Darker blue on hover */
-    transform: translateY(-2px); /* Slight lift effect */
-    box-shadow: 0 6px 8px -2px rgba(0, 0, 0, 0.15), 0 4px 6px -2px rgba(0, 0, 0, 0.08);
-}
+                onlineUsersCountDisplay.textContent = `Online: ${users.length}`; // Update display
 
-#login-screen .privacy-message {
-    font-size: 0.875rem;
-    color: #6b7280; /* Gray text for privacy message */
-    margin-top: 1.5rem;
-    padding: 0 1rem; /* Padding to prevent text touching edges */
-    line-height: 1.4;
-}
+                // Check if the other user has left during a Jitsi call
+                if (jitsiApi) {
+                    // Jitsi API getParticipantsInfo returns current participants in Jitsi meeting
+                    const jitsiParticipantsCount = jitsiApi.getParticipantsInfo().length;
+                    // Firebase users count (excluding self, to detect if OTHER person left)
+                    const firebaseOtherUsersCount = users.filter(u => u !== currentUsername).length;
 
-#login-screen .text-red-500 {
-    color: #ef4444; /* Red for error messages */
-}
+                    // If we're in a Jitsi call and Firebase shows no other users in the room,
+                    // and Jitsi also only has one participant (us), then the other person left.
+                    if (firebaseOtherUsersCount === 0 && jitsiParticipantsCount <= 1) {
+                        console.log("Other user left room (Firebase) and Jitsi, ending call.");
+                        endVideoCall();
+                        addMessageToChat({
+                            sender: 'System',
+                            text: 'The other user has left the room, ending the video call.',
+                            type: 'system',
+                            timestamp: Date.now()
+                        }, null);
+                    }
+                }
+            });
+        }
 
-/* --- Chat Screen Styles --- */
-#chat-screen {
-    flex-grow: 1; /* Allow chat screen to fill remaining height */
-    display: flex;
-    flex-direction: column;
-    width: 100%;
-}
 
-/* Fixed Chat Header */
-#chat-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 1rem;
-    background-color: #3b82f6; /* Blue header */
-    color: white;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); /* Shadow for header */
-    border-bottom-left-radius: 1rem; /* Rounded bottom corners */
-    border-bottom-right-radius: 1rem;
-    position: fixed; /* Fixed position at the top */
-    top: 0;
-    left: 0;
-    right: 0;
-    z-index: 10; /* Ensure it's above other content */
-    max-width: inherit; /* Inherit max-width from app-container */
-    width: 100%;
-}
+        // --- Leave Room Logic ---
+        async function handleLeaveRoom() {
+            const confirmed = await showModal('Are you sure you want to leave the chat?');
+            if (confirmed) {
+                if (jitsiApi) {
+                    endVideoCall(); // End Jitsi call if active
+                }
+                if (presenceRef) {
+                    await set(presenceRef, null); // Explicitly remove user from presence
+                    sendMessage(`**${currentUsername}** left the chat.`, 'system'); // Send "left" message
+                }
+                // Clear localStorage for a clean exit
+                localStorage.removeItem('paritalk_username');
+                localStorage.removeItem('paritalk_roomcode');
+                localStorage.removeItem('paritalk_has_joined_session'); // Clear session marker
 
-#chat-header h2 {
-    font-size: 1.25rem; /* Larger font for room name */
-    font-weight: 600;
-}
+                // Redirect to login page
+                window.location.href = 'login.html';
+            }
+            hideModal();
+        }
 
-#chat-header button {
-    background-color: rgba(255, 255, 255, 0.2); /* Semi-transparent white buttons */
-    color: white;
-    padding: 0.6rem; /* Padding for icons */
-    border-radius: 9999px; /* Fully rounded buttons */
-    margin-left: 0.5rem;
-    transition: background-color 0.2s ease-in-out, transform 0.2s ease-in-out;
-}
+        // --- Typing Indicator Logic ---
+        function setTypingStatus(isTyping) {
+            if (typingRef) {
+                set(typingRef, isTyping);
+            }
+        }
 
-#chat-header button:hover {
-    background-color: rgba(255, 255, 255, 0.3);
-    transform: scale(1.05); /* Slightly enlarge on hover */
-}
+        function listenForTyping() {
+            const allTypingRef = ref(db, `rooms/${currentRoomCode}/typing`);
+            onValue(allTypingRef, (snapshot) => {
+                const typingUsers = [];
+                snapshot.forEach((childSnapshot) => {
+                    // Check if it's not the current user and their status is true
+                    if (childSnapshot.key !== currentUserId && childSnapshot.val() === true) {
+                        typingUsers.push(childSnapshot.key);
+                    }
+                });
 
-/* Message Area */
-#messages-container {
-    flex: 1; /* Take up all available vertical space */
-    overflow-y: auto; /* Enable vertical scrolling */
-    padding: 1rem;
-    padding-top: 5rem; /* Space for fixed header */
-    padding-bottom: 6rem; /* Space for fixed input area */
-    display: flex;
-    flex-direction: column;
-    scroll-behavior: smooth; /* Smooth scrolling for new messages */
-}
+                if (typingUsers.length > 0) {
+                    typingIndicator.textContent = 'Typing...';
+                    typingIndicator.classList.remove('hidden');
+                } else {
+                    typingIndicator.classList.add('hidden');
+                }
+            });
+        }
 
-/* Custom Scrollbar for Messages */
-#messages-container::-webkit-scrollbar {
-    width: 8px;
-}
-#messages-container::-webkit-scrollbar-track {
-    background: #f0f4f8; /* Light blue-gray for track */
-}
-#messages-container::-webkit-scrollbar-thumb {
-    background-color: #8bbcdc; /* Soft blue for thumb */
-    border-radius: 4px;
-}
-#messages-container::-webkit-scrollbar-thumb:hover {
-    background-color: #6a9cc9; /* Darker soft blue on hover */
-}
+        // --- Jitsi Video Call Logic ---
+        function startVideoCall() {
+            if (jitsiApi) {
+                console.log("Jitsi call already active.");
+                return;
+            }
 
-/* Message Bubbles */
-.message-bubble {
-    max-width: 75%; /* Messages take up max 75% of chat width */
-    padding: 0.6rem 0.9rem;
-    border-radius: 0.75rem; /* Rounded corners for bubbles */
-    margin-bottom: 0.5rem;
-    word-wrap: break-word; /* Break long words */
-    box-shadow: 0 1px 2px rgba(0,0,0,0.08); /* Subtle shadow for bubbles */
-}
+            const domain = 'meet.jit.si';
+            const options = {
+                roomName: `Paritalk_${currentRoomCode}`, // Unique room name based on chat room
+                width: '100%',
+                height: '100%',
+                parentNode: jitsiIframe.parentNode, // Use the parent of iframe
+                userInfo: {
+                    displayName: currentUsername
+                },
+                configOverwrite: {
+                    startWithAudioMuted: false,
+                    startWithVideoMuted: false,
+                    enableWelcomePage: false,
+                    prejoinPageEnabled: false,
+                    toolbarButtons: ['microphone', 'camera', 'desktop', 'fullscreen', 'fodeviceselection', 'hangup', 'profile', 'chat', 'raisehand', 'tileview', 'mute-everyone', 'security', 'settings', 'shortcuts', 'subject', 'toggle-camera']
+                },
+                interfaceConfigOverwrite: {
+                    SHOW_JITSI_WATERMARK: false,
+                    SHOW_WATERMARK_FOR_GUESTS: false,
+                    SHOW_BRAND_WATERMARK: false,
+                    // You can customize more here if needed
+                }
+            };
 
-.message-bubble.mine {
-    background-color: #a7d9f7; /* Soft blue for sender's messages */
-    align-self: flex-end; /* Align to the right */
-    margin-left: auto; /* Push to right */
-}
+            jitsiApi = new JitsiMeetExternalAPI(domain, options);
 
-.message-bubble.other {
-    background-color: #e0f2fe; /* Lightest blue for other's messages */
-    align-self: flex-start; /* Align to the left */
-    margin-right: auto; /* Push to left */
-}
+            // Show Jitsi container
+            jitsiContainer.style.display = 'flex';
+            // Hide chat elements that would be under the call
+            messagesContainer.classList.add('hidden');
+            document.getElementById('chat-header').classList.add('hidden'); // Use ID for header
+            document.getElementById('message-input-area').classList.add('hidden'); // Use ID for input area
 
-.message-bubble p {
-    margin: 0; /* Remove default paragraph margin */
-    color: #1f2937; /* Dark text for messages */
-}
 
-.message-bubble.system {
-    text-align: center;
-    font-style: italic;
-    font-size: 0.85rem;
-    color: #6b7280; /* Gray for system messages */
-    background-color: transparent; /* No background */
-    box-shadow: none; /* No shadow */
-    width: 100%; /* Take full width */
-    margin: 0.75rem 0;
-}
+            // Jitsi API Event Listeners (optional, but good for robust handling)
+            jitsiApi.addEventListener('participantLeft', (participant) => {
+                console.log('Jitsi Participant Left:', participant);
+                // The Firebase presence listener will handle ending the call if the other user leaves the room
+                // so we primarily rely on that for overall room state.
+            });
 
-/* Message Metadata (Sender and Timestamp) */
-.message-meta {
-    font-size: 0.7rem; /* Smaller font for meta info */
-    color: #6b7280; /* Gray for meta info */
-    margin-top: 0.25rem;
-    display: flex;
-    gap: 0.5rem; /* Small gap between sender and timestamp */
-    justify-content: flex-end; /* Default to right for 'mine' */
-}
-.message-bubble.other .message-meta {
-    justify-content: flex-start; /* Align to left for 'other' */
-}
-.message-meta .font-bold {
-    font-weight: 700; /* Bold for username */
-    color: #2563eb; /* Blue for sender's name */
-}
+            jitsiApi.addEventListener('readyToClose', () => {
+                console.log('Jitsi API ready to close event fired.');
+                // This event fires when the Jitsi meeting is explicitly ended from within Jitsi UI
+                endVideoCall();
+            });
 
-/* Image and File Messages */
-.message-image {
-    max-width: 100%;
-    height: auto;
-    border-radius: 0.5rem; /* Rounded corners for images */
-    margin-top: 0.5rem;
-    cursor: pointer; /* Indicate clickable */
-}
+            // Ensure our hangup button also ends the Jitsi call
+            hangupButton.onclick = endVideoCall;
+        }
 
-.message-file {
-    display: flex;
-    align-items: center;
-    color: #1d4ed8; /* Darker blue for file links */
-}
+        function endVideoCall() {
+            if (jitsiApi) {
+                jitsiApi.dispose();
+                jitsiApi = null;
+            }
+            jitsiContainer.style.display = 'none';
+            // Show chat elements again
+            messagesContainer.classList.remove('hidden');
+            document.getElementById('chat-header').classList.remove('hidden');
+            document.getElementById('message-input-area').classList.remove('hidden');
+        }
 
-.message-file i {
-    font-size: 1.5rem; /* Larger icon for files */
-    margin-right: 0.5rem;
-}
+        // --- Event Listeners ---
+        messageInput.addEventListener('input', () => {
+            // Set typing status to true
+            setTypingStatus(true);
+            // Clear any existing timeout and set a new one
+            clearTimeout(typingTimeout);
+            typingTimeout = setTimeout(() => {
+                setTypingStatus(false);
+            }, 2000); // Set to false after 2 seconds of no typing
+        });
 
-.message-file a {
-    text-decoration: underline;
-    transition: color 0.2s;
-}
+        messageInput.addEventListener('blur', () => {
+            // If user clicks away from input, stop typing immediately
+            setTypingStatus(false);
+            clearTimeout(typingTimeout);
+        });
 
-.message-file a:hover {
-    color: #3b82f6; /* Lighter blue on hover */
-}
+        messageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                const messageText = messageInput.value.trim();
+                if (messageText) {
+                    sendMessage(messageText, 'text');
+                }
+            }
+        });
 
-/* Typing Indicator */
-#typing-indicator {
-    color: #4a90e2; /* Blue for typing indicator */
-    font-size: 0.8rem;
-    margin-top: 0.5rem;
-    padding-left: 1rem;
-    padding-bottom: 0.5rem; /* Some padding above input */
-    display: none; /* Hidden by default */
-}
+        sendButton.addEventListener('click', () => {
+            const messageText = messageInput.value.trim();
+            if (messageText) {
+                sendMessage(messageText, 'text');
+            }
+        });
 
-/* Typing indicator dot animation */
-#typing-indicator span {
-    animation: blink 1s infinite;
-    opacity: 0.2; /* Start faded */
-}
-#typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
-#typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
-@keyframes blink {
-    0%, 100% { opacity: 0.2; }
-    50% { opacity: 1; }
-}
+        imageUploadInput.addEventListener('change', handleFileUpload);
+        videoCallButton.addEventListener('click', startVideoCall);
+        leaveRoomButton.addEventListener('click', handleLeaveRoom);
 
-/* Fixed Message Input Area */
-#message-input-area {
-    display: flex;
-    align-items: center;
-    padding: 1rem;
-    background-color: #ffffff;
-    box-shadow: 0 -4px 6px -1px rgba(0, 0, 0, 0.1); /* Shadow above input area */
-    border-top-left-radius: 1rem; /* Rounded top corners */
-    border-top-right-radius: 1rem;
-    position: fixed; /* Fixed position at the bottom */
-    bottom: 0;
-    left: 0;
-    right: 0;
-    z-index: 10; /* Ensure it's above other content */
-    max-width: inherit; /* Inherit max-width from app-container */
-    width: 100%;
-}
+        // Modal event listeners
+        modalConfirm.addEventListener('click', () => {
+            if (resolveModalPromise) resolveModalPromise(true);
+            hideModal();
+        });
+        modalCancel.addEventListener('click', () => {
+            if (resolveModalPromise) resolveModalPromise(false);
+            hideModal();
+        });
 
-#message-input-area input[type="text"] {
-    flex: 1; /* Take up most space */
-    border: 1px solid #d1d5db;
-    border-radius: 9999px; /* Fully rounded input */
-    padding: 0.75rem 1rem;
-    font-size: 1rem;
-    line-height: 1.25;
-    transition: all 0.2s ease-in-out;
-}
 
-#message-input-area input[type="text"]:focus {
-    outline: none;
-    border-color: #60a5fa;
-    box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.5);
-}
+        // Handle browser window close/reload
+        window.addEventListener('beforeunload', async (e) => {
+            if (presenceRef) {
+                // Explicitly remove user from presence when window is closing
+                await set(presenceRef, null);
+                if (jitsiApi) {
+                    jitsiApi.dispose(); // Dispose Jitsi API
+                }
+                // Clearing localStorage here would prevent rejoining, so avoid it on 'beforeunload'
+                // The login.html will check localStorage on load.
+            }
+            // No e.preventDefault() to allow the browser to close without prompt
+        });
 
-#message-input-area button,
-#message-input-area label {
-    background-color: #3b82f6;
-    color: white;
-    padding: 0.85rem; /* Padding for rounded buttons/labels */
-    border-radius: 9999px; /* Fully rounded */
-    margin-left: 0.75rem;
-    cursor: pointer;
-    transition: all 0.3s ease-in-out;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-}
+        // Add a click listener to the entire document to hide the emoji picker when clicking outside
+        document.addEventListener('click', (event) => {
+            if (!emojiPicker.classList.contains('hidden') && !emojiPicker.contains(event.target) && !event.target.closest('.message-bubble')) {
+                hideEmojiPicker();
+            }
+        });
 
-#message-input-area button:hover,
-#message-input-area label:hover {
-    background-color: #2563eb;
-    transform: scale(1.05); /* Slightly enlarge on hover */
-}
-
-/* Hidden file input */
-#image-upload {
-    display: none;
-}
-
-/* --- Jitsi Video Call Styles --- */
-.jitsi-container {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: black; /* Black background for video calls */
-    z-index: 100; /* Ensure it's on top of everything else */
-    display: none; /* Hidden by default, shown by JS */
-    flex-direction: column;
-}
-
-#jitsi-iframe {
-    flex-grow: 1; /* Make iframe fill available space */
-    border: none;
-}
-
-.jitsi-controls {
-    position: absolute;
-    bottom: 0;
-    width: 100%;
-    background: rgba(0, 0, 0, 0.6); /* Semi-transparent black background for controls */
-    display: flex;
-    justify-content: center;
-    padding: 1rem;
-    gap: 1rem;
-    z-index: 101; /* Ensure controls are above iframe */
-}
-
-.jitsi-controls button {
-    background-color: #4CAF50; /* Green for common call actions */
-    color: white;
-    padding: 0.75rem 1.5rem;
-    border-radius: 9999px; /* Fully rounded buttons */
-    font-size: 1.1rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: background-color 0.2s, transform 0.2s;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-    border: none; /* Remove default button border */
-}
-
-.jitsi-controls button:hover {
-    background-color: #45a049; /* Darker green on hover */
-    transform: translateY(-2px);
-}
-
-.jitsi-controls button.hangup {
-    background-color: #f44336; /* Red for hang up */
-}
-
-.jitsi-controls button.hangup:hover {
-    background-color: #da190b; /* Darker red on hover */
-}
-
-.jitsi-controls button i {
-    margin-right: 0.5rem;
-}
-
-/* --- Confirmation Modal Styles --- */
-.modal {
-    display: none; /* Hidden by default, shown by JS */
-    position: fixed; /* Stay in place */
-    z-index: 200; /* Sit on top of everything */
-    left: 0;
-    top: 0;
-    width: 100%; /* Full width */
-    height: 100%; /* Full height */
-    background-color: rgba(0,0,0,0.5); /* Semi-transparent black background overlay */
-    display: flex; /* Use flexbox to center content */
-    align-items: center;
-    justify-content: center;
-}
-
-.modal-content {
-    background-color: #ffffff;
-    margin: auto;
-    padding: 1.5rem;
-    border-radius: 0.75rem; /* Rounded corners */
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-    width: 90%;
-    max-width: 400px;
-    text-align: center;
-}
-
-.modal-content p {
-    font-size: 1.125rem;
-    font-weight: 500;
-    margin-bottom: 1.5rem;
-    color: #1f2937;
-}
-
-.modal-content button {
-    margin: 0.5rem;
-    padding: 0.75rem 1.5rem;
-    border-radius: 0.5rem;
-    cursor: pointer;
-    font-weight: 600;
-    font-size: 1rem;
-    border: none; /* Remove default button border */
-    transition: all 0.2s ease-in-out;
-}
-
-.modal-content .confirm-button {
-    background-color: #3b82f6; /* Blue for confirm */
-    color: white;
-}
-
-.modal-content .confirm-button:hover {
-    background-color: #2563eb;
-    transform: translateY(-1px);
-}
-
-.modal-content .cancel-button {
-    background-color: #cbd5e1; /* Gray for cancel */
-    color: #334155;
-}
-
-.modal-content .cancel-button:hover {
-    background-color: #9ca3af;
-    transform: translateY(-1px);
-}
+    </script>
+</body>
+</html>
