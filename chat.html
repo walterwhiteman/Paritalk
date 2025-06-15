@@ -47,7 +47,7 @@
 
             <!-- Message Input Area -->
             <footer class="message-input-area-premium">
-                <input type="text" id="message-input" placeholder="Type a message...">
+                <input type="text" id="message-input" placeholder="Type a message..." autocomplete="off">
                 <input type="file" id="image-upload" accept="image/*,video/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation" class="hidden">
                 <label for="image-upload" title="Attach File" class="attach-file-button">
                     <span class="material-symbols-outlined">attach_file</span>
@@ -73,11 +73,11 @@
             <div class="modal-content-premium">
                 <p id="modal-message" class="modal-message-text-premium"></p>
                 <div class="modal-actions-premium">
-                    <button id="modal-cancel" class="modal-button-premium cancel-button-premium">
+                    <button class="modal-button-premium cancel-button-premium" id="modal-cancel">
                         <span class="material-symbols-outlined">cancel</span>
                         <span>Cancel</span>
                     </button>
-                    <button id="modal-confirm" class="modal-button-premium confirm-button-premium">
+                    <button class="modal-button-premium confirm-button-premium" id="modal-confirm">
                         <span class="material-symbols-outlined">check_circle</span>
                         <span>Confirm</span>
                     </button>
@@ -214,7 +214,7 @@
                 roomNameDisplay.textContent = currentRoomCode; // Update the span inside the h2
             }
             // Ensure chat screen is visible initially, or handle visibility via Jitsi logic later
-            if (chatContentWrapper) { // Changed from chatScreen to chatContentWrapper
+            if (chatContentWrapper) {
                  chatContentWrapper.classList.remove('hidden'); // Ensure chat screen is visible
             }
         }
@@ -242,16 +242,14 @@
             modalMessage.textContent = message;
 
             // Reset button text and visibility
-            modalConfirm.style.display = 'inline-block';
-            modalCancel.style.display = 'inline-block';
-
+            // Ensure we're targeting the span inside the button for text content
             if (isConfirm) {
-                modalConfirm.querySelector('span:last-child').textContent = 'Confirm'; // Target span for text
-                modalCancel.querySelector('span:last-child').textContent = 'Cancel'; // Target span for text
+                if (modalConfirm.querySelector('span:last-child')) modalConfirm.querySelector('span:last-child').textContent = 'Confirm';
+                if (modalCancel.querySelector('span:last-child')) modalCancel.querySelector('span:last-child').textContent = 'Cancel';
                 modalConfirm.classList.remove('hidden');
                 modalCancel.classList.remove('hidden');
             } else {
-                modalConfirm.querySelector('span:last-child').textContent = 'OK'; // Target span for text
+                if (modalConfirm.querySelector('span:last-child')) modalConfirm.querySelector('span:last-child').textContent = 'OK';
                 modalCancel.classList.add('hidden'); // Hide cancel button for 'OK' mode
             }
 
@@ -283,18 +281,20 @@
             // No direct initialization needed here as JitsiMeetExternalAPI is global
             // and the options are passed directly to startVideoCall.
             // This function exists mainly for conceptual clarity and to match the old external module's signature.
-            currentJitsiRoomName = `Paritalk_${currentRoomCode}`; // Ensure Jitsi room name is consistent
+            currentJitsiRoomName = `Paritalk_${currentRoomCode}`;
             
+            // Attach click listener for our custom hangup button
             if (hangupButton) {
                 hangupButton.onclick = () => {
                     endVideoCall(); // Call our wrapper function
-                    // No onJitsiCloseCallback here as the inline script handles direct calls
                 };
+            } else {
+                console.error("Hangup button not found!");
             }
         }
 
 
-        function startVideoCall() { // Renamed from startJitsiCall to match inline
+        function startVideoCall() {
             if (jitsiApi) {
                 console.log("Jitsi call already active.");
                 return;
@@ -312,59 +312,54 @@
                 configOverwrite: {
                     startWithAudioMuted: false,
                     startWithVideoMuted: false,
-                    enableWelcomePage: false, // Prevents Jitsi's welcome screen
-                    prejoinPageEnabled: false, // Disables the prejoin screen
+                    enableWelcomePage: false,
+                    prejoinPageEnabled: false,
                     toolbarButtons: ['microphone', 'camera', 'desktop', 'fullscreen', 'fodeviceselection', 'hangup', 'profile', 'chat', 'raisehand', 'tileview', 'mute-everyone', 'security', 'settings', 'shortcuts', 'subject', 'toggle-camera']
                 },
                 interfaceConfigOverwrite: {
                     APP_NAME: 'Paritalk Video Call',
-                    HIDE_INVITE_MORE_TOOLBAR_BUTTON: true, // Hide the invite more people button
-                    SHOW_JITSI_WATERMARK: false, // Hide Jitsi watermark
+                    HIDE_INVITE_MORE_TOOLBAR_BUTTON: true,
+                    SHOW_JITSI_WATERMARK: false,
                     SHOW_WATERMARK_FOR_GUESTS: false,
                     SHOW_BRAND_WATERMARK: false,
-                    SHOW_CHROME_EXTENSION_BANNER: false, // Hide "Install extension" banner
-                    TOOLBAR_ALWAYS_VISIBLE: true, // Keep toolbar visible
+                    SHOW_CHROME_EXTENSION_BANNER: false,
+                    TOOLBAR_ALWAYS_VISIBLE: true,
                 }
             };
 
-            // Create a new JitsiMeetExternalAPI instance
             jitsiApi = new JitsiMeetExternalAPI(domain, options);
 
-            // Add Jitsi event listeners (optional, but good for robust handling)
             jitsiApi.addEventListener('readyToClose', () => {
                 console.log('Jitsi API ready to close event fired.');
-                // This fires when Jitsi's internal "end meeting" button is clicked
-                endVideoCall(); // Call our wrapper function to hide Jitsi UI
+                endVideoCall();
             });
             jitsiApi.addEventListener('participantLeft', (participant) => {
                 console.log('Jitsi Participant Left:', participant);
             });
 
-            // Show Jitsi container and hide chat content wrapper
             if (jitsiContainer) {
-                jitsiContainer.classList.remove('hidden'); // Show Jitsi container
+                jitsiContainer.classList.remove('hidden');
             }
-            if (chatContentWrapper) { // Changed from chatScreen to chatContentWrapper
-                chatContentWrapper.classList.add('hidden'); // Hide chat content
+            if (chatContentWrapper) {
+                chatContentWrapper.classList.add('hidden');
             }
         }
 
-        function endVideoCall() { // Renamed from endJitsiCall to match inline
+        function endVideoCall() {
             if (jitsiApi) {
-                jitsiApi.dispose(); // Dispose of the Jitsi API instance
+                jitsiApi.dispose();
                 jitsiApi = null;
             }
 
-            // Hide Jitsi container and show chat content wrapper
             if (jitsiContainer) {
-                jitsiContainer.classList.add('hidden'); // Hide Jitsi container
+                jitsiContainer.classList.add('hidden');
             }
-            if (chatContentWrapper) { // Changed from chatScreen to chatContentWrapper
-                chatContentWrapper.classList.remove('hidden'); // Show chat content
+            if (chatContentWrapper) {
+                chatContentWrapper.classList.remove('hidden');
             }
         }
 
-        function getJitsiApi() { // Renamed from getJitsiApi to match inline
+        function getJitsiApi() {
             return jitsiApi;
         }
 
@@ -372,35 +367,37 @@
         // --- Message Display Logic ---
         function addMessageToChat(message) {
             const messageElement = document.createElement('div');
-            messageElement.classList.add('message-bubble-premium'); // New class name for premium styling
+            messageElement.classList.add('message-bubble-premium');
 
             let contentHTML = '';
 
-            // Handle system messages (e.g., user joined/left)
             if (message.type === 'system') {
-                messageElement.classList.add('system-message-premium'); // New class for system messages
+                messageElement.classList.add('system-message-premium');
                 messageElement.textContent = message.text;
                 messagesContainer.appendChild(messageElement);
                 messagesContainer.scrollTop = messagesContainer.scrollHeight;
-                return; // System messages don't need sender/timestamp/reactions
+                return;
             }
 
             const isMine = message.sender === currentUsername;
-            messageElement.classList.add(isMine ? 'mine-bubble-premium' : 'other-bubble-premium'); // New classes
+            messageElement.classList.add(isMine ? 'mine-bubble-premium' : 'other-bubble-premium');
 
-            // Add sender name for 'other' messages
             if (!isMine && message.sender) {
-                contentHTML += `<p class="message-sender-premium">${message.sender}</p>`; // New class
+                contentHTML += `<p class="message-sender-premium">${message.sender}</p>`;
             }
 
-            // Add message content (text, image, file)
             if (message.type === 'text') {
-                contentHTML += `<p class="message-content-premium">${message.text}</p>`; // New class
+                contentHTML += `<p class="message-content-premium">${message.text}</p>`;
             } else if (message.type === 'image') {
-                contentHTML += `<img src="${message.imageUrl}" alt="Shared Image" class="message-image-premium" onerror="this.onerror=null;this.src='https://placehold.co/150x100/eeeeee/aaaaaa?text=Image+Load+Failed';">`; // New class
+                // Initial condensed display for images
+                contentHTML += `
+                    <div class="message-image-preview">
+                        <img src="${message.imageUrl}" alt="Shared Image Preview" class="message-image-premium-thumb" onerror="this.onerror=null;this.src='https://placehold.co/100x70/eeeeee/aaaaaa?text=Image';">
+                        <span class="material-symbols-outlined message-media-overlay-icon">zoom_in</span>
+                    </div>
+                `;
             } else if (message.type === 'file') {
-                // Determine icon based on file type (using Material Symbols)
-                let fileIcon = 'description'; // Default file icon
+                let fileIcon = 'description';
                 const fileExtension = message.fileName ? message.fileName.split('.').pop().toLowerCase() : '';
                 if (['pdf'].includes(fileExtension)) fileIcon = 'picture_as_pdf';
                 else if (['doc', 'docx'].includes(fileExtension)) fileIcon = 'article';
@@ -411,19 +408,99 @@
                 else if (['mp4', 'mov', 'avi'].includes(fileExtension)) fileIcon = 'videocam';
 
                 contentHTML += `
-                    <div class="message-file-premium">
-                        <span class="material-symbols-outlined">${fileIcon}</span>
-                        <a href="${message.fileUrl}" target="_blank">${message.fileName}</a>
+                    <div class="message-file-premium-preview">
+                        <span class="material-symbols-outlined file-icon">${fileIcon}</span>
+                        <a href="${message.fileUrl}" target="_blank" class="file-name-link">${message.fileName}</a>
+                        <a href="${message.fileUrl}" download="${message.fileName}" class="download-icon" title="Download">
+                            <span class="material-symbols-outlined">download</span>
+                        </a>
                     </div>
-                `; // New class
+                `;
             }
 
-            // Add timestamp
-            contentHTML += `<p class="message-timestamp-premium">${formatTimestamp(message.timestamp)}</p>`; // New class
+            contentHTML += `<p class="message-timestamp-premium">${formatTimestamp(message.timestamp)}</p>`;
 
             messageElement.innerHTML = contentHTML;
             messagesContainer.appendChild(messageElement);
-            messagesContainer.scrollTop = messagesContainer.scrollHeight; // Scroll to bottom
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+            // Event listener for opening full view of images/files
+            if (message.type === 'image' || message.type === 'file') {
+                const mediaPreview = messageElement.querySelector('.message-image-preview') || messageElement.querySelector('.message-file-premium-preview');
+                if (mediaPreview) {
+                    mediaPreview.style.cursor = 'pointer'; // Indicate clickability
+                    mediaPreview.addEventListener('click', () => {
+                        showFullMediaModal(message.type, message.imageUrl || message.fileUrl, message.fileName);
+                    });
+                }
+            }
+        }
+
+        // --- Full Media View Modal Logic ---
+        const fullMediaModal = document.createElement('div');
+        fullMediaModal.id = 'full-media-modal';
+        fullMediaModal.classList.add('full-media-modal-premium', 'hidden');
+        fullMediaModal.innerHTML = `
+            <div class="full-media-content-premium">
+                <button class="full-media-close-button">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+                <div class="full-media-display-area">
+                    <!-- Media will be dynamically inserted here -->
+                </div>
+                <div class="full-media-controls">
+                    <a id="full-media-download-link" href="#" download class="full-media-download-button">
+                        <span class="material-symbols-outlined">download</span> Download
+                    </a>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(fullMediaModal); // Append to body, outside #app-container
+
+        const fullMediaDisplayArea = fullMediaModal.querySelector('.full-media-display-area');
+        const fullMediaCloseButton = fullMediaModal.querySelector('.full-media-close-button');
+        const fullMediaDownloadLink = fullMediaModal.querySelector('#full-media-download-link');
+
+        fullMediaCloseButton.addEventListener('click', () => {
+            fullMediaModal.classList.add('hidden');
+            fullMediaDisplayArea.innerHTML = ''; // Clear content
+        });
+
+        function showFullMediaModal(type, url, fileName) {
+            fullMediaDisplayArea.innerHTML = ''; // Clear previous content
+            fullMediaDownloadLink.href = url;
+            fullMediaDownloadLink.download = fileName || 'download'; // Ensure filename for download
+
+            if (type === 'image') {
+                const img = document.createElement('img');
+                img.src = url;
+                img.alt = "Full size image";
+                img.classList.add('full-media-image');
+                fullMediaDisplayArea.appendChild(img);
+            } else if (type === 'file') {
+                const fileExtension = fileName ? fileName.split('.').pop().toLowerCase() : '';
+                if (['mp4', 'mov', 'avi', 'webm'].includes(fileExtension)) {
+                    const video = document.createElement('video');
+                    video.src = url;
+                    video.controls = true;
+                    video.autoplay = true;
+                    video.classList.add('full-media-video');
+                    fullMediaDisplayArea.appendChild(video);
+                } else if (['pdf'].includes(fileExtension)) {
+                    const iframe = document.createElement('iframe');
+                    iframe.src = url;
+                    iframe.classList.add('full-media-document');
+                    iframe.frameBorder = "0";
+                    fullMediaDisplayArea.appendChild(iframe);
+                } else {
+                    // For other file types, just show a message and the download link
+                    const p = document.createElement('p');
+                    p.textContent = `Preview not available for ${fileExtension.toUpperCase()} files.`;
+                    p.classList.add('full-media-info-text');
+                    fullMediaDisplayArea.appendChild(p);
+                }
+            }
+            fullMediaModal.classList.remove('hidden');
         }
 
         // --- Send Message Logic ---
@@ -557,7 +634,7 @@
                 try {
                     // Set user presence
                     await set(presenceRef, { username: currentUsername, lastSeen: serverTimestamp() });
-                    onDisconnect(presenceRef).remove(); // Remove user from presence when disconnected
+                    onDisconnect(presenceRef).remove(); // Remove user from presence when disconnected (MOST IMPORTANT FOR AUTO-EXIT)
 
                     // Send "joined" message only if not already sent for this session
                     if (!localStorage.getItem('paritalk_joined_message_sent_for_' + currentRoomCode + currentUsername)) {
@@ -572,8 +649,8 @@
 
                     messageInput.focus();
 
-                    // Initialize Jitsi service (JitsiMeetExternalAPI is globally available)
-                    initializeJitsiInChat(); // Call the renamed initialization function
+                    // Initialize Jitsi service within chat logic
+                    initializeJitsiInChat();
 
                 } catch (error) {
                     console.error("Error setting up chat listeners/presence:", error);
@@ -617,7 +694,7 @@
                 const currentJitsiApi = getJitsiApi();
                 if (currentJitsiApi) {
                     const jitsiParticipantsCount = currentJitsiApi.getNumberOfParticipants ? currentJitsiApi.getNumberOfParticipants() : 0;
-                    const firebaseOtherUsersCount = users.filter(u => u !== currentUsername).length;
+                    const firebaseOtherUsersCount = users.filter(u => u !== currentUserId).length;
 
                     if (firebaseOtherUsersCount === 0 && jitsiParticipantsCount <= 1 && users.includes(currentUserId)) {
                         console.log("Other user left room (Firebase) and Jitsi, ending call.");
@@ -633,6 +710,7 @@
             });
         }
 
+        // FIX: Ensure remove(presenceRef) is explicitly called and awaited
         async function handleLeaveRoom() {
             const confirmed = await showModal('Are you sure you want to leave the chat?', true);
             if (confirmed) {
@@ -641,8 +719,11 @@
                     endVideoCall(); // End Jitsi call if active
                 }
                 if (presenceRef) {
-                    await remove(presenceRef); // Remove user from presence
-                    sendMessage(`**${currentUsername}** left the chat.`, 'system'); // Send "left" message
+                    console.log("Leaving room: Explicitly removing user presence.");
+                    await remove(presenceRef); // Explicitly remove user from presence
+                    // Note: sending "left" message might fail if user is already disconnected,
+                    // but it's a good effort for explicit leave.
+                    sendMessage(`**${currentUsername}** left the chat.`, 'system');
                 }
                 // Clear localStorage for a clean exit
                 localStorage.removeItem('paritalk_username');
@@ -734,14 +815,14 @@
         }
 
         // Event listeners for modal buttons
-        if (modalConfirm) { // Added check
+        if (modalConfirm) {
             modalConfirm.addEventListener('click', () => {
                 if (resolveModalPromise) resolveModalPromise(true);
                 hideModal();
             });
         } else { console.error("Modal Confirm button not found!"); }
         
-        if (modalCancel) { // Added check
+        if (modalCancel) {
             modalCancel.addEventListener('click', () => {
                 if (resolveModalPromise) resolveModalPromise(false);
                 hideModal();
@@ -749,21 +830,25 @@
         } else { console.error("Modal Cancel button not found!"); }
 
 
+        // FIX: Ensure `remove(presenceRef)` is called for explicit unload/close.
+        // The `onDisconnect` set up earlier is the most reliable for unexpected closures.
         window.addEventListener('beforeunload', async (e) => {
             if (presenceRef) {
-                console.log("Beforeunload: Removing user presence.");
-                await set(presenceRef, null);
+                console.log("Beforeunload: Attempting to remove user presence explicitly.");
+                // Using `set(presenceRef, null)` is essentially a remove and is
+                // more robust in some `beforeunload` contexts than `remove()`.
+                // However, the `onDisconnect` is the true safeguard.
+                await set(presenceRef, null); // Explicitly set null to remove presence
                 if (jitsiApi) {
-                    jitsiApi.dispose();
+                    jitsiApi.dispose(); // Dispose Jitsi API
                 }
             }
+            // Do not prevent default (e.g., e.preventDefault()) as it might block tab closure
+            // and the `onDisconnect` handles the server-side cleanup.
         });
 
         document.addEventListener('click', (event) => {
-            // Updated class name for message bubbles
             if (emojiPicker && !emojiPicker.classList.contains('hidden') && !emojiPicker.contains(event.target) && !event.target.closest('.message-bubble-premium')) {
-                // If you had a dedicated hideEmojiPicker function, call it here.
-                // For now, directly hide it as per your previous snippet.
                 emojiPicker.classList.add('hidden');
             }
         });
