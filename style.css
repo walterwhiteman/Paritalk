@@ -72,7 +72,7 @@ body {
     .chat-app-container-premium {
         border-radius: var(--border-radius-large); /* Rounded corners on larger screens */
         box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08); /* Subtle, diffused shadow */
-        max-width: 420px; /* iPhone Pro Max width for consistent mobile feel on desktop */
+        /* REMOVED: max-width: 420px; to allow it to expand on desktop */
     }
 }
 
@@ -831,7 +831,7 @@ body {
 }
 
 .send-message-button .material-symbols-outlined {
-    font-size: 20px; /* Adjusted for mobile */
+    font-size: 20px;
     color: var(--color-white);
     font-variation-settings: 'FILL' 1;
 }
