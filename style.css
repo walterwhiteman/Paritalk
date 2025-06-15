@@ -1,4 +1,4 @@
-/* style.css */
+/* style.css - Full Responsive Design */
 
 /* Universal Box-sizing */
 *, *::before, *::after {
@@ -21,7 +21,7 @@
     --border-radius-small: 8px;
     --border-radius-medium: 12px;
     --border-radius-large: 18px;
-    --border-radius-full: 9999px;
+    --border-radius-full: 9999px; /* Max value for perfect circles/pill shapes */
 }
 
 /* Base Body Styles */
@@ -32,17 +32,17 @@ body {
     background-color: var(--color-off-white); /* Soft off-white background */
     color: var(--color-dark-gray);
     line-height: 1.6;
-    -webkit-font-smoothing: antialiased; /* Smoother font rendering */
-    -moz-osx-font-smoothing: grayscale; /* Smoother font rendering */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
     display: flex;
     justify-content: center;
     align-items: center;
     min-height: 100vh; /* Full viewport height */
+    overflow-x: hidden; /* Prevent horizontal scrolling */
 }
 
 /* App Container (overall wrapper for login/chat views) */
 .login-page-container, #app-container { /* Applies to both login and chat main containers */
-    background-color: var(--color-off-white); /* Consistent background */
     display: flex;
     justify-content: center;
     align-items: center;
@@ -50,23 +50,29 @@ body {
     width: 100%;
 }
 
-/* General App Container (for responsive framing on larger screens) */
+/* Specific styling for the main app container on chat.html */
 #app-container { /* Specific to the chat.html's main container */
     background-color: var(--color-white);
-    border-radius: var(--border-radius-large);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08); /* Subtle, diffused shadow */
-    max-width: 420px; /* iPhone Pro Max width for consistent mobile feel */
+    border-radius: 0; /* No border-radius on small screens for full coverage */
+    box-shadow: none; /* No shadow on small screens for full coverage */
+    max-width: 100%; /* Take full width on mobile */
     height: 100vh;
-    max-height: 900px; /* Limit height on larger screens */
     overflow: hidden;
     position: relative; /* For overlays like Jitsi/modals */
     flex-direction: column; /* Default flex direction for chat content */
 }
 
+/* Responsive adjustment for larger screens (e.g., tablets and desktops) */
 @media (min-width: 600px) {
     .login-page-container, #app-container {
         height: 95vh; /* Slightly less than full height on desktop */
         margin: 2.5vh auto; /* Center vertically */
+    }
+
+    #app-container {
+        border-radius: var(--border-radius-large); /* Rounded corners on larger screens */
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08); /* Subtle, diffused shadow */
+        max-width: 420px; /* iPhone Pro Max width for consistent mobile feel on desktop */
     }
 }
 
@@ -74,56 +80,95 @@ body {
 /* --- Login Screen Styles (targeting new classes from index.html) --- */
 .login-card {
     background-color: var(--color-white);
-    padding: 2.5rem;
+    padding: 2rem; /* Adjusted for mobile */
     border-radius: var(--border-radius-medium);
-    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.06); /* Lighter shadow for card */
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.06);
     text-align: center;
     width: 90%;
-    max-width: 380px; /* Slightly more compact card */
+    max-width: 380px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 1.5rem;
+    gap: 1.2rem; /* Adjusted for mobile */
+}
+
+@media (min-width: 600px) {
+    .login-card {
+        padding: 2.5rem;
+        gap: 1.5rem;
+    }
 }
 
 .app-brand-logo-circle {
-    background-color: var(--color-primary-blue-light); /* Light blue circle */
+    background-color: var(--color-primary-blue-light);
     border-radius: var(--border-radius-full);
-    width: 90px;
-    height: 90px;
+    width: 80px; /* Adjusted for mobile */
+    height: 80px;
     display: flex;
     justify-content: center;
     align-items: center;
     margin-bottom: 0.5rem;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05); /* Very subtle shadow on circle */
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+@media (min-width: 600px) {
+    .app-brand-logo-circle {
+        width: 90px;
+        height: 90px;
+    }
 }
 
 .app-brand-icon {
-    font-size: 50px;
+    font-size: 45px; /* Adjusted for mobile */
     color: var(--color-primary-blue);
-    font-variation-settings: 'FILL' 1; /* Filled icon for branding */
+    font-variation-settings: 'FILL' 1;
+}
+
+@media (min-width: 600px) {
+    .app-brand-icon {
+        font-size: 50px;
+    }
 }
 
 .app-brand-title {
-    font-size: 2.2rem;
+    font-size: 2rem; /* Adjusted for mobile */
     font-weight: 700;
     color: var(--color-dark-gray);
     margin: 0;
-    letter-spacing: -0.02em; /* Tighter letter spacing for premium look */
+    letter-spacing: -0.02em;
+}
+
+@media (min-width: 600px) {
+    .app-brand-title {
+        font-size: 2.2rem;
+    }
 }
 
 .app-tagline {
-    font-size: 0.95rem;
+    font-size: 0.9rem; /* Adjusted for mobile */
     color: var(--color-medium-gray);
     margin-top: -0.5rem;
-    margin-bottom: 1.5rem;
+    margin-bottom: 1rem; /* Adjusted for mobile */
+}
+
+@media (min-width: 600px) {
+    .app-tagline {
+        font-size: 0.95rem;
+        margin-bottom: 1.5rem;
+    }
 }
 
 .input-form-section {
     width: 100%;
     display: flex;
     flex-direction: column;
-    gap: 1.2rem;
+    gap: 1rem; /* Adjusted for mobile */
+}
+
+@media (min-width: 600px) {
+    .input-form-section {
+        gap: 1.2rem;
+    }
 }
 
 .input-group-premium {
@@ -134,30 +179,50 @@ body {
 }
 
 .input-label-premium {
-    font-size: 0.85rem;
+    font-size: 0.8rem; /* Adjusted for mobile */
     color: var(--color-dark-gray);
     font-weight: 500;
-    margin-bottom: 0.4rem;
+    margin-bottom: 0.3rem; /* Adjusted for mobile */
     display: flex;
     align-items: center;
     gap: 0.4rem;
 }
 
+@media (min-width: 600px) {
+    .input-label-premium {
+        font-size: 0.85rem;
+        margin-bottom: 0.4rem;
+    }
+}
+
 .input-icon-premium {
-    font-size: 18px;
+    font-size: 16px; /* Adjusted for mobile */
     color: var(--color-medium-gray);
-    font-variation-settings: 'FILL' 0; /* Outlined icon for input labels */
+    font-variation-settings: 'FILL' 0;
+}
+
+@media (min-width: 600px) {
+    .input-icon-premium {
+        font-size: 18px;
+    }
 }
 
 .input-field-premium {
     width: 100%;
-    padding: 0.9rem 1.1rem;
+    padding: 0.8rem 1rem; /* Adjusted for mobile */
     border: 1px solid var(--color-light-gray);
     border-radius: var(--border-radius-small);
-    font-size: 0.95rem;
+    font-size: 0.9rem; /* Adjusted for mobile */
     color: var(--color-dark-gray);
     outline: none;
     transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+@media (min-width: 600px) {
+    .input-field-premium {
+        padding: 0.9rem 1.1rem;
+        font-size: 0.95rem;
+    }
 }
 
 .input-field-premium::placeholder {
@@ -166,24 +231,31 @@ body {
 
 .input-field-premium:focus {
     border-color: var(--color-primary-blue);
-    box-shadow: 0 0 0 3px rgba(52, 105, 245, 0.2); /* Soft blue glow on focus */
+    box-shadow: 0 0 0 3px rgba(52, 105, 245, 0.2);
 }
 
 .primary-action-button {
     width: 100%;
-    padding: 1.1rem 1.4rem;
+    padding: 1rem 1.2rem; /* Adjusted for mobile */
     background-color: var(--color-primary-blue);
     color: var(--color-white);
     border: none;
     border-radius: var(--border-radius-small);
-    font-size: 1rem;
+    font-size: 0.95rem; /* Adjusted for mobile */
     font-weight: 600;
     cursor: pointer;
     transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
     text-transform: uppercase;
     letter-spacing: 0.04em;
     margin-top: 0.8rem;
-    box-shadow: 0 5px 15px rgba(52, 105, 245, 0.25); /* More prominent shadow for action */
+    box-shadow: 0 5px 15px rgba(52, 105, 245, 0.25);
+}
+
+@media (min-width: 600px) {
+    .primary-action-button {
+        padding: 1.1rem 1.4rem;
+        font-size: 1rem;
+    }
 }
 
 .primary-action-button:hover {
@@ -199,13 +271,19 @@ body {
 
 .error-message-premium {
     color: var(--color-error);
-    font-size: 0.8rem;
+    font-size: 0.75rem; /* Adjusted for mobile */
     margin-top: 0.5rem;
     text-align: center;
 }
 
+@media (min-width: 600px) {
+    .error-message-premium {
+        font-size: 0.8rem;
+    }
+}
+
 .privacy-note-premium {
-    font-size: 0.8rem;
+    font-size: 0.75rem; /* Adjusted for mobile */
     color: var(--color-medium-gray);
     margin-top: 1.5rem;
     line-height: 1.4;
@@ -213,22 +291,36 @@ body {
     align-items: flex-start;
     justify-content: center;
     gap: 0.4rem;
-    padding: 0.7rem 1rem;
+    padding: 0.6rem 0.8rem; /* Adjusted for mobile */
     border-radius: var(--border-radius-small);
-    background-color: var(--color-primary-blue-light); /* Light blue background */
-    border: 1px solid rgba(52, 105, 245, 0.1); /* Subtle blue border */
-    box-shadow: inset 0 1px 3px rgba(0,0,0,0.02); /* Very subtle inner shadow */
+    background-color: var(--color-primary-blue-light);
+    border: 1px solid rgba(52, 105, 245, 0.1);
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.02);
+}
+
+@media (min-width: 600px) {
+    .privacy-note-premium {
+        font-size: 0.8rem;
+        padding: 0.7rem 1rem;
+    }
 }
 
 .privacy-icon-premium {
-    font-size: 16px;
+    font-size: 15px; /* Adjusted for mobile */
     color: var(--color-primary-blue);
-    font-variation-settings: 'FILL' 1; /* Filled icon */
+    font-variation-settings: 'FILL' 1;
     flex-shrink: 0;
     margin-top: 2px;
 }
 
-/* --- Chat Screen Styles (will target classes from upcoming chat.html updates) --- */
+@media (min-width: 600px) {
+    .privacy-icon-premium {
+        font-size: 16px;
+    }
+}
+
+
+/* --- Chat Screen Styles (targeting classes from chat.html) --- */
 #chat-content-wrapper {
     display: flex;
     flex-direction: column;
@@ -238,51 +330,77 @@ body {
 }
 
 /* Chat Header */
-.chat-header {
+.chat-header-premium {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0.8rem 1.2rem;
-    background-color: var(--color-white); /* White header */
+    padding: 0.7rem 1rem; /* Adjusted for mobile */
+    background-color: var(--color-white);
     color: var(--color-dark-gray);
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08); /* Softer shadow */
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
     position: sticky;
     top: 0;
     width: 100%;
     z-index: 10;
-    border-bottom: 1px solid var(--color-light-gray); /* Subtle separator */
+    border-bottom: 1px solid var(--color-light-gray);
 }
 
-.chat-header .room-info {
+@media (min-width: 600px) {
+    .chat-header-premium {
+        padding: 0.8rem 1.2rem;
+    }
+}
+
+.chat-header-info {
     display: flex;
     align-items: center;
-    gap: 0.6rem;
+    gap: 0.5rem; /* Adjusted for mobile */
 }
 
-.chat-header .user-avatar-header {
-    font-size: 28px;
+@media (min-width: 600px) {
+    .chat-header-info {
+        gap: 0.6rem;
+    }
+}
+
+.chat-header-avatar-icon {
+    font-size: 26px; /* Adjusted for mobile */
     color: var(--color-primary-blue);
     background-color: var(--color-primary-blue-light);
     border-radius: var(--border-radius-full);
-    padding: 0.3rem;
-    font-variation-settings: 'FILL' 1; /* Filled icon */
+    padding: 0.25rem; /* Adjusted for mobile */
+    font-variation-settings: 'FILL' 1;
 }
 
-.chat-header .details {
+@media (min-width: 600px) {
+    .chat-header-avatar-icon {
+        font-size: 28px;
+        padding: 0.3rem;
+    }
+}
+
+.chat-header-details {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
 }
 
-.chat-header #roomDisplayName {
-    font-size: 1.1rem;
+.chat-room-display-name {
+    font-size: 1rem; /* Adjusted for mobile */
     font-weight: 500;
     margin: 0;
     color: var(--color-dark-gray);
+    line-height: 1.2;
 }
 
-.chat-header .user-status {
-    font-size: 0.75rem;
+@media (min-width: 600px) {
+    .chat-room-display-name {
+        font-size: 1.1rem;
+    }
+}
+
+.chat-online-users-count {
+    font-size: 0.7rem; /* Adjusted for mobile */
     color: var(--color-medium-gray);
     display: flex;
     align-items: center;
@@ -290,134 +408,202 @@ body {
     margin-top: 0.1rem;
 }
 
-.chat-header .user-status .status-dot {
-    width: 8px;
-    height: 8px;
-    background-color: var(--color-success); /* Green for online */
+@media (min-width: 600px) {
+    .chat-online-users-count {
+        font-size: 0.75rem;
+    }
+}
+
+.chat-online-users-count .status-dot {
+    width: 7px; /* Adjusted for mobile */
+    height: 7px;
+    background-color: var(--color-success);
     border-radius: var(--border-radius-full);
     display: inline-block;
 }
 
-.chat-header .header-actions {
-    display: flex;
-    gap: 0.4rem;
+@media (min-width: 600px) {
+    .chat-online-users-count .status-dot {
+        width: 8px;
+        height: 8px;
+    }
 }
 
-.chat-header .material-symbols-outlined {
-    font-size: 24px;
-    color: var(--color-medium-gray); /* Outlined grey by default */
+.chat-header-actions {
+    display: flex;
+    gap: 0.3rem; /* Adjusted for mobile */
+}
+
+@media (min-width: 600px) {
+    .chat-header-actions {
+        gap: 0.4rem;
+    }
+}
+
+.chat-action-icon {
+    font-size: 22px; /* Adjusted for mobile */
+    color: var(--color-medium-gray);
     cursor: pointer;
-    padding: 0.5rem;
+    padding: 0.4rem; /* Adjusted for mobile */
     border-radius: var(--border-radius-full);
     transition: background-color 0.2s ease, color 0.2s ease, font-variation-settings 0.2s ease;
     font-variation-settings: 'FILL' 0; /* Default to outlined */
 }
 
-.chat-header .material-symbols-outlined:hover {
-    background-color: var(--color-off-white); /* Lighter hover background */
-    color: var(--color-primary-blue); /* Blue on hover */
-    font-variation-settings: 'FILL' 1; /* Fill on hover */
+@media (min-width: 600px) {
+    .chat-action-icon {
+        font-size: 24px;
+        padding: 0.5rem;
+    }
+}
+
+.chat-action-icon:hover {
+    background-color: var(--color-off-white);
+    color: var(--color-primary-blue);
+    font-variation-settings: 'FILL' 1;
 }
 
 
 /* Chat Messages Area */
-.chat-messages {
+.messages-container-premium {
     flex-grow: 1;
     overflow-y: auto;
-    padding: 1rem;
-    padding-top: 5rem; /* Space for fixed header */
-    padding-bottom: 5rem; /* Space for fixed footer */
+    padding: 0.8rem; /* Adjusted for mobile */
+    padding-top: 4.5rem; /* Space for fixed header */
+    padding-bottom: 4.5rem; /* Space for fixed footer */
     display: flex;
     flex-direction: column;
-    gap: 0.6rem; /* Tighter gap between bubbles */
-    background-color: var(--color-off-white); /* Light gray for chat background */
+    gap: 0.5rem; /* Tighter gap between bubbles */
+    background-color: var(--color-off-white);
 }
 
-/* Custom Scrollbar for chat-messages */
-.chat-messages::-webkit-scrollbar {
+@media (min-width: 600px) {
+    .messages-container-premium {
+        padding: 1rem;
+        padding-top: 5rem;
+        padding-bottom: 5rem;
+        gap: 0.6rem;
+    }
+}
+
+/* Custom Scrollbar for messages-container-premium */
+.messages-container-premium::-webkit-scrollbar {
     width: 8px;
 }
-.chat-messages::-webkit-scrollbar-track {
+.messages-container-premium::-webkit-scrollbar-track {
     background: var(--color-off-white);
 }
-.chat-messages::-webkit-scrollbar-thumb {
+.messages-container-premium::-webkit-scrollbar-thumb {
     background-color: var(--color-light-gray);
     border-radius: 4px;
 }
-.chat-messages::-webkit-scrollbar-thumb:hover {
+.messages-container-premium::-webkit-scrollbar-thumb:hover {
     background-color: var(--color-medium-gray);
 }
 
 /* Message Bubble */
-.message-bubble {
+.message-bubble-premium {
     display: flex;
     flex-direction: column;
     max-width: 80%;
     word-wrap: break-word;
     border-radius: var(--border-radius-medium);
-    padding: 0.7rem 1rem;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06); /* Very subtle shadow */
+    padding: 0.6rem 0.9rem; /* Adjusted for mobile */
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
 }
 
-.message-bubble.mine {
-    background-color: var(--color-primary-blue-light); /* Very light blue for sender's messages */
+@media (min-width: 600px) {
+    .message-bubble-premium {
+        padding: 0.7rem 1rem;
+    }
+}
+
+.mine-bubble-premium {
+    background-color: var(--color-primary-blue-light);
     color: var(--color-dark-gray);
     align-self: flex-end;
     margin-left: auto;
-    border-bottom-right-radius: var(--border-radius-small); /* Slightly less rounded */
+    border-bottom-right-radius: var(--border-radius-small);
 }
 
-.message-bubble.other {
-    background-color: var(--color-white); /* White for other's messages */
+.other-bubble-premium {
+    background-color: var(--color-white);
     color: var(--color-dark-gray);
     align-self: flex-start;
     margin-right: auto;
-    border-bottom-left-radius: var(--border-radius-small); /* Slightly less rounded */
+    border-bottom-left-radius: var(--border-radius-small);
 }
 
-.message-bubble.system {
+.system-message-premium {
     background-color: transparent;
     box-shadow: none;
     text-align: center;
-    font-size: 0.8rem;
+    font-size: 0.75rem; /* Adjusted for mobile */
     color: var(--color-medium-gray);
     font-style: italic;
     width: 100%;
-    margin: 0.4rem 0;
+    margin: 0.3rem 0; /* Adjusted for mobile */
 }
 
-.message-bubble .message-content {
-    font-size: 0.95rem;
+@media (min-width: 600px) {
+    .system-message-premium {
+        font-size: 0.8rem;
+        margin: 0.4rem 0;
+    }
+}
+
+.message-content-premium {
+    font-size: 0.9rem; /* Adjusted for mobile */
     color: inherit;
 }
 
-.message-bubble .message-timestamp {
-    font-size: 0.65rem;
+@media (min-width: 600px) {
+    .message-content-premium {
+        font-size: 0.95rem;
+    }
+}
+
+.message-timestamp-premium {
+    font-size: 0.6rem; /* Adjusted for mobile */
     color: var(--color-medium-gray);
     text-align: right;
-    margin-top: 0.2rem;
+    margin-top: 0.15rem; /* Adjusted for mobile */
 }
-.message-bubble.mine .message-timestamp {
-    color: rgba(var(--color-dark-gray), 0.7); /* Slightly transparent */
+.mine-bubble-premium .message-timestamp-premium {
+    color: rgba(var(--color-dark-gray), 0.7);
 }
-.message-bubble.other .message-timestamp {
+.other-bubble-premium .message-timestamp-premium {
     text-align: left;
 }
 
-.message-bubble .message-sender {
-    font-size: 0.8rem;
+@media (min-width: 600px) {
+    .message-timestamp-premium {
+        font-size: 0.65rem;
+        margin-top: 0.2rem;
+    }
+}
+
+.message-sender-premium {
+    font-size: 0.75rem; /* Adjusted for mobile */
     font-weight: 500;
     color: var(--color-primary-blue);
-    margin-bottom: 0.2rem;
+    margin-bottom: 0.15rem; /* Adjusted for mobile */
     text-align: left;
 }
-.message-bubble.mine .message-sender {
+.mine-bubble-premium .message-sender-premium {
     color: rgba(var(--color-dark-gray), 0.8);
     text-align: right;
 }
 
+@media (min-width: 600px) {
+    .message-sender-premium {
+        font-size: 0.8rem;
+        margin-bottom: 0.2rem;
+    }
+}
+
 /* Image and File Messages */
-.message-image {
+.message-image-premium {
     max-width: 100%;
     height: auto;
     border-radius: var(--border-radius-small);
@@ -427,11 +613,11 @@ body {
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
 
-.message-file {
+.message-file-premium {
     display: flex;
     align-items: center;
     gap: 0.4rem;
-    background-color: var(--color-primary-blue-light); /* Light blue for files */
+    background-color: var(--color-primary-blue-light);
     padding: 0.6rem 0.8rem;
     border-radius: var(--border-radius-small);
     margin-top: 0.4rem;
@@ -440,41 +626,47 @@ body {
     word-break: break-all;
 }
 
-.message-file .material-symbols-outlined, /* If we decide to use Material Symbols for files */
-.message-file .fa-solid { /* Keep Font Awesome for file icons as per previous chat.html */
+.message-file-premium .material-symbols-outlined {
     font-size: 20px;
     color: var(--color-primary-blue);
     flex-shrink: 0;
 }
 
-.message-file a {
+.message-file-premium a {
     text-decoration: none;
     color: inherit;
     word-break: break-all;
 }
-.message-file a:hover {
+.message-file-premium a:hover {
     text-decoration: underline;
 }
 
 /* Typing Indicator */
-.typing-indicator {
-    font-size: 0.85rem;
+.typing-indicator-premium {
+    font-size: 0.8rem; /* Adjusted for mobile */
     color: var(--color-medium-gray);
     padding: 0.4rem 1rem;
     text-align: left;
-    position: absolute; /* Position above footer */
+    position: absolute;
     bottom: 4.5rem; /* Based on footer height */
     left: 0;
     width: 100%;
-    background-color: var(--color-off-white); /* Match message area background */
+    background-color: var(--color-off-white);
     z-index: 9;
-    display: none; /* Hidden by default */
+    display: none;
 }
-.typing-indicator span {
+
+@media (min-width: 600px) {
+    .typing-indicator-premium {
+        font-size: 0.85rem;
+    }
+}
+
+.typing-indicator-premium span {
     animation: bounce-dot 1s infinite;
 }
-.typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
-.typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+.typing-indicator-premium span:nth-child(2) { animation-delay: 0.2s; }
+.typing-indicator-premium span:nth-child(3) { animation-delay: 0.4s; }
 
 @keyframes bounce-dot {
     0%, 80%, 100% { transform: scale(0); opacity: 0; }
@@ -482,337 +674,337 @@ body {
 }
 
 /* Chat Footer (Message Input Area) */
-.chat-footer {
+.message-input-area-premium {
     display: flex;
     align-items: center;
-    padding: 0.75rem 1rem;
+    padding: 0.6rem 0.8rem; /* Adjusted for mobile */
     background-color: var(--color-white);
-    box-shadow: 0 -1px 4px rgba(0, 0, 0, 0.08); /* Subtle shadow above input */
+    box-shadow: 0 -1px 4px rgba(0, 0, 0, 0.08);
     position: sticky;
     bottom: 0;
     width: 100%;
     z-index: 10;
 }
 
-.chat-footer .image-upload-label {
-    background-color: var(--color-off-white); /* Light background for attachment button */
+@media (min-width: 600px) {
+    .message-input-area-premium {
+        padding: 0.75rem 1rem;
+    }
+}
+
+.attach-file-button {
+    background-color: var(--color-off-white);
     border-radius: var(--border-radius-full);
-    width: 44px;
-    height: 44px;
+    width: 40px; /* Adjusted for mobile */
+    height: 40px;
     display: flex;
     justify-content: center;
     align-items: center;
     cursor: pointer;
     transition: background-color 0.2s ease;
-    margin-right: 0.6rem;
+    margin-right: 0.5rem; /* Adjusted for mobile */
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
 
-.chat-footer .image-upload-label:hover {
+@media (min-width: 600px) {
+    .attach-file-button {
+        width: 44px;
+        height: 44px;
+        margin-right: 0.6rem;
+    }
+}
+
+.attach-file-button:hover {
     background-color: var(--color-light-gray);
 }
 
-.chat-footer .image-upload-label .material-symbols-outlined,
-.chat-footer .image-upload-label .fa-solid { /* Keep Font Awesome for attachment icon */
-    font-size: 22px;
+.attach-file-button .material-symbols-outlined {
+    font-size: 20px; /* Adjusted for mobile */
     color: var(--color-medium-gray);
 }
 
-.chat-footer #messageInput {
+@media (min-width: 600px) {
+    .attach-file-button .material-symbols-outlined {
+        font-size: 22px;
+    }
+}
+
+.message-input-area-premium #message-input {
     flex-grow: 1;
-    padding: 0.8rem 1.2rem;
+    padding: 0.7rem 1rem; /* Adjusted for mobile */
     border: 1px solid var(--color-light-gray);
-    border-radius: var(--border-radius-full); /* Fully rounded */
-    font-size: 0.95rem;
+    border-radius: var(--border-radius-full);
+    font-size: 0.9rem; /* Adjusted for mobile */
     outline: none;
     transition: border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
-.chat-footer #messageInput:focus {
+@media (min-width: 600px) {
+    .message-input-area-premium #message-input {
+        padding: 0.8rem 1.2rem;
+        font-size: 0.95rem;
+    }
+}
+
+.message-input-area-premium #message-input:focus {
     border-color: var(--color-primary-blue);
     box-shadow: 0 0 0 3px rgba(52, 105, 245, 0.2);
 }
 
-.chat-footer .send-message-btn {
+.send-message-button {
     background-color: var(--color-primary-blue);
     border: none;
     border-radius: var(--border-radius-full);
-    width: 44px;
-    height: 44px;
+    width: 40px; /* Adjusted for mobile */
+    height: 40px;
     display: flex;
     justify-content: center;
     align-items: center;
     cursor: pointer;
     transition: background-color 0.2s ease, transform 0.2s ease;
-    margin-left: 0.6rem;
+    margin-left: 0.5rem; /* Adjusted for mobile */
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
 
-.chat-footer .send-message-btn:hover {
+@media (min-width: 600px) {
+    .send-message-button {
+        width: 44px;
+        height: 44px;
+        margin-left: 0.6rem;
+    }
+}
+
+.send-message-button:hover {
     background-color: var(--color-primary-blue-dark);
     transform: scale(1.05);
 }
 
-.chat-footer .send-message-btn .material-symbols-outlined,
-.chat-footer .send-message-btn .fa-solid { /* Keep Font Awesome for send icon */
-    font-size: 22px;
+.send-message-button .material-symbols-outlined {
+    font-size: 20px; /* Adjusted for mobile */
     color: var(--color-white);
-    font-variation-settings: 'FILL' 1; /* Filled icon */
+    font-variation-settings: 'FILL' 1;
+}
+
+@media (min-width: 600px) {
+    .send-message-button .material-symbols-outlined {
+        font-size: 22px;
+    }
 }
 
 
-/* --- Jitsi Video Call UI (re-styling for premium feel) --- */
-.jitsi-container {
+/* --- Jitsi Video Call UI (responsive) --- */
+.jitsi-container-premium {
     position: absolute;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: #000000; /* Black background for video */
+    background-color: #000000;
     z-index: 100;
-    display: none; /* Hidden by default, shown by JS */
+    display: none;
     flex-direction: column;
 }
 
-.jitsi-container iframe {
+.jitsi-container-premium iframe {
     width: 100%;
-    height: calc(100% - 70px); /* Adjust height to accommodate controls */
+    height: calc(100% - 60px); /* Adjust height to accommodate controls on mobile */
     border: none;
 }
 
-.jitsi-controls {
+@media (min-width: 600px) {
+    .jitsi-container-premium iframe {
+        height: calc(100% - 70px); /* Taller controls on desktop */
+    }
+}
+
+.jitsi-controls-premium {
     position: absolute;
     bottom: 0;
     left: 0;
     width: 100%;
-    height: 70px; /* Taller controls */
-    background-color: rgba(0, 0, 0, 0.8); /* Darker, more opaque background */
+    height: 60px; /* Controls height for mobile */
+    background-color: rgba(0, 0, 0, 0.8);
     display: flex;
     justify-content: center;
     align-items: center;
-    gap: 1.5rem;
+    gap: 1rem; /* Adjusted for mobile */
     z-index: 101;
 }
 
-.jitsi-controls .control-btn.end-call-btn {
-    background-color: var(--color-error); /* Red hangup button */
+@media (min-width: 600px) {
+    .jitsi-controls-premium {
+        height: 70px;
+        gap: 1.5rem;
+    }
+}
+
+.hangup-button-premium {
+    background-color: var(--color-error);
     color: var(--color-white);
     border: none;
     border-radius: var(--border-radius-full);
-    width: 60px; /* Larger circular button */
-    height: 60px;
+    width: 55px; /* Adjusted for mobile */
+    height: 55px;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
     cursor: pointer;
-    font-size: 0.75rem;
+    font-size: 0.7rem; /* Adjusted for mobile */
     font-weight: 500;
     transition: background-color 0.2s ease, transform 0.2s ease;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); /* Stronger shadow */
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
-.jitsi-controls .control-btn.end-call-btn:hover {
-    background-color: #CC2929; /* Darker red on hover */
+@media (min-width: 600px) {
+    .hangup-button-premium {
+        width: 60px;
+        height: 60px;
+        font-size: 0.75rem;
+    }
+}
+
+.hangup-button-premium:hover {
+    background-color: #CC2929;
     transform: translateY(-2px);
 }
 
-.jitsi-controls .control-btn .material-symbols-outlined {
-    font-size: 32px;
+.hangup-button-premium .material-symbols-outlined {
+    font-size: 30px; /* Adjusted for mobile */
     margin-bottom: 0.1rem;
     font-variation-settings: 'FILL' 1;
 }
 
-/* --- Confirmation Modal (Re-styling for premium feel) --- */
-.call-modal { /* Using the class from your provided chat.html */
-    display: none; /* Hidden by default, shown by JS */
+@media (min-width: 600px) {
+    .hangup-button-premium .material-symbols-outlined {
+        font-size: 32px;
+    }
+}
+
+/* --- Confirmation Modal (responsive) --- */
+.modal-premium {
+    display: none;
     position: absolute;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.6); /* Darker overlay */
+    background-color: rgba(0, 0, 0, 0.6);
     z-index: 150;
-    display: flex;
     justify-content: center;
     align-items: center;
 }
 
-.call-modal .modal-content {
+.modal-content-premium {
     background-color: var(--color-white);
-    padding: 2rem;
+    padding: 1.5rem; /* Adjusted for mobile */
     border-radius: var(--border-radius-medium);
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
     text-align: center;
     width: 90%;
-    max-width: 380px;
+    max-width: 350px; /* Adjusted for mobile */
     display: flex;
     flex-direction: column;
-    gap: 1.5rem;
+    gap: 1.2rem; /* Adjusted for mobile */
 }
 
-.call-modal .modal-content .call-status-text {
-    font-size: 1.15rem;
+@media (min-width: 600px) {
+    .modal-content-premium {
+        padding: 2rem;
+        max-width: 380px;
+        gap: 1.5rem;
+    }
+}
+
+.modal-message-text-premium {
+    font-size: 1.05rem; /* Adjusted for mobile */
     font-weight: 500;
     color: var(--color-dark-gray);
     margin: 0;
 }
 
-.call-modal .modal-content .call-actions {
-    display: flex;
-    justify-content: center;
-    gap: 1rem;
+@media (min-width: 600px) {
+    .modal-message-text-premium {
+        font-size: 1.15rem;
+    }
 }
 
-.call-modal .call-btn {
-    padding: 0.8rem 1.8rem;
+.modal-actions-premium {
+    display: flex;
+    justify-content: center;
+    gap: 0.8rem; /* Adjusted for mobile */
+}
+
+@media (min-width: 600px) {
+    .modal-actions-premium {
+        gap: 1rem;
+    }
+}
+
+.modal-button-premium {
+    padding: 0.7rem 1.4rem; /* Adjusted for mobile */
     border: none;
     border-radius: var(--border-radius-small);
-    font-size: 0.95rem;
+    font-size: 0.9rem; /* Adjusted for mobile */
     font-weight: 600;
     cursor: pointer;
     transition: background-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
     text-transform: uppercase;
     letter-spacing: 0.03em;
+    display: flex; /* Ensure icon and text are aligned */
+    align-items: center;
+    justify-content: center;
+    gap: 0.3rem;
 }
 
-.call-modal .call-btn.accept-btn {
+@media (min-width: 600px) {
+    .modal-button-premium {
+        padding: 0.8rem 1.8rem;
+        font-size: 0.95rem;
+    }
+}
+
+.modal-button-premium .material-symbols-outlined {
+    font-size: 20px; /* Adjusted for mobile */
+    font-variation-settings: 'FILL' 1;
+}
+
+@media (min-width: 600px) {
+    .modal-button-premium .material-symbols-outlined {
+        font-size: 22px;
+    }
+}
+
+.modal-button-premium.confirm-button-premium {
     background-color: var(--color-primary-blue);
     color: var(--color-white);
     box-shadow: 0 2px 6px rgba(52, 105, 245, 0.2);
 }
 
-.call-modal .call-btn.accept-btn:hover {
+.modal-button-premium.confirm-button-premium:hover {
     background-color: var(--color-primary-blue-dark);
     transform: translateY(-1px);
     box-shadow: 0 4px 10px rgba(52, 105, 245, 0.3);
 }
 
-.call-modal .call-btn.reject-btn {
+.modal-button-premium.cancel-button-premium {
     background-color: var(--color-light-gray);
     color: var(--color-dark-gray);
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
 }
 
-.call-modal .call-btn.reject-btn:hover {
+.modal-button-premium.cancel-button-premium:hover {
     background-color: var(--color-medium-gray);
     transform: translateY(-1px);
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
 }
 
 
-/* Utility/Helper Classes */
+/* Utility/Helper Classes (ensure these exist and are compatible) */
 .hidden {
     display: none !important;
 }
 
 .text-center {
     text-align: center;
-}
-
-/* Responsive Adjustments (fine-tuning for small screens) */
-@media (max-width: 420px) {
-    .login-card {
-        padding: 2rem 1.5rem;
-        gap: 1rem;
-    }
-    .app-brand-logo-circle {
-        width: 80px;
-        height: 80px;
-    }
-    .app-brand-icon {
-        font-size: 45px;
-    }
-    .app-brand-title {
-        font-size: 2rem;
-    }
-    .app-tagline {
-        font-size: 0.9rem;
-    }
-    .input-field-premium {
-        padding: 0.8rem 1rem;
-        font-size: 0.9rem;
-    }
-    .primary-action-button {
-        padding: 1rem 1.2rem;
-        font-size: 0.95rem;
-    }
-    .privacy-note-premium {
-        font-size: 0.75rem;
-        padding: 0.6rem 0.8rem;
-    }
-
-    /* Chat adjustments for smaller screens */
-    .chat-header {
-        padding: 0.7rem 1rem;
-    }
-    .chat-header #roomDisplayName {
-        font-size: 1rem;
-    }
-    .chat-header .user-status {
-        font-size: 0.7rem;
-    }
-    .chat-header .material-symbols-outlined {
-        font-size: 20px;
-        padding: 0.4rem;
-    }
-    .chat-messages {
-        padding: 0.8rem;
-        padding-top: 4.5rem; /* Adjust for smaller header */
-        padding-bottom: 4.5rem; /* Adjust for smaller footer */
-        gap: 0.4rem;
-    }
-    .message-bubble {
-        padding: 0.6rem 0.8rem;
-        font-size: 0.85rem;
-    }
-    .message-bubble .message-content {
-        font-size: 0.85rem;
-    }
-    .message-bubble .message-timestamp {
-        font-size: 0.6rem;
-    }
-    .chat-footer {
-        padding: 0.6rem 0.8rem;
-    }
-    .chat-footer .image-upload-label,
-    .chat-footer .send-message-btn {
-        width: 40px;
-        height: 40px;
-    }
-    .chat-footer .image-upload-label .material-symbols-outlined,
-    .chat-footer .image-upload-label .fa-solid,
-    .chat-footer .send-message-btn .material-symbols-outlined,
-    .chat-footer .send-message-btn .fa-solid {
-        font-size: 20px;
-    }
-    #messageInput {
-        padding: 0.7rem 1rem;
-        font-size: 0.9rem;
-    }
-
-    .jitsi-controls {
-        height: 60px;
-        gap: 1rem;
-    }
-    .jitsi-controls .control-btn.end-call-btn {
-        width: 50px;
-        height: 50px;
-        font-size: 0.65rem;
-    }
-    .jitsi-controls .control-btn .material-symbols-outlined {
-        font-size: 28px;
-    }
-
-    .call-modal .modal-content {
-        padding: 1.5rem;
-        gap: 1rem;
-    }
-    .call-modal .modal-content .call-status-text {
-        font-size: 1rem;
-    }
-    .call-modal .call-btn {
-        padding: 0.7rem 1.4rem;
-        font-size: 0.85rem;
-    }
 }
