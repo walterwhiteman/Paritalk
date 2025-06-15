@@ -3,164 +3,59 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Paritalk - Login</title>
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Font Awesome CDN for icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <!-- Link to our custom styles.css -->
-    <link rel="stylesheet" href="styles.css">
+    <title>Parichat - Login</title>
+    <!-- Google Fonts: Roboto -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Google Material Symbols (Icons) -->
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
+    <!-- Custom Styles -->
+    <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-    <div id="app-container" class="relative">
-        <!-- Login Screen -->
-        <div id="login-screen" class="flex flex-col items-center justify-center h-full p-6 bg-gradient-to-br from-blue-100 to-white text-gray-800">
-            <h1 class="text-4xl font-bold mb-8 text-blue-600">Paritalk</h1>
-            <p class="text-lg text-center mb-6">Connect privately with your loved one.</p>
-            <div class="login-box bg-white p-8 rounded-xl shadow-lg w-full max-w-sm">
-                <!-- Room Code Input - Now placed first -->
-                <div class="mb-5">
-                    <label for="roomcode-input" class="block text-gray-700 text-sm font-medium mb-2">Room Code</label>
-                    <input type="text" id="roomcode-input" placeholder="Enter room code"
-                           class="shadow-sm appearance-none border rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition duration-200" required>
-                </div>
-                <!-- Username Input - Now placed second -->
-                <div class="mb-6">
-                    <label for="username-input" class="block text-gray-700 text-sm font-medium mb-2">Your Name</label>
-                    <input type="text" id="username-input" placeholder="Enter your username"
-                           class="shadow-sm appearance-none border rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition duration-200" required>
-                </div>
-                <button id="join-chat-button"
-                        class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-4 rounded-xl focus:outline-none focus:shadow-outline transition duration-300 transform hover:scale-105">
-                    Join Chat
-                </button>
-                <p id="login-error" class="text-red-500 text-xs italic mt-4 hidden"></p>
+    <!-- Main App Container (using .chat-container from style.css for overall sizing/centering) -->
+    <div class="chat-container">
+        <!-- Login Screen Content -->
+        <div class="login-container">
+            <div class="app-logo">
+                <span class="material-symbols-outlined">person</span>
             </div>
-            <p class="privacy-message mt-8">
+            <h1 class="app-name">Parichat</h1>
+            <p class="app-tagline">A private space for intimate conversation.</p>
+
+            <div class="login-form">
+                <!-- Room Code Input -->
+                <div class="input-group">
+                    <input type="text" id="roomcode-input" placeholder="Enter room code" required>
+                </div>
+                <!-- Username Input -->
+                <div class="input-group">
+                    <input type="text" id="username-input" placeholder="Enter your name" required>
+                </div>
+                
+                <button id="join-chat-button" class="join-button">Join Chat</button>
+                <p id="login-error" class="error-message hidden">Error message here</p>
+            </div>
+            <p class="privacy-message">
                 🔒 Your conversations are private and secure. Share the room code only with someone special.
             </p>
         </div>
     </div>
 
-    <!-- Main Login Logic (Module) -->
-    <script type="module">
-        import { initializeFirebase, auth, db, get, ref, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from './js/firebase_service.js';
-        import { createSupabaseClient } from './js/supabase_service.js'; // Corrected import syntax
+    <!-- Firebase SDK (compat versions for broader browser support) -->
+    <script type="module" src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script type="module" src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+    <script type="module" src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+    <script type="module" src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 
-        // --- Firebase Configuration (YOUR ACTUAL CONFIG) ---
-        const firebaseConfig = {
-            apiKey: "AIzaSyA8Yj1Z1Mpv2lyt9SRxJ_w4U04BXt8hajk",
-            authDomain: "paritalk.firebaseapp.com",
-            databaseURL: "https://paritalk-default-rtdb.firebaseio.com",
-            projectId: "paritalk",
-            storageBucket: "paritalk.firebasestorage.app",
-            messagingSenderId: "441945619664",
-            appId: "1:441945619664:web:045e0c872e67e0eb9fb2d5"
-        };
-        const initialAuthToken = null; // Used by Canvas; keep null for GitHub Pages
+    <!-- Supabase Client SDK -->
+    <script type="module" src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm"></script>
 
-        // Initialize Firebase services
-        try {
-            initializeFirebase(firebaseConfig);
-            console.log("Firebase initialized successfully in index.html via module.");
-        } catch (error) {
-            console.error("Error initializing Firebase services in index.html:", error.message);
-            displayLoginError(`App config error: ${error.message}.`);
-        }
+    <!-- Jitsi Meet External API (if needed on login for pre-check, generally not) -->
+    <script src="https://meet.jit.si/external_api.js"></script>
 
-        // Supabase Configuration (Using your confirmed URL and provided Anon Key)
-        const SUPABASE_URL = 'https://uokpkgybjzvpngoxasnm.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVva3BrZ3lianp2cG5nb3hhc25tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk5MjE4NTcsImV4cCI6MjA2NTQ5Nzg1N30.FNv_13S3oj7fjartmY2PzKL25T3AWbMxP2KRI0rFU2E';
-
-        let supabaseClient;
-        try {
-            supabaseClient = createSupabaseClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-            console.log("Supabase client initialized successfully in index.html via module.");
-        } catch (error) {
-            console.error('Failed to initialize Supabase in index.html:', error);
-        }
-
-        // UI Elements
-        const usernameInput = document.getElementById('username-input');
-        const roomcodeInput = document.getElementById('roomcode-input');
-        const joinChatButton = document.getElementById('join-chat-button');
-        const loginError = document.getElementById('login-error');
-
-        function displayLoginError(message) {
-            loginError.textContent = message;
-            loginError.classList.remove('hidden');
-        }
-
-        let currentUserId = null;
-
-        // Firebase Auth listener for anonymous sign-in
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                currentUserId = user.uid;
-                console.log("Authenticated with Firebase. User ID:", currentUserId);
-            } else {
-                try {
-                    if (initialAuthToken) {
-                        await signInWithCustomToken(auth, initialAuthToken);
-                        console.log("Signed in with custom token.");
-                    } else {
-                        await signInAnonymously(auth);
-                        console.log("Signed in anonymously.");
-                    }
-                } catch (error) {
-                    console.error("Error signing in anonymously:", error.message);
-                    displayLoginError(`Authentication error: ${error.message}. Please try again.`);
-                }
-            }
-        });
-
-        // Join Chat Logic
-        joinChatButton.addEventListener('click', async () => {
-            if (!auth || !auth.currentUser || !currentUserId) {
-                displayLoginError("App is not fully loaded. Please wait a moment for authentication to complete.");
-                return;
-            }
-
-            const username = usernameInput.value.trim();
-            const roomCode = roomcodeInput.value.trim();
-
-            if (!username || !roomCode) {
-                displayLoginError('Please enter both your name and room code.');
-                return;
-            }
-
-            const roomPresenceRef = ref(db, `rooms/${roomCode}/presence`);
-
-            try {
-                const snapshot = await get(roomPresenceRef);
-                let usersInRoomCount = 0;
-                let currentUsers = {};
-                if (snapshot.exists()) {
-                    snapshot.forEach((childSnapshot) => {
-                        usersInRoomCount++;
-                        currentUsers[childSnapshot.key] = childSnapshot.val().username;
-                    });
-                }
-
-                const isCurrentUserAlreadyInRoom = currentUserId && currentUsers[currentUserId] === username;
-
-                if (usersInRoomCount >= 2 && !isCurrentUserAlreadyInRoom) {
-                    displayLoginError('This room is currently full. Please try a different room code.');
-                    return;
-                }
-
-                // Redirect to chat.html with URL parameters
-                window.location.href = `chat.html?room=${encodeURIComponent(roomCode)}&user=${encodeURIComponent(username)}`;
-
-            } catch (error) {
-                console.error("Error checking room presence or joining:", error);
-                displayLoginError(`Failed to join room: ${error.message}. Please check your Firebase rules and internet connection.`);
-            }
-        });
-
-        usernameInput.addEventListener('focus', () => loginError.classList.add('hidden'));
-        roomcodeInput.addEventListener('focus', () => loginError.classList.add('hidden'));
-
-    </script>
+    <!-- Your JavaScript files -->
+    <script type="module" src="js/firebase-init.js"></script>
+    <script type="module" src="js/login.js"></script>
+    <script type="module" src="js/modal.js"></script> <!-- Ensure modal JS is loaded -->
 </body>
 </html>
