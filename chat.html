@@ -23,6 +23,7 @@
                     <span id="online-users-count" class="text-sm text-white opacity-80 mt-1">Online: 0</span>
                 </div>
                 <div class="flex items-center gap-2">
+                    <!-- Button styles re-added -->
                     <button id="video-call-button" title="Start Video Call" class="p-2 rounded-full bg-blue-500 text-white hover:bg-blue-600 transition-colors duration-200">
                         <i class="fa-solid fa-video"></i>
                     </button>
@@ -46,9 +47,11 @@
             <div id="message-input-area">
                 <input type="text" id="message-input" placeholder="Type a message...">
                 <input type="file" id="image-upload" accept="image/*,video/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation" class="hidden">
+                <!-- Label for file upload with styles re-added -->
                 <label for="image-upload" title="Attach File" class="p-2 rounded-full bg-gray-200 hover:bg-gray-300 transition-colors duration-200 cursor-pointer">
                     <i class="fa-solid fa-paperclip"></i>
                 </label>
+                <!-- Send button with styles re-added -->
                 <button id="send-button" class="p-2 rounded-full bg-green-500 text-white hover:bg-green-600 transition-colors duration-200">
                     <i class="fa-solid fa-paper-plane"></i>
                 </button>
@@ -193,8 +196,8 @@
         const urlRoomCode = urlParams.get('room');
         const urlUsername = urlParams.get('user');
 
-        console.log("Chat Init: urlRoomCode =", urlRoomCode); // Debugging
-        console.log("Chat Init: urlUsername =", urlUsername); // Debugging
+        console.log("Chat Init: urlRoomCode =", urlRoomCode);
+        console.log("Chat Init: urlUsername =", urlUsername);
 
 
         if (!urlRoomCode || !urlUsername) {
@@ -204,14 +207,14 @@
             currentRoomCode = decodeURIComponent(urlRoomCode);
             currentUsername = decodeURIComponent(urlUsername);
             roomNameDisplay.textContent = currentRoomCode; // Set room name here
-            console.log("Chat Init: currentRoomCode =", currentRoomCode); // Debugging
-            console.log("Chat Init: currentUsername =", currentUsername); // Debugging
-
+            console.log("Chat Init: currentRoomCode =", currentRoomCode);
+            console.log("Chat Init: currentUsername =", currentUsername);
 
             chatScreen.classList.remove('hidden');
 
-            localStorage.setItem('paritalk_username', currentUsername);
-            localStorage.setItem('paritalk_roomcode', currentRoomCode);
+            // REMOVED: localStorage.setItem to auto-rejoin
+            // localStorage.setItem('paritalk_username', currentUsername);
+            // localStorage.setItem('paritalk_roomcode', currentRoomCode);
         }
 
 
@@ -220,13 +223,11 @@
             onAuthStateChanged(auth, async (user) => {
                 if (user) {
                     currentUserId = user.uid;
-                    console.log("Authenticated with Firebase. User ID:", currentUserId); // Log auth status
-                    // Initialize Firebase references ONLY AFTER currentUserId is set
-                    // Defensive check: only proceed if currentRoomCode is valid
+                    console.log("Authenticated with Firebase. User ID:", currentUserId);
                     if (!currentRoomCode) {
                         console.error("onAuthStateChanged: currentRoomCode is null or empty. Cannot initialize Firebase references.");
                         showModal('Error: Room information missing. Please re-enter room code.').then(() => {
-                            window.location.href = 'index.html'; // Redirect to login if room code is missing
+                            window.location.href = 'index.html';
                         });
                         return;
                     }
@@ -244,11 +245,10 @@
 
 
                     try {
-                        // Set user presence
                         if (presenceRef) {
                             await set(presenceRef, { username: currentUsername, lastSeen: serverTimestamp() });
                             onDisconnect(presenceRef).remove();
-                            console.log("User presence set in Firebase. Path:", presenceRef.toString()); // Log presence update
+                            console.log("User presence set in Firebase. Path:", presenceRef.toString());
                         } else {
                              console.error("PresenceRef is null, cannot set user presence. Check currentRoomCode.");
                         }
@@ -256,10 +256,10 @@
 
                         if (localStorage.getItem('paritalk_has_joined_session') !== currentRoomCode + currentUsername) {
                             sendMessage(`**${currentUsername}** joined the chat.`, 'system');
+                            // This localStorage item tracks if the "joined" message was sent for this session, not for auto-rejoin
                             localStorage.setItem('paritalk_has_joined_session', currentRoomCode + currentUsername);
                         }
 
-                        // Start listening for messages and presence
                         listenForMessages();
                         listenForPresence();
                         listenForTyping();
@@ -275,7 +275,6 @@
                     }
                 } else {
                     console.warn("User not authenticated in chat.html. Redirecting to login.");
-                    // If the user somehow lands here without auth, ensure they are redirected.
                     window.location.href = 'index.html';
                 }
             });
@@ -296,18 +295,17 @@
             return date.toLocaleTimeString('en-US', options);
         }
 
-        // Show/Hide Confirmation Modal (Enhanced for debugging)
         function showModal(message) {
-            console.log("showModal called with message:", message); // Debugging
+            console.log("showModal called with message:", message);
             modalMessage.textContent = message;
-            confirmationModal.style.display = 'flex'; // Use flex to center
+            confirmationModal.style.display = 'flex';
             return new Promise(resolve => {
                 resolveModalPromise = resolve;
             });
         }
 
         function hideModal() {
-            console.log("hideModal called."); // Debugging
+            console.log("hideModal called.");
             confirmationModal.style.display = 'none';
         }
 
@@ -647,42 +645,40 @@
 
         // --- Leave Room Logic (Enhanced for debugging) ---
         async function handleLeaveRoom() {
-            console.log("handleLeaveRoom called."); // Debugging
+            console.log("handleLeaveRoom called.");
             try {
                 const confirmed = await showModal('Are you sure you want to leave the chat?');
-                console.log("Modal confirmed status:", confirmed); // Debugging
+                console.log("Modal confirmed status:", confirmed);
 
                 if (confirmed) {
                     if (jitsiApi) {
                         endVideoCall();
-                        console.log("Jitsi API ended."); // Debugging
+                        console.log("Jitsi API ended.");
                     }
                     if (presenceRef) {
-                        console.log("Removing user presence from Firebase at path:", presenceRef.toString()); // Debugging
-                        await set(presenceRef, null); // Explicitly remove user from presence
-                        console.log("User presence removed from Firebase."); // Debugging
-                        sendMessage(`**${currentUsername}** left the chat.`, 'system'); // Send "left" message
+                        console.log("Removing user presence from Firebase at path:", presenceRef.toString());
+                        await set(presenceRef, null);
+                        console.log("User presence removed from Firebase.");
+                        sendMessage(`**${currentUsername}** left the chat.`, 'system');
                     } else {
-                        console.warn("presenceRef was null when attempting to leave room. User might not have fully connected."); // Debugging
+                        console.warn("presenceRef was null when attempting to leave room. User might not have fully connected.");
                     }
 
-                    // Clear localStorage for a clean exit
+                    // Clear localStorage for a clean exit (This is the critical part for forcing re-login)
                     localStorage.removeItem('paritalk_username');
                     localStorage.removeItem('paritalk_roomcode');
                     localStorage.removeItem('paritalk_has_joined_session');
-                    console.log("LocalStorage cleared."); // Debugging
+                    console.log("LocalStorage cleared.");
 
-                    // Redirect to login page (index.html)
-                    console.log("Attempting redirect to index.html..."); // Debugging
+                    console.log("Attempting redirect to index.html...");
                     window.location.href = 'index.html';
-                    // Return to prevent any further execution after redirection
                     return;
                 }
             } catch (error) {
-                console.error("Error during handleLeaveRoom:", error); // Debugging
-                showModal(`Error leaving room: ${error.message}`).then(() => {}); // Show error in modal
+                console.error("Error during handleLeaveRoom:", error);
+                showModal(`Error leaving room: ${error.message}`).then(() => {});
             } finally {
-                hideModal(); // Ensure modal is hidden in all cases
+                hideModal();
             }
         }
 
@@ -826,21 +822,20 @@
 
         imageUploadInput.addEventListener('change', handleFileUpload);
 
-        // Ensure button elements are selected correctly for event listeners
         const videoCallButtonElement = document.getElementById('video-call-button');
         if (videoCallButtonElement) {
             videoCallButtonElement.addEventListener('click', startVideoCall);
-            console.log("Video Call button event listener attached."); // Debugging
+            console.log("Video Call button event listener attached.");
         } else {
-            console.error("Video Call button element not found!"); // Debugging
+            console.error("Video Call button element not found!");
         }
 
         const leaveRoomButtonElement = document.getElementById('leave-room-button');
         if (leaveRoomButtonElement) {
             leaveRoomButtonElement.addEventListener('click', handleLeaveRoom);
-            console.log("Leave Room button event listener attached."); // Debugging
+            console.log("Leave Room button event listener attached.");
         } else {
-            console.error("Leave Room button element not found!"); // Debugging
+            console.error("Leave Room button element not found!");
         }
 
 
