@@ -98,9 +98,17 @@
     <script src="https://meet.jit.si/external_api.js"></script>
 
     <script type="module">
-        // Firebase Configuration (provided by Canvas environment - now with more robust checks)
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null; 
+        // --- Firebase Configuration (YOUR ACTUAL CONFIG) ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyA8Yj1Z1Mpv2lyt9SRxJ_w4U04BXt8hajk",
+            authDomain: "paritalk.firebaseapp.com",
+            databaseURL: "https://paritalk-default-rtdb.firebaseio.com",
+            projectId: "paritalk",
+            storageBucket: "paritalk.firebasestorage.app",
+            messagingSenderId: "441945619664",
+            appId: "1:441945619664:web:045e0c872e67e0eb9fb2d5"
+        };
+        const initialAuthToken = null; // Not used for GitHub Pages deployment.
 
         // Initialize Firebase
         let app;
@@ -108,7 +116,7 @@
         let db;
 
         try {
-            if (firebaseConfig && Object.keys(firebaseConfig).length > 0) {
+            if (firebaseConfig && firebaseConfig.apiKey && firebaseConfig.projectId && firebaseConfig.databaseURL) {
                 app = initializeApp(firebaseConfig);
                 auth = getAuth(app);
                 db = getDatabase(app);
@@ -213,9 +221,9 @@
                     currentUserId = user.uid;
                     // Set up Firebase references after userId is known
                     roomRef = ref(db, `rooms/${currentRoomCode}`);
-                    presenceRef = ref(db, `rooms/${currentRoomCode}/presence/${currentUserId}`);
+                    presenceRef = ref(db, `rooms/<span class="math-inline">\{currentRoomCode\}/presence/</span>{currentUserId}`);
                     messagesRef = ref(db, `rooms/${currentRoomCode}/messages`);
-                    typingRef = ref(db, `rooms/${currentRoomCode}/typing/${currentUserId}`);
+                    typingRef = ref(db, `rooms/<span class="math-inline">\{currentRoomCode\}/typing/</span>{currentUserId}`);
 
                     try {
                         // Set user presence
@@ -308,7 +316,7 @@
             if (message.type === 'text') {
                 contentHTML += `<p>${message.text}</p>`;
             } else if (message.type === 'image') {
-                contentHTML += `<img src="${message.imageUrl}" alt="Shared Image" class="message-image" onclick="window.open('${message.imageUrl}', '_blank')">`;
+                contentHTML += `<img src="<span class="math-inline">\{message\.imageUrl\}" alt\="Shared Image" class\="message\-image" onclick\="window\.open\('</span>{message.imageUrl}', '_blank')">`;
             } else if (message.type === 'file') {
                 let fileIcon = 'fa-file';
                 const fileExtension = message.fileName.split('.').pop().toLowerCase();
@@ -322,8 +330,8 @@
 
                 contentHTML += `
                     <div class="message-file">
-                        <i class="fa-solid ${fileIcon}"></i>
-                        <a href="${message.fileUrl}" target="_blank">${message.fileName}</a>
+                        <i class="fa-solid <span class="math-inline">\{fileIcon\}"\></i\>
+<a href\="</span>{message.fileUrl}" target="_blank">${message.fileName}</a>
                     </div>
                 `;
             }
@@ -357,7 +365,7 @@
                         if (count > 0) {
                             const reactionSpan = document.createElement('span');
                             reactionSpan.classList.add('text-sm', 'bg-blue-100', 'px-2', 'py-0.5', 'rounded-full', 'inline-flex', 'items-center', 'cursor-pointer');
-                            reactionSpan.innerHTML = `${emoji} <span class="ml-1 text-xs text-blue-700">${count}</span>`;
+                            reactionSpan.innerHTML = `<span class="math-inline">\{emoji\} <span class\="ml\-1 text\-xs text\-blue\-700"\></span>{count}</span>`;
                             reactionSpan.title = `Reacted with ${emoji}`;
                             reactionSpan.dataset.emoji = emoji; // Store emoji for click handling
 
@@ -397,4 +405,125 @@
             if (type === 'text') {
                 message.text = text;
             } else if (type === 'image') {
-                m
+                message.imageUrl = imageUrl;
+                message.text = 'Image'; // Placeholder text
+            } else if (type === 'file') {
+                message.fileUrl = fileUrl;
+                message.fileName = fileName;
+                message.text = 'File'; // Placeholder text
+            }
+
+            try {
+                await push(messagesRef, message);
+                messageInput.value = ''; // Clear input after sending
+                setTypingStatus(false); // Clear typing status for self after sending a message
+            } catch (error) {
+                console.error("Error sending message:", error);
+            }
+        }
+
+        async function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            if (!supabase) {
+                showModal('Supabase is not configured. File uploads are disabled.').then(() => {});
+                console.error('Supabase client is not initialized. Please configure SUPABASE_URL and SUPABASE_ANON_KEY.');
+                return;
+            }
+
+            const fileName = `<span class="math-inline">\{currentRoomCode\}/</span>{currentUserId}/<span class="math-inline">\{Date\.now\(\)\}\_</span>{file.name}`;
+            const fileType = file.type;
+
+            try {
+                addMessageToChat({
+                    sender: 'System',
+                    text: `Uploading "${file.name}"...`,
+                    type: 'system',
+                    timestamp: Date.now()
+                }, null); // No messageId for system messages
+
+                const { data, error } = await supabase.storage
+                    .from('parichat-files')
+                    .upload(fileName, file, {
+                        cacheControl: '3600',
+                        upsert: false
+                    });
+
+                if (error) {
+                    throw error;
+                }
+
+                const { data: publicUrlData } = supabase.storage
+                    .from('parichat-files')
+                    .getPublicUrl(fileName);
+
+                if (!publicUrlData || !publicUrlData.publicUrl) {
+                    throw new Error('Failed to get public URL for the uploaded file.');
+                }
+
+                if (fileType.startsWith('image/')) {
+                    await sendMessage('', 'image', publicUrlData.publicUrl, null, file.name);
+                } else {
+                    await sendMessage('', 'file', null, publicUrlData.publicUrl, file.name);
+                }
+
+            } catch (error) {
+                console.error("Error uploading file:", error);
+                addMessageToChat({
+                    sender: 'System',
+                    text: `Failed to upload "${file.name}": ${error.message}`,
+                    type: 'system',
+                    timestamp: Date.now()
+                }, null);
+            } finally {
+                imageUploadInput.value = ''; // Clear the input
+            }
+        }
+
+        // --- Emoji Reaction Logic ---
+        function showEmojiPicker(x, y) {
+            emojiPicker.style.display = 'flex';
+            // Position near the click, but ensure it stays within bounds
+            const pickerWidth = emojiPicker.offsetWidth;
+            const pickerHeight = emojiPicker.offsetHeight;
+            const containerRect = document.getElementById('app-container').getBoundingClientRect();
+
+            let left = x - containerRect.left;
+            let top = y - containerRect.top;
+
+            // Adjust if it goes off right edge
+            if (left + pickerWidth > containerRect.width) {
+                left = containerRect.width - pickerWidth - 10; // 10px margin
+            }
+            // Adjust if it goes off bottom edge
+            if (top + pickerHeight > containerRect.height) {
+                top = containerRect.height - pickerHeight - 10;
+            }
+            // Adjust if it goes off left edge
+            if (left < 0) left = 10;
+            // Adjust if it goes off top edge
+            if (top < 0) top = 10;
+
+            emojiPicker.style.left = `${left}px`;
+            emojiPicker.style.top = `${top}px`;
+
+            // Hide picker if clicked anywhere else
+            document.addEventListener('click', hideEmojiPickerOnClickOutside, { once: true });
+        }
+
+        function hideEmojiPicker() {
+            emojiPicker.style.display = 'none';
+            currentMessageElementForReaction = null;
+            document.removeEventListener('click', hideEmojiPickerOnClickOutside);
+        }
+
+        function hideEmojiPickerOnClickOutside(event) {
+            // Check if the click was inside the picker or a message bubble
+            if (!emojiPicker.contains(event.target) && !event.target.closest('.message-bubble')) {
+                hideEmojiPicker();
+            } else if (event.target.closest('.emoji-option')) {
+                // If an emoji option was clicked, the handler for that will run
+                // and then hide the picker. This prevents immediate hide on emoji click.
+            } else if (event.target.closest('.message-bubble')) {
+                // If another message
