@@ -3,842 +3,580 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Paritalk - Chat Room</title>
-    <!-- Google Fonts: Roboto (clean, modern, Apple-like feel) -->
+    <title>Paritalk - Private Chat</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
-    <!-- Google Material Symbols (Premium Icon Feel) -->
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
-    <!-- Link to our custom styles.css - IMPORTANT: Stays in root as per your structure -->
     <link rel="stylesheet" href="style.css">
-
-    <!-- Jitsi Meet External API - IMPORTANT: MUST be loaded as a regular script before module scripts use it -->
-    <script src="https://meet.jit.si/external_api.js"></script>
+    <link rel="icon" href="favicon.ico" type="image/x-icon">
 </head>
 <body>
-    <div id="app-container" class="chat-app-container-premium">
-
-        <!-- Chat Content Wrapper: This div holds all the main chat UI elements -->
-        <!-- It will be hidden/shown by Jitsi video call logic -->
-        <div id="chat-content-wrapper">
-            <!-- Chat Header -->
-            <header class="chat-header-premium">
-                <div class="chat-header-info">
-                    <span class="material-symbols-outlined chat-header-avatar-icon">person</span>
-                    <div class="chat-header-details">
-                        <h2 id="current-room-display" class="chat-room-display-name">Room: <span id="room-name"></span></h2>
-                        <p id="online-users-count" class="chat-online-users-count">Online: 0</p>
-                    </div>
+    <div class="chat-app-container-premium" id="chat-app-container">
+        <header class="chat-header-premium">
+            <div class="chat-header-info">
+                <span class="material-symbols-outlined chat-header-avatar-icon">account_circle</span>
+                <div class="chat-header-details">
+                    <h1 class="chat-room-display-name" id="room-code-display">Room Code</h1>
+                    <span class="chat-online-users-count" id="online-users-count">
+                        <span class="status-dot"></span> <span id="user-count-text">0 online</span>
+                    </span>
                 </div>
-                <div class="chat-header-actions">
-                    <span class="material-symbols-outlined chat-action-icon" id="video-call-button" title="Start Video Call">videocam</span>
-                    <span class="material-symbols-outlined chat-action-icon" id="leave-room-button" title="Leave Room">logout</span>
-                </div>
-            </header>
+            </div>
+            <div class="chat-header-actions">
+                <span class="material-symbols-outlined chat-action-icon" id="video-call-button" title="Start Video Call">videocam</span>
+                <span class="material-symbols-outlined chat-action-icon" id="leave-room-button" title="Leave Room">exit_to_app</span>
+            </div>
+        </header>
 
-            <!-- Message Area -->
-            <main id="messages-container" class="messages-container-premium">
-                <!-- Messages will be appended here -->
+        <main class="messages-container-premium" id="messages-container">
             </main>
 
-            <!-- Typing Indicator -->
-            <div id="typing-indicator" class="typing-indicator-premium hidden">
-                <span>.</span><span>.</span><span>.</span>
-            </div>
+        <div class="typing-indicator-premium hidden" id="typing-indicator">
+            <span id="typing-username"></span> is typing<span>.</span><span>.</span><span>.</span>
+        </div>
 
-            <!-- Message Input Area -->
-            <footer class="message-input-area-premium">
-                <!-- File attachment button - MOVED TO LEFT -->
-                <input type="file" id="image-upload" accept="image/*,video/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation" class="hidden">
-                <label for="image-upload" title="Attach File" class="attach-file-button">
-                    <span class="material-symbols-outlined">attach_file</span>
-                </label>
-                
-                <input type="text" id="message-input" placeholder="Type a message..." autocomplete="off">
-                <button id="send-button" class="send-message-button">
-                    <span class="material-symbols-outlined">send</span>
-                </button>
-            </footer>
-        </div> <!-- End #chat-content-wrapper -->
+        <footer class="message-input-area-premium">
+            <input type="file" id="file-input" class="hidden" accept="image/*, application/pdf">
+            <span class="material-symbols-outlined attach-file-button" id="attach-file-button" title="Attach File">attach_file</span>
+            <input type="text" id="message-input" class="input-field-premium" placeholder="Type a message...">
+            <button id="send-message-button" class="send-message-button" title="Send Message">
+                <span class="material-symbols-outlined">send</span>
+            </button>
+        </footer>
 
-        <!-- Jitsi Video Call Container -->
-        <div id="jitsi-container" class="jitsi-container-premium hidden">
-            <iframe id="jitsi-iframe" allow="camera; microphone; display-capture; autoplay; fullscreen"></iframe>
-            <div id="jitsi-controls" class="jitsi-controls-premium">
-                <button id="hangup-button" class="hangup-button-premium">
-                    <span class="material-symbols-outlined">call_end</span> End Call
+        <div class="jitsi-container-premium hidden" id="jitsi-container">
+            <div id="jitsi-meet-api"></div>
+            <div class="jitsi-controls-premium">
+                <button class="hangup-button-premium" id="hangup-button">
+                    <span class="material-symbols-outlined">call_end</span>
+                    Hang Up
                 </button>
             </div>
         </div>
 
-        <!-- Confirmation Modal -->
-        <div id="confirmation-modal" class="modal-premium hidden">
-            <div class="modal-content-premium">
-                <p id="modal-message" class="modal-message-text-premium"></p>
-                <div class="modal-actions-premium">
-                    <button class="modal-button-premium cancel-button-premium" id="modal-cancel">
-                        <span class="material-symbols-outlined">cancel</span>
-                        <span>Cancel</span>
-                    </button>
-                    <button class="modal-button-premium confirm-button-premium" id="modal-confirm">
-                        <span class="material-symbols-outlined">check_circle</span>
-                        <span>Confirm</span>
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Emoji Picker (hidden by default) - if needed, re-add in chat_main.js for visibility control -->
-        <div id="emoji-picker" class="emoji-picker-premium hidden">
-            <span class="emoji-option-premium">👍</span>
-            <span class="emoji-option-premium">❤️</span>
-            <span class="emoji-option-premium">😂</span>
-            <span class="emoji-option-premium">😭</span>
-            <span class="emoji-option-premium">😡</span>
-            <span class="emoji-option-premium">🤔</span>
-        </div>
-
-    </div>
-
-    <!-- Combined Firebase and Supabase JS - THIS BLOCK IS PRESERVED AND ADAPTED -->
-    <script type="module">
-        // Firebase SDK Imports
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-        import { getDatabase, ref, push, onChildAdded, onValue, set, remove, onDisconnect, serverTimestamp, runTransaction, child } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
-        import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
-
-
-        // Supabase Client SDK Import
-        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
-
-        // --- Firebase Configuration (YOUR ACTUAL CONFIG) ---
-        const firebaseConfig = {
-            apiKey: "AIzaSyA8Yj1Z1Mpv2lyt9SRxJ_w4U04BXt8hajk",
-            authDomain: "paritalk.firebaseapp.com",
-            databaseURL: "https://paritalk-default-rtdb.firebaseio.com",
-            projectId: "paritalk",
-            storageBucket: "paritalk.firebasestorage.app",
-            messagingSenderId: "441945619664",
-            appId: "1:441945619664:web:045e0c872e67e0eb9fb2d5"
-        };
-        const initialAuthToken = null; // Not used for GitHub Pages deployment.
-
-        // Initialize Firebase
-        let app;
-        let auth;
-        let db;
-        let storage;
-
-        try {
-            if (firebaseConfig && firebaseConfig.apiKey && firebaseConfig.projectId && firebaseConfig.databaseURL) {
-                app = initializeApp(firebaseConfig);
-                auth = getAuth(app);
-                db = getDatabase(app);
-                storage = getStorage(app);
-                console.log("Firebase initialized successfully in chat.html.");
-            } else {
-                console.error("Firebase configuration is missing or empty in chat.html.");
-                window.location.href = `index.html?error=${encodeURIComponent('App configuration error: Firebase is not set up correctly for chat.')}`;
-                throw new Error("Firebase config missing for chat page.");
-            }
-        } catch (error) {
-            console.error("Error during Firebase initialization in chat.html:", error.message);
-            window.location.href = `index.html?error=${encodeURIComponent('Initialization error in chat. Please try again.')}`;
-            throw error;
-        }
-
-
-        // Supabase Configuration (Using your confirmed URL and provided Anon Key)
-        const SUPABASE_URL = 'https://uokpkgybjzvpngoxasnm.supabase.co'; // CONFIRMED CORRECT URL (ends with .co)
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVva3BrZ3lianp2cG5nb3hhc25tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk5MjE4NTcsImV4cCI6MjA2NTQ5Nzg1N30.FNv_13S3oj7fjartmY2PzKL25T3AWbMxP2KRI0rFU2E';
-
-        let supabase;
-        try {
-            if (SUPABASE_URL && SUPABASE_ANON_KEY) {
-                supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-                console.log("Supabase client initialized successfully with URL:", SUPABASE_URL);
-            } else {
-                console.warn('Supabase URL or Anon Key not set. File uploads will not work. Please ensure keys are correctly set.');
-                supabase = null;
-            }
-        } catch (error) {
-            console.error('Failed to initialize Supabase:', error);
-            supabase = null;
-        }
-
-
-        // Global variables for chat state
-        let currentUserId = null;
-        let currentUsername = '';
-        let currentRoomCode = '';
-        let roomRef = null;
-        let presenceRef = null;
-        let messagesRef = null;
-        let typingRef = null;
-        let jitsiApi = null;
-        let typingTimeout = null;
-
-        // UI Elements - UPDATED SELECTORS FOR PREMIUM DESIGN HTML
-        const chatContentWrapper = document.getElementById('chat-content-wrapper');
-        const roomNameDisplay = document.getElementById('room-name');
-        const onlineUsersCountDisplay = document.getElementById('online-users-count');
-        const messagesContainer = document.getElementById('messages-container');
-        const messageInput = document.getElementById('message-input');
-        const sendButton = document.getElementById('send-button');
-        const imageUploadInput = document.getElementById('image-upload');
-        const videoCallButton = document.getElementById('video-call-button');
-        const leaveRoomButton = document.getElementById('leave-room-button');
-        const jitsiContainer = document.getElementById('jitsi-container');
-        const jitsiIframe = document.getElementById('jitsi-iframe');
-        const hangupButton = document.getElementById('hangup-button');
-        const typingIndicator = document.getElementById('typing-indicator');
-
-        // Emoji Picker elements
-        const emojiPicker = document.getElementById('emoji-picker');
-        let currentMessageElementForReaction = null;
-
-        // Modal elements
-        const confirmationModal = document.getElementById('confirmation-modal');
-        const modalMessage = document.getElementById('modal-message');
-        const modalConfirm = document.getElementById('modal-confirm');
-        const modalCancel = document.getElementById('modal-cancel');
-
-
-        // Get Room Code and Username from URL
-        const urlParams = new URLSearchParams(window.location.search);
-        const urlRoomCode = urlParams.get('room');
-        const urlUsername = urlParams.get('user');
-
-        // If not logged in, redirect to index.html
-        if (!urlRoomCode || !urlUsername) {
-            console.warn("Room code or username missing from URL. Redirecting to login.");
-            window.location.href = 'index.html';
-        } else {
-            currentRoomCode = decodeURIComponent(urlRoomCode);
-            currentUsername = decodeURIComponent(urlUsername);
-            if (roomNameDisplay) {
-                roomNameDisplay.textContent = currentRoomCode;
-            }
-            if (chatContentWrapper) {
-                 chatContentWrapper.classList.remove('hidden');
-            }
-        }
-
-        // --- Helper Functions ---
-        function formatTimestamp(timestamp) {
-            if (!timestamp) return '';
-            const date = new Date(timestamp);
-            if (isNaN(date.getTime())) {
-                return '';
-            }
-            const options = { hour: 'numeric', minute: 'numeric', hour12: true };
-            return date.toLocaleTimeString('en-US', options);
-        }
-
-        // --- Modal Functions ---
-        let resolveModalPromise;
-
-        function showModal(message, isConfirm = true) {
-            if (!confirmationModal || !modalMessage || !modalConfirm || !modalCancel) {
-                console.error("Modal elements not found. Cannot show modal.");
-                return Promise.resolve(false);
-            }
-
-            modalMessage.textContent = message;
-
-            if (isConfirm) {
-                if (modalConfirm.querySelector('span:last-child')) modalConfirm.querySelector('span:last-child').textContent = 'Confirm';
-                if (modalCancel.querySelector('span:last-child')) modalCancel.querySelector('span:last-child').textContent = 'Cancel';
-                modalConfirm.classList.remove('hidden');
-                modalCancel.classList.remove('hidden');
-            } else {
-                if (modalConfirm.querySelector('span:last-child')) modalConfirm.querySelector('span:last-child').textContent = 'OK';
-                modalCancel.classList.add('hidden');
-            }
-
-            confirmationModal.classList.remove('hidden');
-
-            return new Promise(resolve => {
-                resolveModalPromise = resolve;
-            });
-        }
-
-        function hideModal() {
-            if (confirmationModal) {
-                confirmationModal.classList.add('hidden');
-            }
-        }
-
-        // --- Jitsi Service Functions ---
-        let currentJitsiRoomName = '';
-
-        function initializeJitsiInChat() {
-            currentJitsiRoomName = `Paritalk_${currentRoomCode}`;
-            
-            if (hangupButton) {
-                hangupButton.onclick = () => {
-                    endVideoCall();
-                };
-            } else {
-                console.error("Hangup button not found!");
-            }
-        }
-
-
-        function startVideoCall() {
-            if (jitsiApi) {
-                console.log("Jitsi call already active.");
-                return;
-            }
-
-            const domain = 'meet.jit.si';
-            const options = {
-                roomName: currentJitsiRoomName,
-                width: '100%',
-                height: '100%',
-                parentNode: jitsiIframe.parentNode,
-                userInfo: {
-                    displayName: currentUsername
-                },
-                configOverwrite: {
-                    startWithAudioMuted: false,
-                    startWithVideoMuted: false,
-                    enableWelcomePage: false,
-                    prejoinPageEnabled: false,
-                    toolbarButtons: ['microphone', 'camera', 'desktop', 'fullscreen', 'fodeviceselection', 'hangup', 'profile', 'chat', 'raisehand', 'tileview', 'mute-everyone', 'security', 'settings', 'shortcuts', 'subject', 'toggle-camera']
-                },
-                interfaceConfigOverwrite: {
-                    APP_NAME: 'Paritalk Video Call',
-                    HIDE_INVITE_MORE_TOOLBAR_BUTTON: true,
-                    SHOW_JITSI_WATERMARK: false,
-                    SHOW_WATERMARK_FOR_GUESTS: false,
-                    SHOW_BRAND_WATERMARK: false,
-                    SHOW_CHROME_EXTENSION_BANNER: false,
-                    TOOLBAR_ALWAYS_VISIBLE: true,
-                }
-            };
-
-            jitsiApi = new JitsiMeetExternalAPI(domain, options);
-
-            jitsiApi.addEventListener('readyToClose', () => {
-                console.log('Jitsi API ready to close event fired.');
-                endVideoCall();
-            });
-            jitsiApi.addEventListener('participantLeft', (participant) => {
-                console.log('Jitsi Participant Left:', participant);
-            });
-
-            if (jitsiContainer) {
-                jitsiContainer.classList.remove('hidden');
-            }
-            if (chatContentWrapper) {
-                chatContentWrapper.classList.add('hidden');
-            }
-        }
-
-        function endVideoCall() {
-            if (jitsiApi) {
-                jitsiApi.dispose();
-                jitsiApi = null;
-            }
-
-            if (jitsiContainer) {
-                jitsiContainer.classList.add('hidden');
-            }
-            if (chatContentWrapper) {
-                chatContentWrapper.classList.remove('hidden');
-            }
-        }
-
-        function getJitsiApi() {
-            return jitsiApi;
-        }
-
-
-        // --- Message Display Logic ---
-        function addMessageToChat(message) {
-            const messageElement = document.createElement('div');
-            messageElement.classList.add('message-bubble-premium');
-
-            let contentHTML = '';
-
-            if (message.type === 'system') {
-                messageElement.classList.add('system-message-premium');
-                messageElement.textContent = message.text;
-                messagesContainer.appendChild(messageElement);
-                messagesContainer.scrollTop = messagesContainer.scrollHeight;
-                return;
-            }
-
-            const isMine = message.sender === currentUsername;
-            messageElement.classList.add(isMine ? 'mine-bubble-premium' : 'other-bubble-premium');
-
-            if (message.type === 'text') {
-                contentHTML += `<p class="message-content-premium">${message.text}</p>`;
-            } else if (message.type === 'image') {
-                contentHTML += `
-                    <div class="message-image-preview">
-                        <img src="${message.imageUrl}" alt="Shared Image Preview" class="message-image-premium-thumb" onerror="this.onerror=null;this.src='https://placehold.co/100x70/eeeeee/aaaaaa?text=Image';">
-                        <span class="material-symbols-outlined message-media-overlay-icon">zoom_in</span>
-                    </div>
-                `;
-            } else if (message.type === 'file') {
-                let fileIcon = 'description';
-                const fileExtension = message.fileName ? message.fileName.split('.').pop().toLowerCase() : '';
-                if (['pdf'].includes(fileExtension)) fileIcon = 'picture_as_pdf';
-                else if (['doc', 'docx'].includes(fileExtension)) fileIcon = 'article';
-                else if (['xls', 'xlsx'].includes(fileExtension)) fileIcon = 'grid_on';
-                else if (['ppt', 'pptx'].includes(fileExtension)) fileIcon = 'slideshow';
-                else if (['zip', 'rar', '7z'].includes(fileExtension)) fileIcon = 'folder_zip';
-                else if (['mp3', 'wav', 'ogg'].includes(fileExtension)) fileIcon = 'audio_file';
-                else if (['mp4', 'mov', 'avi'].includes(fileExtension)) fileIcon = 'videocam';
-
-                contentHTML += `
-                    <div class="message-file-premium-preview">
-                        <span class="material-symbols-outlined file-icon">${fileIcon}</span>
-                        <a href="${message.fileUrl}" target="_blank" class="file-name-link">${message.fileName}</a>
-                        <a href="${message.fileUrl}" download="${message.fileName}" class="download-icon" title="Download">
-                            <span class="material-symbols-outlined">download</span>
-                        </a>
-                    </div>
-                `;
-            }
-
-            contentHTML += `
-                <div class="message-info-footer-premium">
-                    <span class="message-sender-name-bottom">${message.sender}</span>
-                    <span class="message-timestamp-premium">${formatTimestamp(message.timestamp)}</span>
-                </div>
-            `;
-
-            messageElement.innerHTML = contentHTML;
-            messagesContainer.appendChild(messageElement);
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
-
-            if (message.type === 'image' || message.type === 'file') {
-                const mediaPreview = messageElement.querySelector('.message-image-preview') || messageElement.querySelector('.message-file-premium-preview');
-                if (mediaPreview) {
-                    mediaPreview.style.cursor = 'pointer';
-                    mediaPreview.addEventListener('click', (event) => {
-                        if (event.target.closest('.download-icon')) {
-                            return;
-                        }
-                        if (message.type === 'image') {
-                            showFullMediaModal(message.type, message.imageUrl, message.fileName);
-                        } else {
-                            showFullMediaModal(message.type, message.fileUrl, message.fileName);
-                        }
-                    });
-                }
-            }
-        }
-
-        // --- Full Media View Modal Logic ---
-        const fullMediaModal = document.createElement('div');
-        fullMediaModal.id = 'full-media-modal';
-        fullMediaModal.classList.add('full-media-modal-premium', 'hidden');
-        fullMediaModal.innerHTML = `
+        <div class="full-media-modal hidden" id="full-media-modal">
+            <button class="full-media-close-button" id="full-media-close-button" title="Close">
+                <span class="material-symbols-outlined">close</span>
+            </button>
             <div class="full-media-content-premium">
-                <button class="full-media-close-button">
-                    <span class="material-symbols-outlined">close</span>
-                </button>
-                <div class="full-media-display-area">
-                    <!-- Media will be dynamically inserted here -->
-                </div>
-                <div class="full-media-controls">
-                    <a id="full-media-download-link" href="#" download class="full-media-download-button">
+                <div class="full-media-display-area" id="full-media-display-area">
+                    </div>
+                <div class="full-media-controls" id="full-media-controls">
+                    <a id="full-media-download-button" class="full-media-download-button" download>
                         <span class="material-symbols-outlined">download</span> Download
                     </a>
                 </div>
             </div>
-        `;
-        document.addEventListener('DOMContentLoaded', () => {
-            document.body.appendChild(fullMediaModal);
-        });
+        </div>
 
-        const fullMediaDisplayArea = fullMediaModal.querySelector('.full-media-display-area');
-        const fullMediaCloseButton = fullMediaModal.querySelector('.full-media-close-button');
-        const fullMediaDownloadLink = fullMediaModal.querySelector('#full-media-download-link');
+        <div class="modal-premium hidden" id="confirmation-modal">
+            <div class="modal-content-premium">
+                <p class="modal-message-text-premium" id="modal-message"></p>
+                <div class="modal-actions-premium">
+                    <button class="modal-button-premium cancel-button-premium" id="modal-cancel">
+                        <span class="material-symbols-outlined">cancel</span> Cancel
+                    </button>
+                    <button class="modal-button-premium confirm-button-premium" id="modal-confirm">
+                        <span class="material-symbols-outlined">check_circle</span> Confirm
+                    </button>
+                </div>
+            </div>
+        </div>
 
-        if (fullMediaCloseButton) {
-            fullMediaCloseButton.addEventListener('click', () => {
-                fullMediaModal.classList.add('hidden');
-                fullMediaDisplayArea.innerHTML = '';
+    </div>
+
+    <script type="module">
+        // Import the functions you need from the SDKs you need
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { getDatabase, ref, push, onValue, set, serverTimestamp, remove, onDisconnect, query, limitToLast, orderByChild } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+        import { getStorage, ref as storageRef, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
+
+        // Your web app's Firebase configuration
+        // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_AUTH_DOMAIN",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_STORAGE_BUCKET",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+            appId: "YOUR_APP_ID",
+            measurementId: "YOUR_MEASUREMENT_ID"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getDatabase(app);
+        const storage = getStorage(app);
+
+        // Jitsi Meet API (will be loaded dynamically)
+        let jitsiApi = null;
+
+        // DOM Elements
+        const roomCodeDisplay = document.getElementById('room-code-display');
+        const onlineUsersCountSpan = document.getElementById('online-users-count');
+        const userCountText = document.getElementById('user-count-text');
+        const messagesContainer = document.getElementById('messages-container');
+        const messageInput = document.getElementById('message-input');
+        const sendMessageButton = document.getElementById('send-message-button');
+        const videoCallButton = document.getElementById('video-call-button');
+        const leaveRoomButton = document.getElementById('leave-room-button');
+        const jitsiContainer = document.getElementById('jitsi-container');
+        const hangupButton = document.getElementById('hangup-button');
+        const attachFileButton = document.getElementById('attach-file-button');
+        const fileInput = document.getElementById('file-input');
+        const fullMediaModal = document.getElementById('full-media-modal');
+        const fullMediaCloseButton = document.getElementById('full-media-close-button');
+        const fullMediaDisplayArea = document.getElementById('full-media-display-area');
+        const fullMediaDownloadButton = document.getElementById('full-media-download-button');
+        const typingIndicator = document.getElementById('typing-indicator');
+        const typingUsernameSpan = document.getElementById('typing-username');
+
+        // Modal Elements
+        const confirmationModal = document.getElementById('confirmation-modal');
+        const modalMessage = document.getElementById('modal-message');
+        const modalConfirmButton = document.getElementById('modal-confirm');
+        const modalCancelButton = document.getElementById('modal-cancel');
+
+
+        // Global Variables
+        let currentUserId = null;
+        let currentUsername = null;
+        let currentRoomCode = null;
+        let messagesRef = null;
+        let presenceRef = null;
+        let typingRef = null; // Reference to our own typing status
+        let otherUserTypingRef = null; // Reference to the other user's typing status
+        let otherUserId = null;
+        let typingTimeout = null;
+
+        // --- Utility Functions ---
+
+        // Show Confirmation Modal
+        async function showConfirmationModal(message) {
+            modalMessage.textContent = message;
+            confirmationModal.classList.remove('hidden');
+
+            return new Promise((resolve) => {
+                const confirmListener = () => {
+                    confirmationModal.classList.add('hidden');
+                    modalConfirmButton.removeEventListener('click', confirmListener);
+                    modalCancelButton.removeEventListener('click', cancelListener);
+                    resolve(true);
+                };
+
+                const cancelListener = () => {
+                    confirmationModal.classList.add('hidden');
+                    modalConfirmButton.removeEventListener('click', confirmListener);
+                    modalCancelButton.removeEventListener('click', cancelListener);
+                    resolve(false);
+                };
+
+                modalConfirmButton.addEventListener('click', confirmListener);
+                modalCancelButton.addEventListener('click', cancelListener);
             });
         }
 
-
-        function showFullMediaModal(type, url, fileName) {
-            fullMediaDisplayArea.innerHTML = '';
-            fullMediaDownloadLink.href = url;
-            fullMediaDownloadLink.download = fileName || 'download';
-
-            const existingVideo = fullMediaDisplayArea.querySelector('video');
-            if (existingVideo) {
-                existingVideo.pause();
-                existingVideo.removeAttribute('src');
-                existingVideo.load();
-                fullMediaDisplayArea.removeChild(existingVideo);
-            }
-
-            if (type === 'image') {
-                const img = document.createElement('img');
-                img.src = url;
-                img.alt = fileName || "Full size image";
-                img.classList.add('full-media-image');
-                fullMediaDisplayArea.appendChild(img);
-            } else if (type === 'file') {
-                const fileExtension = fileName ? fileName.split('.').pop().toLowerCase() : '';
-                if (['mp4', 'mov', 'avi', 'webm'].includes(fileExtension)) {
-                    const video = document.createElement('video');
-                    video.src = url;
-                    video.controls = true;
-                    video.autoplay = true;
-                    video.classList.add('full-media-video');
-                    fullMediaDisplayArea.appendChild(video);
-                } else if (['pdf'].includes(fileExtension)) {
-                    const iframe = document.createElement('iframe');
-                    iframe.src = url;
-                    iframe.classList.add('full-media-document');
-                    iframe.frameBorder = "0";
-                    fullMediaDisplayArea.appendChild(iframe);
-                } else {
-                    const p = document.createElement('p');
-                    p.textContent = `Preview not available for ${fileExtension.toUpperCase()} files.`;
-                    p.classList.add('full-media-info-text');
-                    fullMediaDisplayArea.appendChild(p);
-                }
-            }
-            fullMediaModal.classList.remove('hidden');
+        // Auto-scroll messages to bottom
+        function scrollToBottom() {
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
         }
 
-        // --- Send Message Logic ---
-        async function sendMessage(text, type = 'text', imageUrl = null, fileUrl = null, fileName = null) {
-            if (!currentUserId || !currentRoomCode || !messagesRef) {
-                console.error("Chat references not initialized. Cannot send message.");
-                return;
+        // Format timestamp
+        function formatTimestamp(timestamp) {
+            if (!timestamp) return '';
+            const date = new Date(timestamp);
+            const hours = date.getHours().toString().padStart(2, '0');
+            const minutes = date.getMinutes().toString().padStart(2, '0');
+            return `${hours}:${minutes}`;
+        }
+
+        // --- Core Chat Functions ---
+
+        // Display Message in UI
+        function displayMessage(message) {
+            const messageElement = document.createElement('div');
+            messageElement.classList.add('message-bubble-premium');
+
+            if (message.type === 'system') {
+                messageElement.classList.add('system-message-premium');
+                messageElement.textContent = message.text;
+            } else {
+                messageElement.classList.add(message.senderId === currentUserId ? 'mine-bubble-premium' : 'other-bubble-premium');
+
+                let contentHTML = `<span class="message-content-premium">${message.text || ''}</span>`;
+
+                if (message.file) {
+                    if (message.file.type.startsWith('image/')) {
+                        contentHTML = `
+                            <div class="message-image-preview" data-url="${message.file.url}" data-type="${message.file.type}">
+                                <img src="${message.file.url}" alt="Image" class="message-image-premium-thumb">
+                                <span class="material-symbols-outlined message-media-overlay-icon">zoom_in</span>
+                            </div>
+                        `;
+                    } else {
+                        contentHTML = `
+                            <div class="message-file-premium-preview" data-url="${message.file.url}" data-type="${message.file.type}" data-name="${message.file.name}">
+                                <span class="material-symbols-outlined file-icon">attach_file</span>
+                                <a href="${message.file.url}" target="_blank" rel="noopener noreferrer" class="file-name-link">${message.file.name}</a>
+                                <a href="${message.file.url}" download="${message.file.name}" class="download-icon">
+                                    <span class="material-symbols-outlined">download</span>
+                                </a>
+                            </div>
+                        `;
+                    }
+                }
+
+                messageElement.innerHTML = `
+                    ${contentHTML}
+                    <div class="message-info-footer-premium">
+                        <span class="message-sender-name-bottom">${message.senderName}</span>
+                        <span class="message-timestamp-premium">${formatTimestamp(message.timestamp)}</span>
+                    </div>
+                `;
+            }
+
+            messagesContainer.appendChild(messageElement);
+            scrollToBottom();
+        }
+
+
+        // Send Message
+        async function sendMessage(text = '', file = null) {
+            if ((!text && !file) || (text.trim() === '' && !file)) {
+                return; // Don't send empty messages without a file
             }
 
             const message = {
-                sender: currentUsername,
+                senderId: currentUserId,
+                senderName: currentUsername,
+                text: text.trim(),
                 timestamp: serverTimestamp(),
-                type: type,
+                type: 'text', // Default type
+                readBy: {
+                    [currentUserId]: true // Mark as read by sender
+                }
             };
 
-            if (type === 'text') {
-                message.text = text;
-            } else if (type === 'image') {
-                message.imageUrl = imageUrl;
-                message.text = 'Image';
-            } else if (type === 'file') {
-                message.fileUrl = fileUrl;
-                message.fileName = fileName;
-                message.text = 'File';
-            } else if (type === 'system') {
-                message.text = text;
+            if (file) {
+                message.type = file.type.startsWith('image/') ? 'image' : 'file';
+                message.file = {
+                    name: file.name,
+                    url: file.url,
+                    type: file.type,
+                    size: file.size
+                };
             }
 
             try {
                 await push(messagesRef, message);
-                messageInput.value = '';
-                if (typingRef) {
-                    set(typingRef, false);
-                }
+                messageInput.value = ''; // Clear input after sending text message
+                if (file) fileInput.value = ''; // Clear file input
+                updateTypingStatus(false); // Ensure typing status is reset after sending
             } catch (error) {
-                console.error("Error sending message to Firebase:", error);
-                showModal('Failed to send message: ' + error.message, false);
+                console.error("Error sending message:", error);
             }
         }
 
-        // --- File Upload Logic ---
-        async function handleFileUpload(event) {
-            const file = event.target.files[0];
-            if (!file) return;
+        // --- Presence & Typing Status ---
 
-            if (!supabase) {
-                showModal('Supabase is not configured. File uploads are disabled.', false);
-                console.error('Supabase client is not initialized. Please configure SUPABASE_URL and SUPABASE_ANON_KEY.');
-                return;
-            }
-            if (!currentRoomCode || !currentUserId) {
-                console.error("Room code or user ID is missing. Cannot upload file. currentRoomCode:", currentRoomCode, "currentUserId:", currentUserId);
-                showModal('Cannot upload file: Room information missing. Please rejoin chat.', false);
-                return;
-            }
-
-            const filePath = `${currentRoomCode}/${currentUserId}/${Date.now()}_${file.name}`;
-            const fileType = file.type;
-
-            try {
-                addMessageToChat({
-                    sender: 'System',
-                    text: `Uploading "${file.name}"...`,
-                    type: 'system',
-                    timestamp: Date.now()
-                });
-
-                const { data, error } = await supabase.storage
-                    .from('parichat-files')
-                    .upload(filePath, file, {
-                        cacheControl: '3600',
-                        upsert: false
-                    });
-
-                if (error) {
-                    console.error("Supabase upload error:", error);
-                    throw error;
-                }
-
-                const { data: publicUrlData, error: publicUrlError } = supabase.storage
-                    .from('parichat-files')
-                    .getPublicUrl(filePath);
-
-                if (publicUrlError) {
-                    console.error("Supabase getPublicUrl error:", publicUrlError);
-                    throw publicUrlError;
-                }
-                if (!publicUrlData || !publicUrlData.publicUrl) {
-                    throw new Error('Failed to get public URL for the uploaded file.');
-                }
-
-                if (fileType.startsWith('image/') || fileType.startsWith('video/')) {
-                    await sendMessage('', fileType.startsWith('image/') ? 'image' : 'file', publicUrlData.publicUrl, null, file.name);
-                } else {
-                    await sendMessage('', 'file', null, publicUrlData.publicUrl, file.name);
-                }
-
-            } catch (error) {
-                    console.error("Final Error in handleFileUpload:", error);
-                    addMessageToChat({
-                        sender: 'System',
-                        text: `Failed to upload "${file.name}": ${error.message}. Please check Supabase URL, Anon Key, and Storage Bucket/Policies.`,
-                        type: 'system',
-                        timestamp: Date.now()
-                    });
-            } finally {
-                imageUploadInput.value = '';
-            }
+        // Setup User Presence
+        async function setupPresence() {
+            presenceRef = ref(db, `rooms/${currentRoomCode}/presence/${currentUserId}`);
+            await set(presenceRef, { username: currentUsername, isTyping: false, lastOnline: serverTimestamp() });
+            onDisconnect(presenceRef).remove(); // Remove user from presence when they disconnect
+            console.log(`Presence set for ${currentUsername} in ${currentRoomCode}`);
         }
 
-        // --- Firebase Listeners and Presence Logic ---
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                currentUserId = user.uid;
-                if (!currentRoomCode || !currentUsername) {
-                    console.error("Room code or username missing after auth. Cannot set up Firebase refs.");
-                    showModal('Critical Error: Room details missing. Please re-join.', false).then(() => {
-                        window.location.href = 'index.html';
-                    });
-                    return;
-                }
-
-                roomRef = ref(db, `rooms/${currentRoomCode}`);
-                presenceRef = ref(db, `rooms/${currentRoomCode}/presence/${currentUserId}`);
-                messagesRef = ref(db, `rooms/${currentRoomCode}/messages`);
-                typingRef = ref(db, `rooms/${currentRoomCode}/typing/${currentUserId}`);
-
-                try {
-                    // Set user presence
-                    console.log(`Setting presence for user: ${currentUserId} in room: ${currentRoomCode}`);
-                    await set(presenceRef, { username: currentUsername, lastSeen: serverTimestamp() });
-                    // THIS IS THE PRIMARY MECHANISM for auto-removal on unexpected disconnects
-                    onDisconnect(presenceRef).remove().then(() => {
-                        console.log("onDisconnect handler set up successfully.");
-                    }).catch(error => {
-                        console.error("Error setting onDisconnect handler:", error);
-                    });
-
-                    if (!localStorage.getItem('paritalk_joined_message_sent_for_' + currentRoomCode + currentUsername)) {
-                        console.log("Sending 'joined' message...");
-                        sendMessage(`**${currentUsername}** joined the chat.`, 'system');
-                        localStorage.setItem('paritalk_joined_message_sent_for_' + currentRoomCode + currentUsername, 'true');
-                    }
-
-                    listenForMessages();
-                    listenForPresence();
-                    listenForTyping();
-
-                    messageInput.focus();
-
-                    initializeJitsiInChat();
-
-                } catch (error) {
-                    console.error("Error setting up chat listeners/presence:", error);
-                    // Clear relevant localStorage items for a clean retry
-                    localStorage.removeItem('paritalk_username');
-                    localStorage.removeItem('paritalk_roomcode');
-                    localStorage.removeItem('paritalk_joined_message_sent_for_' + currentRoomCode + currentUsername);
-                    showModal('Failed to set up chat. Please re-join. Error: ' + error.message, false).then(() => {
-                        window.location.href = 'index.html';
-                    });
-                }
-            } else {
-                console.warn("User not authenticated in chat.html. Redirecting to login.");
-                window.location.href = 'index.html?error=' + encodeURIComponent('Authentication failed. Please re-login.');
-            }
-        });
-
-        function listenForMessages() {
-            onChildAdded(messagesRef, (snapshot) => {
-                const message = snapshot.val();
-                addMessageToChat(message);
-            });
-        }
-
-        function listenForPresence() {
+        // Update Online Users Count
+        function updateOnlineUsersCount() {
             const roomPresenceRef = ref(db, `rooms/${currentRoomCode}/presence`);
             onValue(roomPresenceRef, (snapshot) => {
-                const users = [];
-                snapshot.forEach((childSnapshot) => {
-                    const userData = childSnapshot.val();
-                    if (userData.username) {
-                        users.push(userData.username);
+                const onlineUsers = snapshot.val();
+                const count = onlineUsers ? Object.keys(onlineUsers).length : 0;
+                userCountText.textContent = `${count} online`;
+
+                // Determine otherUserId for typing indicator
+                if (onlineUsers) {
+                    const onlineUserIds = Object.keys(onlineUsers);
+                    if (onlineUserIds.length === 2) {
+                        otherUserId = onlineUserIds.find(id => id !== currentUserId);
+                        console.log("Other user ID found:", otherUserId);
+                        // Re-setup listener if otherUserId changes (e.g., new user joins)
+                        if (otherUserTypingRef) {
+                            off(otherUserTypingRef); // Detach old listener
+                        }
+                        setupTypingIndicator(otherUserId);
+                    } else {
+                        if (otherUserTypingRef) {
+                            off(otherUserTypingRef); // Detach listener if less/more than 2 users
+                        }
+                        otherUserId = null;
+                        typingIndicator.classList.add('hidden'); // Hide indicator if not 2 users
                     }
-                });
-
-                if (onlineUsersCountDisplay) {
-                    onlineUsersCountDisplay.textContent = `Online: ${users.length}`;
-                }
-
-                const currentJitsiApi = getJitsiApi();
-                if (currentJitsiApi) {
-                    const jitsiParticipantsCount = currentJitsiApi.getNumberOfParticipants ? currentJitsiApi.getNumberOfParticipants() : 0;
-                    const firebaseOtherUsersCount = users.filter(u => u !== currentUsername).length;
-
-                    if (firebaseOtherUsersCount === 0 && jitsiParticipantsCount <= 1 && users.includes(currentUserId)) {
-                        console.log("Other user left room (Firebase) and Jitsi, ending call.");
-                        endVideoCall();
-                        addMessageToChat({
-                            sender: 'System',
-                            text: 'The other user has left the call, ending the video session.',
-                            type: 'system',
-                            timestamp: Date.now()
-                        });
+                } else {
+                     if (otherUserTypingRef) {
+                        off(otherUserTypingRef);
                     }
+                    otherUserId = null;
+                    typingIndicator.classList.add('hidden');
                 }
             });
         }
 
-        // FIX: Ensure remove(presenceRef) is explicitly called and awaited, with better error handling.
-        async function handleLeaveRoom() {
-            console.log("Leave Room button clicked.");
-            const confirmed = await showModal('Are you sure you want to leave the chat?', true);
-            if (confirmed) {
-                console.log("Leave confirmed by user.");
-                const currentJitsiApi = getJitsiApi();
-                if (currentJitsiApi) {
-                    console.log("Ending Jitsi call...");
-                    endVideoCall();
-                }
-
-                if (presenceRef && currentUserId) {
-                    try {
-                        console.log(`Attempting to explicitly remove presence for ${currentUserId}.`);
-                        await remove(presenceRef); // Explicitly remove user from presence
-                        console.log(`Presence removed for ${currentUserId}.`);
-                        // Only send 'left' message if presence removal was successful
-                        sendMessage(`**${currentUsername}** left the chat.`, 'system');
-                    } catch (error) {
-                        console.error("Error removing presence on leave:", error);
-                        showModal('Failed to leave room cleanly: ' + error.message, false);
-                    }
-                } else {
-                    console.warn("Presence reference or current user ID not available. Cannot explicitly remove presence.");
-                }
-                
-                // Clear localStorage regardless of explicit presence removal success,
-                // as `onDisconnect` should eventually clean up if explicit fails.
-                localStorage.removeItem('paritalk_username');
-                localStorage.removeItem('paritalk_roomcode');
-                localStorage.removeItem('paritalk_joined_message_sent_for_' + currentRoomCode + currentUsername);
-
-                console.log("Redirecting to index.html...");
-                window.location.href = 'index.html';
-            } else {
-                console.log("Leave cancelled by user.");
+        // Update own typing status in Firebase
+        async function updateTypingStatus(isTyping) {
+            if (!typingRef) { // Ensure typingRef is initialized
+                typingRef = ref(db, `rooms/${currentRoomCode}/presence/${currentUserId}/isTyping`);
             }
-            hideModal();
+            await set(typingRef, isTyping);
         }
 
-        function setTypingStatus(isTyping) {
-            if (typingRef) {
-                set(typingRef, isTyping);
+        // Setup typing indicator for OTHER user
+        function setupTypingIndicator(idOfOtherUser) {
+            if (!idOfOtherUser) {
+                typingIndicator.classList.add('hidden');
+                return;
             }
-        }
 
-        function listenForTyping() {
-            const allTypingRef = ref(db, `rooms/${currentRoomCode}/typing`);
-            onValue(allTypingRef, (snapshot) => {
-                const typingUsers = [];
-                snapshot.forEach((childSnapshot) => {
-                    if (childSnapshot.val() === true && childSnapshot.key !== currentUserId) {
-                        const presenceSnapshot = snapshot.child(`../presence/${childSnapshot.key}`);
-                        if (presenceSnapshot.exists() && presenceSnapshot.val().username) {
-                            typingUsers.push(presenceSnapshot.val().username);
-                        } else {
-                            typingUsers.push('Someone');
+            otherUserTypingRef = ref(db, `rooms/${currentRoomCode}/presence/${idOfOtherUser}/isTyping`);
+            const otherUsernameRef = ref(db, `rooms/${currentRoomCode}/presence/${idOfOtherUser}/username`);
+
+            onValue(otherUserTypingRef, (snapshot) => {
+                const isOtherUserTyping = snapshot.val();
+                if (isOtherUserTyping) {
+                    // Fetch other user's username to display
+                    onValue(otherUsernameRef, (nameSnapshot) => {
+                        const otherUserName = nameSnapshot.val();
+                        if (otherUserName) {
+                            typingUsernameSpan.textContent = otherUserName;
+                            typingIndicator.classList.remove('hidden');
                         }
-                    }
-                });
-
-                if (typingUsers.length > 0) {
-                    let displayString = '';
-                    if (typingUsers.length === 1) {
-                        displayString = `${typingUsers[0]} is typing`;
-                    } else if (typingUsers.length === 2) {
-                        displayString = `${typingUsers[0]} and ${typingUsers[1]} are typing`;
-                    } else {
-                        displayString = `Multiple people are typing`;
-                    }
-                    typingIndicator.textContent = `${displayString}...`;
-                    typingIndicator.classList.remove('hidden');
+                    }, { onlyOnce: true }); // Only fetch username once per typing session
                 } else {
                     typingIndicator.classList.add('hidden');
                 }
             });
         }
 
-        // --- Event Listeners ---
-        messageInput.addEventListener('input', () => {
-            setTypingStatus(true);
-            clearTimeout(typingTimeout);
-            typingTimeout = setTimeout(() => {
-                setTypingStatus(false);
-            }, 2000);
-        });
 
-        messageInput.addEventListener('blur', () => {
-            if (messageInput.value.trim() === '') {
-                 setTypingStatus(false);
-                 clearTimeout(typingTimeout);
-            }
-        });
+        // --- File Upload & Media Display ---
 
-        messageInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                const messageText = messageInput.value.trim();
-                if (messageText) {
-                    sendMessage(messageText, 'text');
-                }
-            }
-        });
+        // Upload File to Storage
+        async function uploadFile(file) {
+            const fileStorageRef = storageRef(storage, `room_files/${currentRoomCode}/${Date.now()}_${file.name}`);
+            const uploadTask = uploadBytesResumable(fileStorageRef, file);
 
-        sendButton.addEventListener('click', () => {
-            const messageText = messageInput.value.trim();
-            if (messageText) {
-                sendMessage(messageText, 'text');
-            }
-        });
-
-        imageUploadInput.addEventListener('change', handleFileUpload);
-
-        if (videoCallButton) {
-            videoCallButton.addEventListener('click', startVideoCall);
-            console.log("Video Call button event listener attached.");
-        } else {
-            console.error("Video Call button element not found!");
+            return new Promise((resolve, reject) => {
+                uploadTask.on('state_changed',
+                    (snapshot) => {
+                        // Optional: Get task progress, including the number of bytes uploaded and the total number of bytes to be uploaded
+                        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                        console.log('Upload is ' + progress + '% done');
+                        // You could show a progress bar here
+                    },
+                    (error) => {
+                        console.error("File upload failed:", error);
+                        reject(error);
+                    },
+                    () => {
+                        // Upload completed successfully, now get the download URL
+                        getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
+                            resolve({
+                                name: file.name,
+                                url: downloadURL,
+                                type: file.type,
+                                size: file.size
+                            });
+                        }).catch(reject);
+                    }
+                );
+            });
         }
 
+        // Show Full Media Modal
+        function showFullMediaModal(url, type, fileName) {
+            fullMediaDisplayArea.innerHTML = ''; // Clear previous content
+            fullMediaDownloadButton.href = url;
+            fullMediaDownloadButton.download = fileName || 'download'; // Set download name
+
+            if (type.startsWith('image/')) {
+                const img = document.createElement('img');
+                img.src = url;
+                img.classList.add('full-media-image');
+                fullMediaDisplayArea.appendChild(img);
+            } else if (type.startsWith('video/')) {
+                const video = document.createElement('video');
+                video.src = url;
+                video.controls = true;
+                video.autoplay = true;
+                video.classList.add('full-media-video');
+                fullMediaDisplayArea.appendChild(video);
+            } else if (type === 'application/pdf') {
+                const iframe = document.createElement('iframe');
+                iframe.src = url;
+                iframe.classList.add('full-media-document');
+                iframe.setAttribute('frameborder', '0');
+                fullMediaDisplayArea.appendChild(iframe);
+            } else {
+                // For other file types, just provide download option
+                const infoText = document.createElement('p');
+                infoText.classList.add('full-media-info-text');
+                infoText.textContent = `File type not previewable: ${fileName}`;
+                fullMediaDisplayArea.appendChild(infoText);
+            }
+
+            fullMediaModal.classList.remove('hidden');
+        }
+
+        // Close Full Media Modal
+        function closeFullMediaModal() {
+            fullMediaModal.classList.add('hidden');
+            fullMediaDisplayArea.innerHTML = ''; // Clear content
+            // Stop any playing video if exists
+            const video = fullMediaDisplayArea.querySelector('video');
+            if (video) {
+                video.pause();
+                video.currentTime = 0;
+            }
+        }
+
+
+        // --- Jitsi Integration ---
+
+        async function startVideoCall() {
+            const confirmed = await showConfirmationModal('Are you sure you want to start a video call?');
+            if (!confirmed) return;
+
+            jitsiContainer.classList.remove('hidden');
+
+            const domain = 'meet.jit.si';
+            const options = {
+                roomName: currentRoomCode, // Use Firebase room code as Jitsi room name
+                width: '100%',
+                height: '100%',
+                parentNode: document.querySelector('#jitsi-meet-api'),
+                userInfo: {
+                    displayName: currentUsername
+                },
+                configOverwrite: {
+                    startWithAudioMuted: false,
+                    startWithVideoMuted: false,
+                    disableSelfView: false, // Ensure you can see yourself
+                    enableClosePage: false, // Prevent user from closing page directly from Jitsi
+                    prejoinPageEnabled: false, // Skip prejoin page
+                    enableWelcomePage: false, // Skip welcome page
+                    toolbarButtons: [ // Customize toolbar
+                        'microphone', 'camera', 'desktop', 'fullscreen',
+                        'fodeviceselection', 'hangup', 'profile', 'chat',
+                        'settings', 'tileview', 'toggle-raise-hand',
+                        'videoquality', 'filmstrip',
+                    ]
+                },
+                interfaceConfigOverwrite: {
+                    APP_NAME: 'Paritalk',
+                    DEFAULT_BACKGROUND: '#F9F9F9',
+                    NATIVE_APP_NAME: 'Paritalk',
+                    TOOLBAR_BUTTONS: [ // Repeat toolbar buttons here for interface config
+                        'microphone', 'camera', 'desktop', 'fullscreen',
+                        'fodeviceselection', 'hangup', 'profile', 'chat',
+                        'settings', 'tileview', 'toggle-raise-hand',
+                        'videoquality', 'filmstrip',
+                    ]
+                }
+            };
+
+            // Load Jitsi API script dynamically
+            const script = document.createElement('script');
+            script.src = 'https://meet.jit.si/external_api.js';
+            script.onload = () => {
+                if (window.JitsiMeetExternalAPI) {
+                    jitsiApi = new JitsiMeetExternalAPI(domain, options);
+
+                    jitsiApi.addEventListener('readyToClose', () => {
+                        console.log("Jitsi: Ready to close event detected.");
+                        hangUpCall();
+                    });
+                    jitsiApi.addEventListener('videoConferenceLeft', () => {
+                        console.log("Jitsi: Video conference left.");
+                        hangUpCall();
+                    });
+                    jitsiApi.addEventListener('participantLeft', (participant) => {
+                        console.log("Jitsi: Participant left:", participant);
+                    });
+                    jitsiApi.addEventListener('participantJoined', (participant) => {
+                        console.log("Jitsi: Participant joined:", participant);
+                    });
+
+                } else {
+                    console.error('JitsiMeetExternalAPI not found after script load.');
+                    alert('Failed to load video call. Please try again.');
+                    hangUpCall(); // Hide container if API fails to load
+                }
+            };
+            script.onerror = (e) => {
+                console.error('Failed to load Jitsi API script:', e);
+                alert('Could not load video call features. Please check your internet connection.');
+                hangUpCall(); // Hide container if script fails
+            };
+            document.body.appendChild(script);
+        }
+
+        function hangUpCall() {
+            if (jitsiApi) {
+                jitsiApi.dispose();
+                jitsiApi = null;
+            }
+            jitsiContainer.classList.add('hidden');
+            // Remove the dynamically added Jitsi script if it exists
+            const jitsiScript = document.querySelector('script[src="https://meet.jit.si/external_api.js"]');
+            if (jitsiScript) {
+                jitsiScript.remove();
+            }
+        }
+
+        // --- Event Listeners ---
+
+        // Send message on button click
+        sendMessageButton.addEventListener('click', () => {
+            sendMessage(messageInput.value);
+        });
+
+        // Send message on Enter key press
+        messageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendMessage(messageInput.value);
+            }
+        });
+
+        // Handle typing status
+        messageInput.addEventListener('input', () => {
+            if (typingTimeout) {
+                clearTimeout(typingTimeout);
+            }
+            updateTypingStatus(true);
+            typingTimeout = setTimeout(() => {
+                updateTypingStatus(false);
+            }, 3000); // User stops typing after 3 seconds
+        });
+
+        // Handle blur to reset typing status
+        messageInput.addEventListener('blur', () => {
+            if (typingTimeout) {
+                clearTimeout(typingTimeout);
+            }
+            updateTypingStatus(false);
+        });
+
+        // Start video call
+        videoCallButton.addEventListener('click', startVideoCall);
+
+        // Hang up video call
+        hangupButton.addEventListener('click', hangUpCall);
+
+        // Leave room
         if (leaveRoomButton) {
             leaveRoomButton.addEventListener('click', handleLeaveRoom);
             console.log("Leave Room button event listener attached.");
@@ -846,36 +584,162 @@
             console.error("Leave Room button element not found!");
         }
 
-        if (hangupButton) {
-            hangupButton.addEventListener('click', () => {
-                endVideoCall();
+        // Attach file button click
+        attachFileButton.addEventListener('click', () => {
+            fileInput.click(); // Trigger the hidden file input
+        });
+
+        // Handle file input change
+        fileInput.addEventListener('change', async (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                // Optional: Show a loading indicator
+                console.log("Uploading file:", file.name);
+                try {
+                    const uploadedFileDetails = await uploadFile(file);
+                    await sendMessage('', uploadedFileDetails); // Send message with file details
+                    console.log("File message sent!");
+                } catch (error) {
+                    console.error("Failed to upload or send file:", error);
+                    alert("Failed to send file. Please try again.");
+                } finally {
+                    // Optional: Hide loading indicator
+                    fileInput.value = ''; // Clear file input value
+                }
+            }
+        });
+
+        // Handle clicking on message images/files to open full modal
+        messagesContainer.addEventListener('click', (event) => {
+            const imagePreview = event.target.closest('.message-image-preview');
+            const filePreview = event.target.closest('.message-file-premium-preview');
+            const downloadIcon = event.target.closest('.download-icon');
+
+            if (imagePreview) {
+                const url = imagePreview.dataset.url;
+                const type = imagePreview.dataset.type;
+                showFullMediaModal(url, type);
+            } else if (filePreview && !downloadIcon) { // Ensure clicking on the file name/bubble, not just download icon
+                const url = filePreview.dataset.url;
+                const type = filePreview.dataset.type;
+                const name = filePreview.dataset.name;
+                showFullMediaModal(url, type, name);
+            }
+        });
+
+        // Close full media modal
+        fullMediaCloseButton.addEventListener('click', closeFullMediaModal);
+
+        // --- Initialization ---
+
+        // Get room code and username from URL parameters
+        function getQueryParams() {
+            const params = {};
+            const queryString = window.location.search.substring(1);
+            const regex = /([^&=]+)=([^&]*)/g;
+            let m;
+            while ((m = regex.exec(queryString))) {
+                params[decodeURIComponent(m[1])] = decodeURIComponent(m[2]);
+            }
+            return params;
+        }
+
+        const queryParams = getQueryParams();
+        currentRoomCode = queryParams.room;
+        currentUsername = queryParams.user;
+
+        if (!currentRoomCode || !currentUsername) {
+            alert('Room code or username missing. Redirecting to login.');
+            window.location.href = 'index.html';
+        } else {
+            roomCodeDisplay.textContent = currentRoomCode;
+            messagesRef = ref(db, `rooms/${currentRoomCode}/messages`);
+
+            onAuthStateChanged(auth, async (user) => {
+                if (user) {
+                    currentUserId = user.uid;
+                    console.log("Authenticated with Firebase UID:", currentUserId);
+
+                    await setupPresence();
+                    updateOnlineUsersCount();
+
+                    // Load last 50 messages
+                    onValue(query(messagesRef, limitToLast(50), orderByChild('timestamp')), (snapshot) => {
+                        messagesContainer.innerHTML = ''; // Clear existing messages
+                        snapshot.forEach((childSnapshot) => {
+                            displayMessage(childSnapshot.val());
+                        });
+                        scrollToBottom();
+                    });
+
+                    // Add a system message for user joining
+                    await push(messagesRef, {
+                        type: 'system',
+                        text: `${currentUsername} has joined the room.`,
+                        timestamp: serverTimestamp()
+                    });
+
+                } else {
+                    console.error("No user authenticated. Redirecting to login.");
+                    alert('Authentication failed. Please log in again.');
+                    window.location.href = 'index.html';
+                }
             });
         }
 
-        if (modalConfirm) {
-            modalConfirm.addEventListener('click', () => {
-                if (resolveModalPromise) resolveModalPromise(true);
-                hideModal();
-            });
-        } else { console.error("Modal Confirm button not found!"); }
-        
-        if (modalCancel) {
-            modalCancel.addEventListener('click', () => {
-                if (resolveModalPromise) resolveModalPromise(false);
-                hideModal();
-            });
-        } else { console.error("Modal Cancel button not found!"); }
+
+        // Handle leaving the room logic
+        async function handleLeaveRoom() {
+            console.log("Entering handleLeaveRoom function."); // New log
+            const confirmed = await showConfirmationModal('Are you sure you want to leave this private conversation?');
+            console.log("Confirmation modal result:", confirmed); // New log
+
+            if (confirmed) {
+                console.log("User confirmed to leave."); // New log
+                if (presenceRef && currentUserId) {
+                    console.log("presenceRef is valid:", presenceRef.toString()); // New log
+                    console.log("currentUserId is valid:", currentUserId); // New log
+                    try {
+                        await remove(presenceRef); // Remove user's presence from DB
+                        console.log("SUCCESS: User presence removed from room:", currentRoomCode); // New log
+                        // Add a system message for user leaving
+                        await push(messagesRef, {
+                            type: 'system',
+                            text: `${currentUsername} has left the room.`,
+                            timestamp: serverTimestamp()
+                        });
+                    } catch (error) {
+                        console.error("ERROR: Failed to remove presence on leave:", error); // Existing error log
+                        alert("Failed to leave room. Please try again. Check console for details.");
+                        // Potentially notify user if leaving fails due to network/rules
+                    }
+                } else {
+                    console.warn("WARNING: presenceRef or currentUserId not available. Cannot remove presence."); // New log
+                }
+                if (jitsiApi) {
+                    jitsiApi.dispose(); // End Jitsi call if active
+                    jitsiApi = null;
+                    console.log("Jitsi API disposed."); // New log
+                }
+                localStorage.removeItem('paritalk_username');
+                localStorage.removeItem('paritalk_roomcode');
+                console.log("Local storage cleared."); // New log
+                window.location.href = 'index.html'; // Redirect to login
+                console.log("Redirecting to index.html..."); // This might not show if redirect is instant
+            } else {
+                console.log("User cancelled leaving the room."); // New log
+            }
+        }
 
 
-        // FIX: Ensure `remove(presenceRef)` is called for explicit unload/close with logging.
+        // Cleanup on page reload/close
         window.addEventListener('beforeunload', async (e) => {
             if (presenceRef && currentUserId) {
                 console.log("Beforeunload event: Attempting to remove user presence explicitly.");
                 try {
-                    // This explicit `set(null)` will attempt to remove the presence immediately.
-                    // However, `onDisconnect` is still the most reliable fallback for unexpected closures.
-                    await set(presenceRef, null);
+                    await set(presenceRef, null); // Explicitly remove presence
                     console.log("Presence explicitly removed on beforeunload.");
+                     // No system message here, as it's often not reliably sent on full page unload/close
                 } catch (error) {
                     console.error("Error explicitly removing presence on beforeunload:", error);
                 }
@@ -885,12 +749,7 @@
             }
         });
 
-        document.addEventListener('click', (event) => {
-            if (emojiPicker && !emojiPicker.classList.contains('hidden') && !emojiPicker.contains(event.target) && !event.target.closest('.message-bubble-premium')) {
-                emojiPicker.classList.add('hidden');
-            }
-        });
-
     </script>
+    <script src="https://meet.jit.si/external_api.js"></script>
 </body>
 </html>
