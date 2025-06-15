@@ -54,6 +54,57 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+
+        /* Styles for Join Call Button */
+        .join-call-button {
+            background-color: var(--color-primary-blue);
+            color: var(--color-white);
+            border: none;
+            border-radius: var(--border-radius-small);
+            padding: 0.6rem 1rem;
+            font-size: 0.8em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s ease, transform 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+            margin-top: 0.5rem;
+            box-shadow: 0 2px 6px rgba(52, 105, 245, 0.2);
+            justify-content: center; /* Center content horizontally */
+        }
+
+        .join-call-button:hover {
+            background-color: var(--color-primary-blue-dark);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 10px rgba(52, 105, 245, 0.3);
+        }
+
+        .join-call-button .material-symbols-outlined {
+            font-size: 18px;
+            font-variation-settings: 'FILL' 1;
+        }
+
+        /* Specific style for system messages that have a join button */
+        .system-message-with-action {
+            background-color: var(--color-primary-blue-light); /* Light blue background */
+            padding: 0.8rem 1.2rem;
+            border-radius: var(--border-radius-medium);
+            text-align: center;
+            font-style: normal; /* Override italic for action messages */
+            color: var(--color-dark-gray); /* Darker text */
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+            display: flex;
+            flex-direction: column;
+            align-items: center; /* Center items within the bubble */
+        }
+        .system-message-with-action p {
+            margin: 0;
+            font-size: 0.9em;
+            font-weight: 500;
+        }
+
+
     </style>
 </head>
 <body>
@@ -207,6 +258,7 @@
         let otherUserTypingRef = null; // Reference to the other user's typing status
         let otherUserId = null;
         let typingTimeout = null;
+        let currentCallId = null; // To store the ID of the active video call message
 
         // --- Utility Functions ---
 
@@ -260,8 +312,29 @@
             messageElement.classList.add('message-bubble-premium');
 
             if (message.type === 'system') {
-                messageElement.classList.add('system-message-premium');
-                messageElement.textContent = message.text;
+                if (message.action === 'videoCallStarted') {
+                    // Specific styling and button for video call start notification
+                    messageElement.classList.add('system-message-premium', 'system-message-with-action');
+                    messageElement.innerHTML = `
+                        <p>${message.text}</p>
+                        <button class="join-call-button" data-call-id="${message.callId}">
+                            <span class="material-symbols-outlined">videocam</span>
+                            Join Video Call
+                        </button>
+                    `;
+                } else if (message.action === 'videoCallEnded') {
+                    // Specific styling for video call ended notification
+                    messageElement.classList.add('system-message-premium', 'system-message-with-action');
+                    messageElement.innerHTML = `
+                        <p>${message.text}</p>
+                        <span class="material-symbols-outlined" style="font-size: 20px; color: var(--color-error); margin-top: 5px;">call_end</span>
+                    `;
+                }
+                 else {
+                    // Default system message
+                    messageElement.classList.add('system-message-premium');
+                    messageElement.textContent = message.text;
+                }
             } else {
                 messageElement.classList.add(message.senderId === currentUserId ? 'mine-bubble-premium' : 'other-bubble-premium');
 
@@ -513,26 +586,21 @@
                 return;
             }
 
-            // Ensure Jitsi API script is only loaded once if not already present
-            const existingScript = document.querySelector('script[src="https://meet.jit.si/external_api.js"]');
-            if (!existingScript) {
-                 const script = document.createElement('script');
-                 script.src = 'https://meet.jit.si/external_api.js';
-                 script.async = true; // Make it async
-                 script.onload = () => {
-                     // Once script is loaded, proceed with initializing Jitsi
-                     initializeJitsiInstance();
-                 };
-                 script.onerror = (e) => {
-                     console.error('Failed to load Jitsi API script:', e);
-                     alert('Could not load video call features. Please check your internet connection.');
-                     hangUpCall();
-                 };
-                 document.body.appendChild(script);
-            } else {
-                // If script is already loaded, just initialize Jitsi instance
-                initializeJitsiInstance();
-            }
+            // Generate a unique call ID for this session
+            const callId = `${currentRoomCode}-${Date.now()}`;
+            currentCallId = callId; // Store the active call ID
+
+            // Add system message to chat that video call has started
+            await push(messagesRef, {
+                type: 'system',
+                action: 'videoCallStarted', // New action type
+                text: `${currentUsername} started a video call.`,
+                callId: callId, // Include the unique call ID
+                timestamp: serverTimestamp()
+            });
+
+            // Proceed with Jitsi initialization
+            initializeJitsiInstance();
         }
 
         async function initializeJitsiInstance() {
@@ -568,6 +636,7 @@
                     enableClosePage: false,
                     prejoinPageEnabled: false,
                     enableWelcomePage: false,
+                    startSilent: false, // Ensure we try to start with audio/video immediately
                     toolbarButtons: [
                         'microphone', 'camera', 'desktop', 'fullscreen',
                         'fodeviceselection', 'hangup', 'profile', 'chat',
@@ -591,6 +660,15 @@
             try {
                 jitsiApi = new JitsiMeetExternalAPI(domain, options);
 
+                // Add event listeners to detect when the Jitsi iFrame is ready to be interacted with
+                jitsiApi.addEventListener('iframe-ready', () => {
+                    console.log("Jitsi iFrame is ready.");
+                    // You can perform more actions here if needed once the iFrame is fully loaded
+                });
+                jitsiApi.addEventListener('participantJoined', (participant) => {
+                    console.log("Jitsi: Participant joined:", participant);
+                });
+
                 jitsiApi.addEventListener('readyToClose', () => {
                     console.log("Jitsi: Ready to close event detected.");
                     hangUpCall();
@@ -601,17 +679,10 @@
                 });
                 jitsiApi.addEventListener('participantLeft', (participant) => {
                     console.log("Jitsi: Participant left:", participant);
-                });
-                jitsiApi.addEventListener('participantJoined', (participant) => {
-                    console.log("Jitsi: Participant joined:", participant);
+                    // If the other participant leaves, consider ending the call for everyone
+                    // This is more advanced and requires coordinating via Firebase
                 });
 
-                // Add system message to chat that video call has started
-                await push(messagesRef, {
-                    type: 'system',
-                    text: `${currentUsername} started a video call.`,
-                    timestamp: serverTimestamp()
-                });
 
                 console.log("Jitsi API initialized and event listeners attached.");
 
@@ -631,6 +702,18 @@
             }
             jitsiContainer.classList.add('hidden');
             jitsiContainer.style.display = 'none'; // Hide properly
+
+            // Add system message to chat that video call has ended (only if there was an active call)
+            if (currentCallId) {
+                push(messagesRef, {
+                    type: 'system',
+                    action: 'videoCallEnded',
+                    text: `${currentUsername} ended the video call.`,
+                    callId: currentCallId,
+                    timestamp: serverTimestamp()
+                });
+                currentCallId = null; // Clear the active call ID
+            }
 
             // Remove the dynamically added Jitsi script if it exists
             const jitsiScript = document.querySelector('script[src="https://meet.jit.si/external_api.js"]');
@@ -715,6 +798,7 @@
             const imagePreview = event.target.closest('.message-image-preview');
             const filePreview = event.target.closest('.message-file-premium-preview');
             const downloadIcon = event.target.closest('.download-icon');
+            const joinCallButton = event.target.closest('.join-call-button'); // New: Listen for join call button
 
             if (imagePreview) {
                 const url = imagePreview.dataset.url;
@@ -725,6 +809,11 @@
                 const type = filePreview.dataset.type;
                 const name = filePreview.dataset.name;
                 showFullMediaModal(url, type, name);
+            } else if (joinCallButton) { // Handle join call button click
+                console.log("Join video call button clicked!");
+                // The 'startVideoCall' function implicitly uses currentRoomCode
+                // and will try to join the Jitsi meeting.
+                initializeJitsiInstance(); // Directly initialize the instance
             }
         });
 
