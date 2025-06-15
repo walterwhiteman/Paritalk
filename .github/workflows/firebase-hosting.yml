@@ -1,32 +1,35 @@
-    # .github/workflows/firebase-hosting.yml
-    name: Deploy to Firebase Hosting
+# .github/workflows/firebase-hosting.yml
+name: Deploy to Firebase Hosting
 
-    on:
-      push:
-        branches:
-          - main # Trigger this workflow when changes are pushed to the 'main' branch
+on:
+  push:
+    branches:
+      - main # Trigger this workflow when changes are pushed to the 'main' branch
 
-    jobs:
-      build_and_deploy:
-        runs-on: ubuntu-latest # Use the latest Ubuntu runner
+jobs:
+  build_and_deploy:
+    runs-on: ubuntu-latest # Use the latest Ubuntu runner
 
-        steps:
-          - name: Checkout code
-            uses: actions/checkout@v4 # Action to checkout your repository code
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4 # Action to checkout your repository code
 
-          - name: Set up Node.js
-            uses: actions/setup-node@v4
-            with:
-              node-version: '20' # Use Node.js version 20 (recommended for Firebase CLI)
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20' # Use Node.js version 20 (recommended for Firebase CLI)
 
-          - name: Install Firebase CLI
-            run: npm install -g firebase-tools # Install Firebase CLI globally
+      - name: Install Firebase CLI # Still useful for other commands if needed, but not strictly for deploy via action
+        run: npm install -g firebase-tools
 
-          - name: Deploy to Firebase Hosting
-            run: firebase deploy --only hosting --project ${{ secrets.FIREBASE_PROJECT_ID }}
-            env:
-              # This is the secret Firebase token you'll set up in GitHub
-              FIREBASE_TOKEN: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_PARITALK_TOKEN }}
-              # This is your Firebase Project ID, also set as a secret for clarity (optional, can be hardcoded)
-              FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
-    
+      - name: Deploy to Firebase Hosting
+        uses: FirebaseExtended/action-hosting-deploy@v0 # Use the official Firebase Hosting deploy action
+        with:
+          repoToken: '${{ secrets.GITHUB_TOKEN }}' # Provided by GitHub Actions automatically
+          firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT_PARITALK }}' # Name of your new secret
+          projectId: 'paritalk' # Your Firebase Project ID. Can be hardcoded or use a secret if preferred.
+          # channelId: 'live' # Optional: deploy to 'live' channel (default if not specified)
+          # target: 'your-hosting-target' # Optional: if you have multiple hosting sites
+        env:
+          # This variable is no longer used by the action but kept for reference or if you run other firebase commands
+          FIREBASE_CLI_PREVIEWS: hostingchannels
