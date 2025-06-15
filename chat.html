@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-initial-scale=1.0">
     <title>Paritalk - Private Chat</title>
 
     <!-- Preconnect to Firebase, Supabase, and Google Fonts for faster loading -->
@@ -330,8 +330,8 @@
         async function setupPresence() {
             presenceRef = ref(db, `rooms/${currentRoomCode}/presence/${currentUserId}`);
             await set(presenceRef, { username: currentUsername, isTyping: false, lastOnline: serverTimestamp() });
-            onDisconnect(presenceRef).remove(); // Remove user from presence when they disconnect
             console.log(`Presence set for ${currentUsername} in ${currentRoomCode}`);
+            onDisconnect(presenceRef).remove(); // Remove user from presence when they disconnect
         }
 
         // Update Online Users Count
@@ -341,28 +341,40 @@
                 const onlineUsers = snapshot.val();
                 const count = onlineUsers ? Object.keys(onlineUsers).length : 0;
                 userCountText.textContent = `${count} online`;
+                console.log(`Online users count updated: ${count}`);
 
                 // Determine otherUserId for typing indicator
                 if (onlineUsers) {
                     const onlineUserIds = Object.keys(onlineUsers);
-                    if (onlineUserIds.length === 2) {
-                        otherUserId = onlineUserIds.find(id => id !== currentUserId);
-                        console.log("Other user ID found:", otherUserId);
-                        // Re-setup listener if otherUserId changes (e.g., new user joins)
+                    const newOtherUserId = onlineUserIds.find(id => id !== currentUserId);
+
+                    if (newOtherUserId && newOtherUserId !== otherUserId) {
+                        console.log("Other user ID changed/found:", newOtherUserId);
+                        // Detach old listener if otherUserId changed
                         if (otherUserTypingRef) {
-                            off(otherUserTypingRef); // Detach old listener
+                            off(otherUserTypingRef);
+                            console.log("Detached old typing listener.");
                         }
+                        otherUserId = newOtherUserId;
                         setupTypingIndicator(otherUserId);
-                    } else {
+                    } else if (!newOtherUserId && otherUserId) {
+                        // Other user left
+                        console.log("Other user left.");
                         if (otherUserTypingRef) {
-                            off(otherUserTypingRef); // Detach listener if less/more than 2 users
+                            off(otherUserTypingRef);
+                            console.log("Detached typing listener for removed user.");
                         }
                         otherUserId = null;
-                        typingIndicator.classList.add('hidden'); // Hide indicator if not 2 users
+                        typingIndicator.classList.add('hidden'); // Hide indicator if no other user
+                    } else if (!newOtherUserId && !otherUserId) {
+                        // Still no other user
+                        typingIndicator.classList.add('hidden');
                     }
                 } else {
+                    // No online users at all
                     if (otherUserTypingRef) {
                         off(otherUserTypingRef);
+                        console.log("Detached typing listener as no users online.");
                     }
                     otherUserId = null;
                     typingIndicator.classList.add('hidden');
@@ -372,15 +384,22 @@
 
         // Update own typing status in Firebase
         async function updateTypingStatus(isTyping) {
+            console.log(`Setting typing status to: ${isTyping}`);
             if (!typingRef) { // Ensure typingRef is initialized
                 typingRef = ref(db, `rooms/${currentRoomCode}/presence/${currentUserId}/isTyping`);
             }
-            await set(typingRef, isTyping);
+            try {
+                await set(typingRef, isTyping);
+                console.log(`Typing status successfully set to ${isTyping} in Firebase.`);
+            } catch (error) {
+                console.error("Error setting typing status:", error);
+            }
         }
 
         // Setup typing indicator for OTHER user
         function setupTypingIndicator(idOfOtherUser) {
             if (!idOfOtherUser) {
+                console.log("No other user ID provided for typing indicator setup.");
                 typingIndicator.classList.add('hidden');
                 return;
             }
@@ -388,8 +407,12 @@
             otherUserTypingRef = ref(db, `rooms/${currentRoomCode}/presence/${idOfOtherUser}/isTyping`);
             const otherUsernameRef = ref(db, `rooms/${currentRoomCode}/presence/${idOfOtherUser}/username`);
 
+            console.log(`Listening for typing status of other user: ${idOfOtherUser}`);
+
             onValue(otherUserTypingRef, (snapshot) => {
                 const isOtherUserTyping = snapshot.val();
+                console.log(`Other user typing status changed: ${isOtherUserTyping}`);
+
                 if (isOtherUserTyping) {
                     // Fetch other user's username to display
                     onValue(otherUsernameRef, (nameSnapshot) => {
@@ -397,10 +420,12 @@
                         if (otherUserName) {
                             typingUsernameSpan.textContent = otherUserName;
                             typingIndicator.classList.remove('hidden');
+                            console.log(`Typing indicator shown for: ${otherUserName}`);
                         }
                     }, { onlyOnce: true }); // Only fetch username once per typing session
                 } else {
                     typingIndicator.classList.add('hidden');
+                    console.log("Typing indicator hidden.");
                 }
             });
         }
