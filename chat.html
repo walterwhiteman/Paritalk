@@ -47,11 +47,13 @@
 
             <!-- Message Input Area -->
             <footer class="message-input-area-premium">
-                <input type="text" id="message-input" placeholder="Type a message..." autocomplete="off">
+                <!-- File attachment button - MOVED TO LEFT -->
                 <input type="file" id="image-upload" accept="image/*,video/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation" class="hidden">
                 <label for="image-upload" title="Attach File" class="attach-file-button">
                     <span class="material-symbols-outlined">attach_file</span>
                 </label>
+                
+                <input type="text" id="message-input" placeholder="Type a message..." autocomplete="off">
                 <button id="send-button" class="send-message-button">
                     <span class="material-symbols-outlined">send</span>
                 </button>
@@ -103,6 +105,8 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
         import { getDatabase, ref, push, onChildAdded, onValue, set, remove, onDisconnect, serverTimestamp, runTransaction, child } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+        import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js"; // Added Storage
+
 
         // Supabase Client SDK Import
         import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
@@ -123,12 +127,14 @@
         let app;
         let auth;
         let db;
+        let storage; // Declare storage
 
         try {
             if (firebaseConfig && firebaseConfig.apiKey && firebaseConfig.projectId && firebaseConfig.databaseURL) {
                 app = initializeApp(firebaseConfig);
                 auth = getAuth(app);
                 db = getDatabase(app);
+                storage = getStorage(app); // Initialize storage
                 console.log("Firebase initialized successfully in chat.html.");
             } else {
                 console.error("Firebase configuration is missing or empty in chat.html.");
@@ -278,9 +284,6 @@
 
         // This function acts as the equivalent of initializeJitsiService from a separate module
         function initializeJitsiInChat() {
-            // No direct initialization needed here as JitsiMeetExternalAPI is global
-            // and the options are passed directly to startVideoCall.
-            // This function exists mainly for conceptual clarity and to match the old external module's signature.
             currentJitsiRoomName = `Paritalk_${currentRoomCode}`;
             
             // Attach click listener for our custom hangup button
@@ -389,7 +392,6 @@
             if (message.type === 'text') {
                 contentHTML += `<p class="message-content-premium">${message.text}</p>`;
             } else if (message.type === 'image') {
-                // Initial condensed display for images
                 contentHTML += `
                     <div class="message-image-preview">
                         <img src="${message.imageUrl}" alt="Shared Image Preview" class="message-image-premium-thumb" onerror="this.onerror=null;this.src='https://placehold.co/100x70/eeeeee/aaaaaa?text=Image';">
@@ -430,13 +432,18 @@
                 if (mediaPreview) {
                     mediaPreview.style.cursor = 'pointer'; // Indicate clickability
                     mediaPreview.addEventListener('click', () => {
-                        showFullMediaModal(message.type, message.imageUrl || message.fileUrl, message.fileName);
+                        // Check if it's an image or a link to a file viewer
+                        if (message.type === 'image') {
+                            showFullMediaModal(message.type, message.imageUrl, message.fileName);
+                        } else { // It's a file, potentially video
+                            showFullMediaModal(message.type, message.fileUrl, message.fileName);
+                        }
                     });
                 }
             }
         }
 
-        // --- Full Media View Modal Logic ---
+        // --- Full Media View Modal Logic (Dynamically created and appended) ---
         const fullMediaModal = document.createElement('div');
         fullMediaModal.id = 'full-media-modal';
         fullMediaModal.classList.add('full-media-modal-premium', 'hidden');
@@ -455,26 +462,41 @@
                 </div>
             </div>
         `;
-        document.body.appendChild(fullMediaModal); // Append to body, outside #app-container
+        // Append to body only after document is loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            document.body.appendChild(fullMediaModal);
+        });
 
         const fullMediaDisplayArea = fullMediaModal.querySelector('.full-media-display-area');
         const fullMediaCloseButton = fullMediaModal.querySelector('.full-media-close-button');
         const fullMediaDownloadLink = fullMediaModal.querySelector('#full-media-download-link');
 
-        fullMediaCloseButton.addEventListener('click', () => {
-            fullMediaModal.classList.add('hidden');
-            fullMediaDisplayArea.innerHTML = ''; // Clear content
-        });
+        if (fullMediaCloseButton) { // Ensure button exists before attaching listener
+            fullMediaCloseButton.addEventListener('click', () => {
+                fullMediaModal.classList.add('hidden');
+                fullMediaDisplayArea.innerHTML = ''; // Clear content
+            });
+        }
+
 
         function showFullMediaModal(type, url, fileName) {
             fullMediaDisplayArea.innerHTML = ''; // Clear previous content
             fullMediaDownloadLink.href = url;
             fullMediaDownloadLink.download = fileName || 'download'; // Ensure filename for download
 
+            // Remove any existing video elements to prevent multiple players
+            const existingVideo = fullMediaDisplayArea.querySelector('video');
+            if (existingVideo) {
+                existingVideo.pause();
+                existingVideo.removeAttribute('src'); // Empty source
+                existingVideo.load();
+                fullMediaDisplayArea.removeChild(existingVideo);
+            }
+
             if (type === 'image') {
                 const img = document.createElement('img');
                 img.src = url;
-                img.alt = "Full size image";
+                img.alt = fileName || "Full size image";
                 img.classList.add('full-media-image');
                 fullMediaDisplayArea.appendChild(img);
             } else if (type === 'file') {
@@ -594,8 +616,8 @@
                 }
 
                 // Send chat message with file/image URL
-                if (fileType.startsWith('image/')) {
-                    await sendMessage('', 'image', publicUrlData.publicUrl, null, file.name);
+                if (fileType.startsWith('image/') || fileType.startsWith('video/')) { // Include video type check here
+                    await sendMessage('', fileType.startsWith('image/') ? 'image' : 'file', publicUrlData.publicUrl, null, file.name);
                 } else {
                     await sendMessage('', 'file', null, publicUrlData.publicUrl, file.name);
                 }
@@ -638,6 +660,7 @@
 
                     // Send "joined" message only if not already sent for this session
                     if (!localStorage.getItem('paritalk_joined_message_sent_for_' + currentRoomCode + currentUsername)) {
+                        console.log("Sending 'joined' message..."); // Debugging
                         sendMessage(`**${currentUsername}** joined the chat.`, 'system');
                         localStorage.setItem('paritalk_joined_message_sent_for_' + currentRoomCode + currentUsername, 'true');
                     }
@@ -694,7 +717,7 @@
                 const currentJitsiApi = getJitsiApi();
                 if (currentJitsiApi) {
                     const jitsiParticipantsCount = currentJitsiApi.getNumberOfParticipants ? currentJitsiApi.getNumberOfParticipants() : 0;
-                    const firebaseOtherUsersCount = users.filter(u => u !== currentUserId).length;
+                    const firebaseOtherUsersCount = users.filter(u => u !== currentUsername).length;
 
                     if (firebaseOtherUsersCount === 0 && jitsiParticipantsCount <= 1 && users.includes(currentUserId)) {
                         console.log("Other user left room (Firebase) and Jitsi, ending call.");
@@ -710,7 +733,6 @@
             });
         }
 
-        // FIX: Ensure remove(presenceRef) is explicitly called and awaited
         async function handleLeaveRoom() {
             const confirmed = await showModal('Are you sure you want to leave the chat?', true);
             if (confirmed) {
@@ -721,8 +743,6 @@
                 if (presenceRef) {
                     console.log("Leaving room: Explicitly removing user presence.");
                     await remove(presenceRef); // Explicitly remove user from presence
-                    // Note: sending "left" message might fail if user is already disconnected,
-                    // but it's a good effort for explicit leave.
                     sendMessage(`**${currentUsername}** left the chat.`, 'system');
                 }
                 // Clear localStorage for a clean exit
@@ -748,7 +768,7 @@
                 const typingUsers = [];
                 snapshot.forEach((childSnapshot) => {
                     if (childSnapshot.key !== currentUserId && childSnapshot.val() === true) {
-                        typingUsers.push(childSnapshot.val().username || 'Someone'); // Fallback to 'Someone'
+                        typingUsers.push(childSnapshot.val().username || 'Someone');
                     }
                 });
 
@@ -831,20 +851,16 @@
 
 
         // FIX: Ensure `remove(presenceRef)` is called for explicit unload/close.
-        // The `onDisconnect` set up earlier is the most reliable for unexpected closures.
         window.addEventListener('beforeunload', async (e) => {
             if (presenceRef) {
                 console.log("Beforeunload: Attempting to remove user presence explicitly.");
-                // Using `set(presenceRef, null)` is essentially a remove and is
-                // more robust in some `beforeunload` contexts than `remove()`.
-                // However, the `onDisconnect` is the true safeguard.
+                // Using `set(presenceRef, null)` is a robust way to remove data on disconnect.
+                // The `onDisconnect` set up earlier is the primary safeguard for unexpected closures.
                 await set(presenceRef, null); // Explicitly set null to remove presence
                 if (jitsiApi) {
                     jitsiApi.dispose(); // Dispose Jitsi API
                 }
             }
-            // Do not prevent default (e.g., e.preventDefault()) as it might block tab closure
-            // and the `onDisconnect` handles the server-side cleanup.
         });
 
         document.addEventListener('click', (event) => {
