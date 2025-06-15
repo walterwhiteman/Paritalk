@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jitsi Meet Test Call</title>
+    <!-- Tailwind CSS CDN for basic styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles for centering and full height */
+        html, body {
+            height: 100%;
+            margin: 0;
+            font-family: 'Inter', sans-serif; /* Recommended font */
+            background-color: #f0f4f8; /* Light background */
+        }
+        #app-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            padding: 1rem;
+            box-sizing: border-box;
+        }
+        #jitsi-wrapper {
+            width: 100%;
+            max-width: 900px; /* Max width for desktop view */
+            height: 60vh; /* Responsive height */
+            background-color: #fff;
+            border-radius: 12px; /* Rounded corners */
+            overflow: hidden; /* Ensures iframe respects border-radius */
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+            display: none; /* Hidden by default until call starts */
+            flex-grow: 1; /* Allows it to take available space */
+        }
+        #jitsi-iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+        #call-button-container {
+            margin-top: 1.5rem;
+            display: flex;
+            gap: 1rem;
+        }
+        button {
+            padding: 0.75rem 1.5rem;
+            border-radius: 9999px; /* Fully rounded buttons */
+            font-weight: 600;
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.2s ease-in-out, transform 0.1s ease-in-out;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        button:hover {
+            transform: translateY(-1px);
+        }
+        #start-call-button {
+            background-color: #4CAF50; /* Green */
+        }
+        #start-call-button:hover {
+            background-color: #45a049;
+        }
+        #end-call-button {
+            background-color: #f44336; /* Red */
+            display: none; /* Hidden until call starts */
+        }
+        #end-call-button:hover {
+            background-color: #da190b;
+        }
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            display: none; /* Hidden by default */
+        }
+        .modal-content {
+            background-color: #fff;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+        }
+        .modal-content button {
+            margin: 0.5rem;
+            padding: 0.6rem 1.2rem;
+            border-radius: 8px;
+            font-weight: 500;
+        }
+        .modal-content .confirm-button {
+            background-color: #4CAF50;
+        }
+        .modal-content .cancel-button {
+            background-color: #f44336;
+        }
+    </style>
+</head>
+<body>
+    <div id="app-container">
+        <h1 class="text-3xl font-bold text-gray-800 mb-6">Jitsi Meet Video Test</h1>
+
+        <div id="call-button-container">
+            <button id="start-call-button">Start Video Call</button>
+            <button id="end-call-button">End Call</button>
+        </div>
+
+        <div id="jitsi-wrapper" class="mt-8">
+            <iframe id="jitsi-iframe" allow="camera; microphone; display-capture; autoplay"></iframe>
+        </div>
+
+        <!-- Confirmation Modal -->
+        <div id="confirmation-modal" class="modal">
+            <div class="modal-content">
+                <p id="modal-message" class="mb-4 text-lg text-gray-700"></p>
+                <button id="modal-confirm" class="confirm-button">OK</button>
+                <button id="modal-cancel" class="cancel-button">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Jitsi Meet External API script is loaded in the <head>
+
+        const startCallButton = document.getElementById('start-call-button');
+        const endCallButton = document.getElementById('end-call-button');
+        const jitsiWrapper = document.getElementById('jitsi-wrapper');
+        const jitsiIframe = document.getElementById('jitsi-iframe');
+
+        const confirmationModal = document.getElementById('confirmation-modal');
+        const modalMessage = document.getElementById('modal-message');
+        const modalConfirm = document.getElementById('modal-confirm');
+        const modalCancel = document.getElementById('modal-cancel');
+        let resolveModalPromise;
+
+        let jitsiApi = null; // Variable to hold the JitsiMeetExternalAPI instance
+
+        // Simple modal function for alerts/confirmations
+        function showModal(message, isConfirm = false) {
+            modalMessage.textContent = message;
+            modalConfirm.style.display = isConfirm ? 'inline-block' : 'none'; // Only show OK for simple messages
+            modalCancel.style.display = isConfirm ? 'inline-block' : 'none'; // Only show Cancel for confirmations
+
+            // Set button text for simple alerts
+            if (!isConfirm) {
+                modalConfirm.textContent = 'OK';
+                modalConfirm.style.display = 'inline-block';
+            } else {
+                modalConfirm.textContent = 'Yes';
+                modalCancel.textContent = 'No';
+            }
+
+            confirmationModal.style.display = 'flex'; // Show the modal
+            return new Promise(resolve => {
+                resolveModalPromise = resolve;
+            });
+        }
+
+        function hideModal() {
+            confirmationModal.style.display = 'none';
+        }
+
+        modalConfirm.addEventListener('click', () => {
+            if (resolveModalPromise) resolveModalPromise(true);
+            hideModal();
+        });
+        modalCancel.addEventListener('click', () => {
+            if (resolveModalPromise) resolveModalPromise(false);
+            hideModal();
+        });
+
+        // Function to start the Jitsi video call
+        function startVideoCall() {
+            // Check if JitsiMeetExternalAPI is available
+            if (typeof JitsiMeetExternalAPI === 'undefined') {
+                showModal("Jitsi Meet API is not loaded. Please ensure you have an internet connection and try again.", false);
+                console.error("JitsiMeetExternalAPI is not defined. Jitsi script might not have loaded correctly.");
+                return;
+            }
+
+            if (jitsiApi) {
+                console.log("Jitsi call already active.");
+                showModal("A call is already active.", false);
+                return;
+            }
+
+            // Define a unique room name for testing.
+            // In a real app, this would come from your chat room code.
+            const roomName = `ParitalkTestRoom_${Math.random().toString(36).substring(7)}`; // Unique room for testing
+            const userName = `Tester_${Math.random().toString(36).substring(5)}`; // Random username for testing
+
+            const domain = 'meet.jit.si'; // Using the public Jitsi Meet instance
+
+            const options = {
+                roomName: roomName,
+                width: '100%',
+                height: '100%',
+                parentNode: jitsiIframe.parentNode, // This places the iframe inside jitsi-wrapper
+                userInfo: {
+                    displayName: userName
+                },
+                configOverwrite: {
+                    startWithAudioMuted: false,
+                    startWithVideoMuted: false,
+                    enableWelcomePage: false,
+                    prejoinPageEnabled: false,
+                    toolbarButtons: [ // Customize toolbar buttons
+                        'microphone', 'camera', 'desktop', 'fullscreen', 'fodeviceselection',
+                        'hangup', 'profile', 'chat', 'raisehand', 'tileview',
+                        'mute-everyone', 'security', 'settings', 'shortcuts', 'subject', 'toggle-camera'
+                    ],
+                    e2ee: {
+                        enabled: true // Enable End-to-End Encryption
+                    }
+                },
+                interfaceConfigOverwrite: {
+                    SHOW_JITSI_WATERMARK: false,
+                    SHOW_WATERMARK_FOR_GUESTS: false,
+                    SHOW_BRAND_WATERMARK: false,
+                    TILE_VIEW_MAX_COLUMNS: 2 // Example: limit tile view columns
+                }
+            };
+
+            try {
+                jitsiApi = new JitsiMeetExternalAPI(domain, options);
+                console.log("Jitsi API initialized for room:", roomName, "by user:", userName);
+                console.log("E2EE is enabled in Jitsi config.");
+
+                // Show the Jitsi iframe and hide the start button
+                jitsiWrapper.style.display = 'flex';
+                startCallButton.style.display = 'none';
+                endCallButton.style.display = 'inline-block';
+
+                // Add event listeners for Jitsi API events
+                jitsiApi.addEventListener('participantLeft', (participant) => {
+                    console.log('Jitsi Participant Left:', participant);
+                    // You could add logic here to end the call if all other participants leave
+                });
+
+                jitsiApi.addEventListener('readyToClose', () => {
+                    console.log('Jitsi API ready to close event fired. Ending call.');
+                    endVideoCall();
+                });
+
+            } catch (error) {
+                console.error("Error initializing Jitsi Meet API:", error);
+                showModal(`Failed to start video call: ${error.message}. Please check console for details.`, false);
+                endVideoCall(); // Clean up if initialization failed
+            }
+        }
+
+        // Function to end the Jitsi video call
+        function endVideoCall() {
+            if (jitsiApi) {
+                try {
+                    jitsiApi.dispose(); // This closes the Jitsi meeting in the iframe
+                    jitsiApi = null;
+                    console.log("Jitsi API disposed.");
+                } catch (error) {
+                    console.error("Error disposing Jitsi API:", error);
+                }
+            }
+            // Hide the Jitsi iframe and show the start button again
+            jitsiWrapper.style.display = 'none';
+            startCallButton.style.display = 'inline-block';
+            endCallButton.style.display = 'none';
+        }
+
+        // Attach event listeners to buttons
+        startCallButton.addEventListener('click', startVideoCall);
+        endCallButton.addEventListener('click', endVideoCall);
+
+        // Ensure cleanup if the browser tab is closed
+        window.addEventListener('beforeunload', () => {
+            if (jitsiApi) {
+                jitsiApi.dispose();
+            }
+        });
+    </script>
+</body>
+</html>
