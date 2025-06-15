@@ -59,7 +59,7 @@ body {
     box-shadow: none; /* No shadow on small screens for full coverage */
     max-width: 100%; /* Take full width on mobile */
     height: 100vh;
-    overflow: hidden; /* Important for fixed header/footer to work correctly */
+    overflow: hidden;
     position: relative; /* For overlays like Jitsi/modals */
     flex-direction: column; /* Default flex direction for chat content */
 }
@@ -343,6 +343,7 @@ body {
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
     position: fixed; /* Changed from sticky to fixed */
     top: 0;
+    left: 0; /* Ensure it sticks to the left edge */
     width: 100%;
     z-index: 10;
     border-bottom: 1px solid var(--color-light-gray);
@@ -472,8 +473,9 @@ body {
     flex-grow: 1;
     overflow-y: auto;
     padding: 0.8rem; /* Adjusted for mobile */
-    padding-top: 4.5rem; /* Space for fixed header - calculated based on header height */
-    padding-bottom: 4.5rem; /* Space for fixed footer - calculated based on footer height */
+    /* Updated padding-top/bottom to account for fixed header/footer height */
+    padding-top: calc(4.5rem + 0.7rem); /* Header height + some extra */
+    padding-bottom: calc(4.5rem + 0.6rem); /* Footer height + some extra */
     display: flex;
     flex-direction: column;
     gap: 0.4rem; /* Adjusted for tighter gap between bubbles */
@@ -483,8 +485,8 @@ body {
 @media (min-width: 600px) {
     .messages-container-premium {
         padding: 1em;
-        padding-top: 5em; /* Adjusted for desktop header height */
-        padding-bottom: 5em; /* Adjusted for desktop footer height */
+        padding-top: calc(5em + 0.8rem); /* Adjusted for desktop header height */
+        padding-bottom: calc(5em + 0.75rem); /* Adjusted for desktop footer height */
         gap: 0.5rem; /* Adjusted for tighter gap */
     }
 }
@@ -737,6 +739,7 @@ body {
     box-shadow: 0 -1px 4px rgba(0, 0, 0, 0.08);
     position: fixed; /* Changed from sticky to fixed */
     bottom: 0;
+    left: 0; /* Ensure it sticks to the left edge */
     width: 100%;
     z-index: 10;
 }
@@ -849,14 +852,14 @@ body {
 
 /* --- Jitsi Video Call UI (responsive) --- */
 .jitsi-container-premium {
-    position: absolute;
+    position: fixed; /* Changed to fixed for full viewport coverage */
     top: 0;
     left: 0;
-    width: 100%;
-    height: 100%;
+    width: 100vw; /* Full viewport width */
+    height: 100vh; /* Full viewport height */
     background-color: #000000;
     z-index: 100;
-    display: none;
+    display: none; /* Keep hidden by default, JS will change to flex */
     flex-direction: column;
 }
 
@@ -945,7 +948,7 @@ body {
     height: 100vh; /* Full viewport height */
     background-color: rgba(0, 0, 0, 0.85); /* Darker opaque overlay */
     z-index: 200; /* Above all other content, even Jitsi */
-    display: flex; /* Changed from none to flex for initial layout, JS will add/remove 'hidden' */
+    display: none; /* Keep hidden by default, JS will change to flex */
     flex-direction: column;
     justify-content: center;
     align-items: center;
@@ -1064,12 +1067,13 @@ body {
 
 /* --- Confirmation Modal (responsive) --- */
 .modal-premium {
+    /* Changed display to none by default, JS will set to flex */
     display: none;
-    position: absolute;
+    position: fixed; /* Changed to fixed for full viewport overlay */
     top: 0;
     left: 0;
-    width: 100%;
-    height: 100%;
+    width: 100vw; /* Full viewport width */
+    height: 100vh; /* Full viewport height */
     background-color: rgba(0, 0, 0, 0.6);
     z-index: 150;
     justify-content: center;
