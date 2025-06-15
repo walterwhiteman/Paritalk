@@ -86,16 +86,18 @@
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
         import { getDatabase, ref, push, onValue, set, serverTimestamp, remove, onDisconnect, query, limitToLast, orderByChild, off } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
         import { getStorage, ref as storageRef, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+
 
         // Your web app's Firebase configuration
         const firebaseConfig = {
-            apiKey: "YOUR_API_KEY", // Replace with your actual API Key
-            authDomain: "YOUR_AUTH_DOMAIN",
-            projectId: "YOUR_PROJECT_ID",
-            storageBucket: "YOUR_STORAGE_BUCKET",
-            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-            appId: "YOUR_APP_ID",
-            measurementId: "YOUR_MEASUREMENT_ID"
+            apiKey: "AIzaSyA8Yj1Z1Mpv2lyt9SRxJ_w4U04BXt8hajk", // Your Firebase API Key
+            authDomain: "paritalk.firebaseapp.com",
+            projectId: "paritalk",
+            storageBucket: "paritalk.firebasestorage.app",
+            messagingSenderId: "441945619664",
+            appId: "1:441945619664:web:045e0c872e67e0eb9fb2d5"
+            // measurementId: "YOUR_MEASUREMENT_ID" // If you have one
         };
 
         // Initialize Firebase
@@ -103,6 +105,13 @@
         const auth = getAuth(app);
         const db = getDatabase(app);
         const storage = getStorage(app);
+
+        // Supabase Configuration
+        const SUPABASE_URL = 'https://uokpkgybjzvpngoxasnm.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVva3BrZ3lianp2cG5nb3hhc25tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk5MjE4NTcsImV4cCI6MjA2NTQ5Nzg1N30.FNv_13S3oj7fjartmY2PzKL25T3AWbMxP2KRI0rFU2E';
+
+        const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
 
         // Jitsi Meet API (will be loaded dynamically)
         let jitsiApi = null;
@@ -216,7 +225,7 @@
                                 <a href="${message.file.url}" target="_blank" rel="noopener noreferrer" class="file-name-link">${message.file.name}</a>
                                 <a href="${message.file.url}" download="${message.file.name}" class="download-icon">
                                     <span class="material-symbols-outlined">download</span>
-                                </a>
+                                </span>
                             </div>
                         `;
                     }
@@ -357,36 +366,35 @@
 
         // --- File Upload & Media Display ---
 
-        // Upload File to Storage
+        // Upload File to Supabase Storage
         async function uploadFile(file) {
-            const fileStorageRef = storageRef(storage, `room_files/${currentRoomCode}/${Date.now()}_${file.name}`);
-            const uploadTask = uploadBytesResumable(fileStorageRef, file);
+            const filePath = `files/${currentRoomCode}/${Date.now()}_${file.name}`;
+            const { data, error } = await supabase.storage
+                .from('paritalk-files') // Make sure 'paritalk-files' is the name of your bucket in Supabase
+                .upload(filePath, file, {
+                    cacheControl: '3600',
+                    upsert: false
+                });
 
-            return new Promise((resolve, reject) => {
-                uploadTask.on('state_changed',
-                    (snapshot) => {
-                        // Optional: Get task progress, including the number of bytes uploaded and the total number of bytes to be uploaded
-                        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                        console.log('Upload is ' + progress + '% done');
-                        // You could show a progress bar here
-                    },
-                    (error) => {
-                        console.error("File upload failed:", error);
-                        reject(error);
-                    },
-                    () => {
-                        // Upload completed successfully, now get the download URL
-                        getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
-                            resolve({
-                                name: file.name,
-                                url: downloadURL,
-                                type: file.type,
-                                size: file.size
-                            });
-                        }).catch(reject);
-                    }
-                );
-            });
+            if (error) {
+                console.error("Supabase file upload failed:", error);
+                throw error;
+            }
+
+            const { data: publicUrlData } = supabase.storage
+                .from('paritalk-files')
+                .getPublicUrl(filePath);
+
+            if (publicUrlData && publicUrlData.publicUrl) {
+                return {
+                    name: file.name,
+                    url: publicUrlData.publicUrl,
+                    type: file.type,
+                    size: file.size
+                };
+            } else {
+                throw new Error("Failed to get public URL for uploaded file.");
+            }
         }
 
         // Show Full Media Modal
@@ -716,7 +724,7 @@
             console.log("Local storage cleared.");
             window.location.href = 'index.html'; // Redirect to login
             console.log("Redirecting to index.html...");
-        } // THIS IS THE ONLY CLOSING BRACE FOR handleLeaveRoom
+        }
 
 
         // Cleanup on page reload/close (must be inside script tag)
