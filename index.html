@@ -18,14 +18,16 @@
             <h1 class="text-4xl font-bold mb-8 text-blue-600">Paritalk</h1>
             <p class="text-lg text-center mb-6">Connect privately with your loved one.</p>
             <div class="login-box bg-white p-8 rounded-xl shadow-lg w-full max-w-sm">
+                <!-- Room Code Input - Now placed first -->
                 <div class="mb-5">
-                    <label for="username-input" class="block text-gray-700 text-sm font-medium mb-2">Your Name</label>
-                    <input type="text" id="username-input" placeholder="Enter your username"
-                           class="shadow-sm appearance-none border rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition duration-200" required>
-                </div>
-                <div class="mb-6">
                     <label for="roomcode-input" class="block text-gray-700 text-sm font-medium mb-2">Room Code</label>
                     <input type="text" id="roomcode-input" placeholder="Enter room code"
+                           class="shadow-sm appearance-none border rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition duration-200" required>
+                </div>
+                <!-- Username Input - Now placed second -->
+                <div class="mb-6">
+                    <label for="username-input" class="block text-gray-700 text-sm font-medium mb-2">Your Name</label>
+                    <input type="text" id="username-input" placeholder="Enter your username"
                            class="shadow-sm appearance-none border rounded-lg w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition duration-200" required>
                 </div>
                 <button id="join-chat-button"
@@ -43,294 +45,121 @@
     <!-- Main Login Logic (Module) -->
     <script type="module">
         import { initializeFirebase, auth, db, get, ref, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from './js/firebase_service.js';
-        import { createSupabaseClient } => {
-            const file = event.target.files[0];
-            if (!file) return;
+        import { createSupabaseClient } from './js/supabase_service.js'; // Corrected import syntax
 
-            if (!supabase) {
-                alert('Supabase is not configured. File uploads are disabled.'); // TODO: Replace with custom modal
+        // --- Firebase Configuration (YOUR ACTUAL CONFIG) ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyA8Yj1Z1Mpv2lyt9SRxJ_w4U04BXt8hajk",
+            authDomain: "paritalk.firebaseapp.com",
+            databaseURL: "https://paritalk-default-rtdb.firebaseio.com",
+            projectId: "paritalk",
+            storageBucket: "paritalk.firebasestorage.app",
+            messagingSenderId: "441945619664",
+            appId: "1:441945619664:web:045e0c872e67e0eb9fb2d5"
+        };
+        const initialAuthToken = null; // Used by Canvas; keep null for GitHub Pages
+
+        // Initialize Firebase services
+        try {
+            initializeFirebase(firebaseConfig);
+            console.log("Firebase initialized successfully in index.html via module.");
+        } catch (error) {
+            console.error("Error initializing Firebase services in index.html:", error.message);
+            displayLoginError(`App config error: ${error.message}.`);
+        }
+
+        // Supabase Configuration (Using your confirmed URL and provided Anon Key)
+        const SUPABASE_URL = 'https://uokpkgybjzvpngoxasnm.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVva3BrZ3lianp2cG5nb3hhc25tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk5MjE4NTcsImV4cCI6MjA2NTQ5Nzg1N30.FNv_13S3oj7fjartmY2PzKL25T3AWbMxP2KRI0rFU2E';
+
+        let supabaseClient;
+        try {
+            supabaseClient = createSupabaseClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            console.log("Supabase client initialized successfully in index.html via module.");
+        } catch (error) {
+            console.error('Failed to initialize Supabase in index.html:', error);
+        }
+
+        // UI Elements
+        const usernameInput = document.getElementById('username-input');
+        const roomcodeInput = document.getElementById('roomcode-input');
+        const joinChatButton = document.getElementById('join-chat-button');
+        const loginError = document.getElementById('login-error');
+
+        function displayLoginError(message) {
+            loginError.textContent = message;
+            loginError.classList.remove('hidden');
+        }
+
+        let currentUserId = null;
+
+        // Firebase Auth listener for anonymous sign-in
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                currentUserId = user.uid;
+                console.log("Authenticated with Firebase. User ID:", currentUserId);
+            } else {
+                try {
+                    if (initialAuthToken) {
+                        await signInWithCustomToken(auth, initialAuthToken);
+                        console.log("Signed in with custom token.");
+                    } else {
+                        await signInAnonymously(auth);
+                        console.log("Signed in anonymously.");
+                    }
+                } catch (error) {
+                    console.error("Error signing in anonymously:", error.message);
+                    displayLoginError(`Authentication error: ${error.message}. Please try again.`);
+                }
+            }
+        });
+
+        // Join Chat Logic
+        joinChatButton.addEventListener('click', async () => {
+            if (!auth || !auth.currentUser || !currentUserId) {
+                displayLoginError("App is not fully loaded. Please wait a moment for authentication to complete.");
                 return;
             }
 
-            const fileName = `${currentRoomCode}/${currentUserId}/${Date.now()}_${file.name}`;
-            const fileType = file.type;
+            const username = usernameInput.value.trim();
+            const roomCode = roomcodeInput.value.trim();
+
+            if (!username || !roomCode) {
+                displayLoginError('Please enter both your name and room code.');
+                return;
+            }
+
+            const roomPresenceRef = ref(db, `rooms/${roomCode}/presence`);
 
             try {
-                // Show a temporary message indicating upload
-                addMessageToChat({
-                    sender: 'System',
-                    text: `Uploading "${file.name}"...`,
-                    type: 'system',
-                    timestamp: Date.now()
-                }, null);
-
-                const { data, error } = await supabase.storage
-                    .from('parichat-files') // You might need to create this bucket in Supabase
-                    .upload(fileName, file, {
-                        cacheControl: '3600',
-                        upsert: false
+                const snapshot = await get(roomPresenceRef);
+                let usersInRoomCount = 0;
+                let currentUsers = {};
+                if (snapshot.exists()) {
+                    snapshot.forEach((childSnapshot) => {
+                        usersInRoomCount++;
+                        currentUsers[childSnapshot.key] = childSnapshot.val().username;
                     });
-
-                if (error) {
-                    throw error;
                 }
 
-                // Get public URL
-                const { data: publicUrlData } = supabase.storage
-                    .from('parichat-files')
-                    .getPublicUrl(fileName);
+                const isCurrentUserAlreadyInRoom = currentUserId && currentUsers[currentUserId] === username;
 
-                if (!publicUrlData || !publicUrlData.publicUrl) {
-                    throw new Error('Failed to get public URL for the uploaded file.');
+                if (usersInRoomCount >= 2 && !isCurrentUserAlreadyInRoom) {
+                    displayLoginError('This room is currently full. Please try a different room code.');
+                    return;
                 }
 
-                if (fileType.startsWith('image/')) {
-                    await sendMessage('', 'image', publicUrlData.publicUrl, null, file.name);
-                } else {
-                    await sendMessage('', 'file', null, publicUrlData.publicUrl, file.name);
-                }
+                // Redirect to chat.html with URL parameters
+                window.location.href = `chat.html?room=${encodeURIComponent(roomCode)}&user=${encodeURIComponent(username)}`;
 
-                // Consider removing the "uploading" system message here or replacing it with success/failure
             } catch (error) {
-                console.error("Error uploading file:", error);
-                addMessageToChat({
-                    sender: 'System',
-                    text: `Failed to upload "${file.name}": ${error.message}`,
-                    type: 'system',
-                    timestamp: Date.now()
-                }, null);
-            } finally {
-                imageUploadInput.value = ''; // Clear the input so same file can be re-selected
-            }
-        }
-
-
-        // --- Presence and Room Limit Logic ---
-        function listenForPresence() {
-            const roomPresenceRef = ref(db, `rooms/${currentRoomCode}/presence`);
-            onValue(roomPresenceRef, (snapshot) => {
-                const users = [];
-                snapshot.forEach((childSnapshot) => {
-                    const userData = childSnapshot.val();
-                    // Include all users in the count for the display
-                    if (userData.username) {
-                        users.push(userData.username);
-                    }
-                });
-
-                onlineUsersCountDisplay.textContent = `Online: ${users.length}`; // Update display
-
-                // Check if the other user has left during a Jitsi call
-                if (jitsiApi) {
-                    // Jitsi API getParticipantsInfo returns current participants in Jitsi meeting
-                    const jitsiParticipantsCount = jitsiApi.getParticipantsInfo().length;
-                    // Firebase users count (excluding self, to detect if OTHER person left)
-                    const firebaseOtherUsersCount = users.filter(u => u !== currentUsername).length;
-
-                    // If we're in a Jitsi call and Firebase shows no other users in the room,
-                    // and Jitsi also only has one participant (us), then the other person left.
-                    if (firebaseOtherUsersCount === 0 && jitsiParticipantsCount <= 1) {
-                        console.log("Other user left room (Firebase) and Jitsi, ending call.");
-                        endVideoCall();
-                        addMessageToChat({
-                            sender: 'System',
-                            text: 'The other user has left the room, ending the video call.',
-                            type: 'system',
-                            timestamp: Date.now()
-                        }, null);
-                    }
-                }
-            });
-        }
-
-
-        // --- Leave Room Logic ---
-        async function handleLeaveRoom() {
-            const confirmed = await showModal('Are you sure you want to leave the chat?');
-            if (confirmed) {
-                if (jitsiApi) {
-                    endVideoCall(); // End Jitsi call if active
-                }
-                if (presenceRef) {
-                    await set(presenceRef, null); // Explicitly remove user from presence
-                    sendMessage(`**${currentUsername}** left the chat.`, 'system'); // Send "left" message
-                }
-                // Clear localStorage for a clean exit
-                localStorage.removeItem('paritalk_username');
-                localStorage.removeItem('paritalk_roomcode');
-                localStorage.removeItem('paritalk_has_joined_session'); // Clear session marker
-
-                // Redirect to login page
-                window.location.href = 'login.html';
-            }
-            hideModal();
-        }
-
-        // --- Typing Indicator Logic ---
-        function setTypingStatus(isTyping) {
-            if (typingRef) {
-                set(typingRef, isTyping);
-            }
-        }
-
-        function listenForTyping() {
-            const allTypingRef = ref(db, `rooms/${currentRoomCode}/typing`);
-            onValue(allTypingRef, (snapshot) => {
-                const typingUsers = [];
-                snapshot.forEach((childSnapshot) => {
-                    // Check if it's not the current user and their status is true
-                    if (childSnapshot.key !== currentUserId && childSnapshot.val() === true) {
-                        typingUsers.push(childSnapshot.key);
-                    }
-                });
-
-                if (typingUsers.length > 0) {
-                    typingIndicator.textContent = 'Typing...';
-                    typingIndicator.classList.remove('hidden');
-                } else {
-                    typingIndicator.classList.add('hidden');
-                }
-            });
-        }
-
-        // --- Jitsi Video Call Logic ---
-        function startVideoCall() {
-            if (jitsiApi) {
-                console.log("Jitsi call already active.");
-                return;
-            }
-
-            const domain = 'meet.jit.si';
-            const options = {
-                roomName: `Paritalk_${currentRoomCode}`, // Unique room name based on chat room
-                width: '100%',
-                height: '100%',
-                parentNode: jitsiIframe.parentNode, // Use the parent of iframe
-                userInfo: {
-                    displayName: currentUsername
-                },
-                configOverwrite: {
-                    startWithAudioMuted: false,
-                    startWithVideoMuted: false,
-                    enableWelcomePage: false,
-                    prejoinPageEnabled: false,
-                    toolbarButtons: ['microphone', 'camera', 'desktop', 'fullscreen', 'fodeviceselection', 'hangup', 'profile', 'chat', 'raisehand', 'tileview', 'mute-everyone', 'security', 'settings', 'shortcuts', 'subject', 'toggle-camera']
-                },
-                interfaceConfigOverwrite: {
-                    SHOW_JITSI_WATERMARK: false,
-                    SHOW_WATERMARK_FOR_GUESTS: false,
-                    SHOW_BRAND_WATERMARK: false,
-                    // You can customize more here if needed
-                }
-            };
-
-            jitsiApi = new JitsiMeetExternalAPI(domain, options);
-
-            // Show Jitsi container
-            jitsiContainer.style.display = 'flex';
-            // Hide chat elements that would be under the call
-            messagesContainer.classList.add('hidden');
-            document.getElementById('chat-header').classList.add('hidden'); // Use ID for header
-            document.getElementById('message-input-area').classList.add('hidden'); // Use ID for input area
-
-
-            // Jitsi API Event Listeners (optional, but good for robust handling)
-            jitsiApi.addEventListener('participantLeft', (participant) => {
-                console.log('Jitsi Participant Left:', participant);
-                // The Firebase presence listener will handle ending the call if the other user leaves the room
-                // so we primarily rely on that for overall room state.
-            });
-
-            jitsiApi.addEventListener('readyToClose', () => {
-                console.log('Jitsi API ready to close event fired.');
-                // This event fires when the Jitsi meeting is explicitly ended from within Jitsi UI
-                endVideoCall();
-            });
-
-            // Ensure our hangup button also ends the Jitsi call
-            hangupButton.onclick = endVideoCall;
-        }
-
-        function endVideoCall() {
-            if (jitsiApi) {
-                jitsiApi.dispose();
-                jitsiApi = null;
-            }
-            jitsiContainer.style.display = 'none';
-            // Show chat elements again
-            messagesContainer.classList.remove('hidden');
-            document.getElementById('chat-header').classList.remove('hidden');
-            document.getElementById('message-input-area').classList.remove('hidden');
-        }
-
-        // --- Event Listeners ---
-        messageInput.addEventListener('input', () => {
-            // Set typing status to true
-            setTypingStatus(true);
-            // Clear any existing timeout and set a new one
-            clearTimeout(typingTimeout);
-            typingTimeout = setTimeout(() => {
-                setTypingStatus(false);
-            }, 2000); // Set to false after 2 seconds of no typing
-        });
-
-        messageInput.addEventListener('blur', () => {
-            // If user clicks away from input, stop typing immediately
-            setTypingStatus(false);
-            clearTimeout(typingTimeout);
-        });
-
-        messageInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                const messageText = messageInput.value.trim();
-                if (messageText) {
-                    sendMessage(messageText, 'text');
-                }
+                console.error("Error checking room presence or joining:", error);
+                displayLoginError(`Failed to join room: ${error.message}. Please check your Firebase rules and internet connection.`);
             }
         });
 
-        sendButton.addEventListener('click', () => {
-            const messageText = messageInput.value.trim();
-            if (messageText) {
-                sendMessage(messageText, 'text');
-            }
-        });
-
-        imageUploadInput.addEventListener('change', handleFileUpload);
-        videoCallButton.addEventListener('click', startVideoCall);
-        leaveRoomButton.addEventListener('click', handleLeaveRoom);
-
-        // Modal event listeners
-        modalConfirm.addEventListener('click', () => {
-            if (resolveModalPromise) resolveModalPromise(true);
-            hideModal();
-        });
-        modalCancel.addEventListener('click', () => {
-            if (resolveModalPromise) resolveModalPromise(false);
-            hideModal();
-        });
-
-
-        // Handle browser window close/reload
-        window.addEventListener('beforeunload', async (e) => {
-            if (presenceRef) {
-                // Explicitly remove user from presence when window is closing
-                await set(presenceRef, null);
-                if (jitsiApi) {
-                    jitsiApi.dispose(); // Dispose Jitsi API
-                }
-                // Clearing localStorage here would prevent rejoining, so avoid it on 'beforeunload'
-                // The login.html will check localStorage on load.
-            }
-            // No e.preventDefault() to allow the browser to close without prompt
-        });
-
-        // Add a click listener to the entire document to hide the emoji picker when clicking outside
-        document.addEventListener('click', (event) => {
-            if (!emojiPicker.classList.contains('hidden') && !emojiPicker.contains(event.target) && !event.target.closest('.message-bubble')) {
-                hideEmojiPicker();
-            }
-        });
+        usernameInput.addEventListener('focus', () => loginError.classList.add('hidden'));
+        roomcodeInput.addEventListener('focus', () => loginError.classList.add('hidden'));
 
     </script>
 </body>
