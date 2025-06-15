@@ -65,13 +65,13 @@ body {
 /* Responsive adjustment for larger screens (e.g., tablets and desktops) */
 @media (min-width: 600px) {
     .login-page-container, .chat-app-container-premium {
-        height: 95vh; /* Slightly less than full height on desktop */
-        margin: 2.5vh auto; /* Center vertically */
+        height: 100vh; /* Change to 100vh for full height */
+        margin: 0; /* REMOVED: margin: 2.5vh auto; to go edge-to-edge */
     }
 
     .chat-app-container-premium {
-        border-radius: var(--border-radius-large); /* Rounded corners on larger screens */
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08); /* Subtle, diffused shadow */
+        border-radius: 0; /* Removed rounded corners on large screens for true edge-to-edge */
+        box-shadow: none; /* Removed shadow on large screens */
         /* REMOVED: max-width: 420px; to allow it to expand on desktop */
     }
 }
