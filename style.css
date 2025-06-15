@@ -473,7 +473,7 @@ body {
     padding-bottom: 4.5rem; /* Space for fixed footer */
     display: flex;
     flex-direction: column;
-    gap: 0.5rem; /* Tighter gap between bubbles */
+    gap: 0.4rem; /* Adjusted for tighter gap between bubbles */
     background-color: var(--color-off-white);
 }
 
@@ -482,7 +482,7 @@ body {
         padding: 1em;
         padding-top: 5em;
         padding-bottom: 5em;
-        gap: 0.6rem;
+        gap: 0.5rem; /* Adjusted for tighter gap */
     }
 }
 
@@ -506,14 +506,14 @@ body {
     max-width: 80%;
     word-wrap: break-word;
     border-radius: var(--border-radius-medium);
-    padding: 0.6rem 0.9rem; /* Adjusted for mobile */
+    padding: 0.5rem 0.8rem; /* Adjusted for smaller padding */
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
     position: relative;
 }
 
 @media (min-width: 600px) {
     .message-bubble-premium {
-        padding: 0.7rem 1em;
+        padding: 0.6rem 0.9em; /* Adjusted for smaller padding */
     }
 }
 
@@ -704,7 +704,7 @@ body {
     width: 100%;
     background-color: var(--color-off-white);
     z-index: 9;
-    display: none;
+    display: none; /* Keep this as 'none', JS will remove/add .hidden */
 }
 
 @media (min-width: 600px) {
