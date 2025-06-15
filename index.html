@@ -1,159 +1,489 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Paritalk - Login</title>
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Font Awesome CDN for icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <!-- Link to our custom styles.css -->
-    <link rel="stylesheet" href="styles.css">
-</head>
-<body>
-    <div id="app-container">
-        <!-- Login Screen -->
-        <div id="login-screen">
-            <h1 class="text-4xl font-bold mb-8 text-blue-600">Paritalk</h1>
-            <p class="text-lg text-center mb-6">Connect privately with your loved one.</p>
-            <div class="login-box">
-                <div class="mb-5">
-                    <label for="roomcode-input">Room Code</label>
-                    <input type="text" id="roomcode-input" placeholder="Enter room code" required>
-                </div>
-                <div class="mb-6">
-                    <label for="username-input">Your Name</label>
-                    <input type="text" id="username-input" placeholder="Enter your username" required>
-                    </div>
-                <button id="join-chat-button">Join Chat</button>
-                <p id="login-error" class="hidden"></p>
-            </div>
-            <p class="privacy-message">
-                🔒 Your conversations are private and secure. Share the room code only with someone special.
-            </p>
-        </div>
-    </div>
+/* styles.css */
 
-    <!-- Main Login Logic (Module) -->
-    <script type="module">
-        import { initializeFirebase, auth, db, get, ref, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from './js/firebase_service.js';
-        import { createSupabaseClient } from './js/supabase_service.js';
+/* Import Roboto font from Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
 
-        // --- Firebase Configuration (YOUR ACTUAL CONFIG) ---
-        const firebaseConfig = {
-            apiKey: "AIzaSyA8Yj1Z1Mpv2lyt9SRxJ_w4U04BXt8hajk",
-            authDomain: "paritalk.firebaseapp.com",
-            databaseURL: "https://paritalk-default-rtdb.firebaseio.com",
-            projectId: "paritalk",
-            storageBucket: "paritalk.firebasestorage.app",
-            messagingSenderId: "441945619664",
-            appId: "1:441945619664:web:045e0c872e67e0eb9fb2d5"
-        };
-        const initialAuthToken = null; // Used by Canvas; keep null for GitHub Pages
+/* General Body and App Container Styles */
+body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh; /* Full viewport height */
+    background-color: #e0f2fe; /* Lightest blue background */
+    font-family: 'Roboto', sans-serif; /* Changed to Roboto */
+    margin: 0; /* Remove default body margin */
+    padding: 0; /* Remove default body padding */
+    overflow: hidden; /* Prevent body scroll, app container handles its own scroll */
+}
 
-        // Initialize Firebase services
-        try {
-            initializeFirebase(firebaseConfig);
-            console.log("Firebase initialized successfully in index.html via module.");
-        } catch (error) {
-            console.error("Error initializing Firebase services in index.html:", error.message);
-            displayLoginError(`App config error: ${error.message}.`);
-        }
+#app-container {
+    width: 100%;
+    max-width: 480px; /* Max width to give a mobile app feel on larger screens */
+    height: 100vh; /* Full viewport height on small screens */
+    max-height: 900px; /* Max height for app container on desktop */
+    display: flex;
+    flex-direction: column;
+    border-radius: 1.5rem; /* Large rounded corners for the entire app */
+    overflow: hidden; /* Hide anything that overflows the rounded corners */
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1); /* Subtle shadow for depth */
+    background-color: #ffffff; /* White background for the app's content */
+}
 
-        // Supabase Configuration (Using your confirmed URL and provided Anon Key)
-        const SUPABASE_URL = 'https://uokpkgybjzvpngoxasnm.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVva3BrZ3lianp2cG5nb3hhc25tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk5MjE4NTcsImV4cCI6MjA2NTQ5Nzg1N30.FNv_13S3oj7fjartmY2PzKL25T3AWbMxP2KRI0rFU2E';
+/* Responsive Adjustments for Larger Screens */
+@media (min-width: 640px) {
+    #app-container {
+        height: 95vh; /* Slightly less than full height on desktop, allowing background to show */
+        margin: 2.5vh auto; /* Center vertically on desktop */
+    }
+}
 
-        let supabaseClient;
-        try {
-            supabaseClient = createSupabaseClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-            console.log("Supabase client initialized successfully in index.html via module.");
-        } catch (error) {
-            console.error('Failed to initialize Supabase in index.html:', error);
-        }
+/* --- Login Screen Styles --- */
+#login-screen {
+    flex-grow: 1; /* Make login screen fill available space */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem; /* Standard padding */
+    background: linear-gradient(to bottom right, #e0f7fa, #ffffff); /* Soft gradient background */
+    color: #374151; /* Dark gray for text */
+    text-align: center;
+}
 
-        // UI Elements
-        const usernameInput = document.getElementById('username-input');
-        const roomcodeInput = document.getElementById('roomcode-input');
-        const joinChatButton = document.getElementById('join-chat-button');
-        const loginError = document.getElementById('login-error');
+#login-screen h1 {
+    font-size: 2.5rem; /* Large font for app title */
+    font-weight: bold;
+    margin-bottom: 2rem;
+    color: #2563eb; /* A vibrant blue for the app name */
+}
 
-        function displayLoginError(message) {
-            loginError.textContent = message;
-            loginError.classList.remove('hidden');
-        }
+#login-screen p {
+    font-size: 1.125rem; /* Slightly larger text for taglines/messages */
+    margin-bottom: 1.5rem;
+}
 
-        let currentUserId = null;
+#login-screen .login-box {
+    background-color: #ffffff;
+    padding: 2rem;
+    border-radius: 1rem; /* Rounded corners for the login box */
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); /* Soft shadow */
+    width: 100%;
+    max-width: 384px; /* Max width for login box */
+}
 
-        // Firebase Auth listener for anonymous sign-in
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                currentUserId = user.uid;
-                console.log("Authenticated with Firebase. User ID:", currentUserId);
-            } else {
-                try {
-                    if (initialAuthToken) {
-                        await signInWithCustomToken(auth, initialAuthToken);
-                        console.log("Signed in with custom token.");
-                    } else {
-                        await signInAnonymously(auth);
-                        console.log("Signed in anonymously.");
-                    }
-                } catch (error) {
-                    console.error("Error signing in anonymously:", error.message);
-                    displayLoginError(`Authentication error: ${error.message}. Please try again.`);
-                }
-            }
-        });
+#login-screen label {
+    display: block;
+    color: #4b5563; /* Darker gray for labels */
+    font-size: 0.875rem; /* Small font for labels */
+    font-weight: 500; /* Medium weight */
+    margin-bottom: 0.5rem;
+    text-align: left; /* Align labels to the left */
+}
 
-        // Join Chat Logic
-        joinChatButton.addEventListener('click', async () => {
-            if (!auth || !auth.currentUser || !currentUserId) {
-                displayLoginError("App is not fully loaded. Please wait a moment for authentication to complete.");
-                return;
-            }
+#login-screen input[type="text"] {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 1px solid #d1d5db; /* Light gray border */
+    border-radius: 0.5rem; /* Rounded input fields */
+    color: #1f2937; /* Dark text in input */
+    line-height: 1.25;
+    transition: all 0.2s ease-in-out; /* Smooth transition for focus */
+    box-shadow: inset 0 1px 2px rgba(0,0,0,0.06); /* Subtle inner shadow */
+}
 
-            const username = usernameInput.value.trim();
-            const roomCode = roomcodeInput.value.trim();
+#login-screen input[type="text"]:focus {
+    outline: none;
+    border-color: #60a5fa; /* Blue border on focus */
+    box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.5); /* Blue ring on focus */
+}
 
-            if (!username || !roomCode) {
-                displayLoginError('Please enter both your name and room code.');
-                return;
-            }
+#login-screen button {
+    width: 100%;
+    background-color: #3b82f6; /* Blue button */
+    color: white;
+    font-weight: bold;
+    padding: 0.75rem 1rem;
+    border-radius: 0.75rem; /* Rounded button */
+    transition: all 0.3s ease-in-out; /* Smooth transition for hover effects */
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
 
-            const roomPresenceRef = ref(db, `rooms/${roomCode}/presence`);
+#login-screen button:hover {
+    background-color: #2563eb; /* Darker blue on hover */
+    transform: translateY(-2px); /* Slight lift effect */
+    box-shadow: 0 6px 8px -2px rgba(0, 0, 0, 0.15), 0 4px 6px -2px rgba(0, 0, 0, 0.08);
+}
 
-            try {
-                const snapshot = await get(roomPresenceRef);
-                let usersInRoomCount = 0;
-                let currentUsers = {};
-                if (snapshot.exists()) {
-                    snapshot.forEach((childSnapshot) => {
-                        usersInRoomCount++;
-                        currentUsers[childSnapshot.key] = childSnapshot.val().username;
-                    });
-                }
+#login-screen .privacy-message {
+    font-size: 0.875rem;
+    color: #6b7280; /* Gray text for privacy message */
+    margin-top: 1.5rem;
+    padding: 0 1rem; /* Padding to prevent text touching edges */
+    line-height: 1.4;
+}
 
-                const isCurrentUserAlreadyInRoom = currentUserId && currentUsers[currentUserId] === username;
+#login-screen .text-red-500 {
+    color: #ef4444; /* Red for error messages */
+}
 
-                if (usersInRoomCount >= 2 && !isCurrentUserAlreadyInRoom) {
-                    displayLoginError('This room is currently full. Please try a different room code.');
-                    return;
-                }
+/* --- Chat Screen Styles --- */
+#chat-screen {
+    flex-grow: 1; /* Allow chat screen to fill remaining height */
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
 
-                // Redirect to chat.html with URL parameters
-                window.location.href = `chat.html?room=${encodeURIComponent(roomCode)}&user=${encodeURIComponent(username)}`;
+/* Fixed Chat Header */
+#chat-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem;
+    background-color: #3b82f6; /* Blue header */
+    color: white;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); /* Shadow for header */
+    border-bottom-left-radius: 1rem; /* Rounded bottom corners */
+    border-bottom-right-radius: 1rem;
+    position: fixed; /* Fixed position at the top */
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 10; /* Ensure it's above other content */
+    max-width: inherit; /* Inherit max-width from app-container */
+    width: 100%;
+}
 
-            } catch (error) {
-                console.error("Error checking room presence or joining:", error);
-                displayLoginError(`Failed to join room: ${error.message}. Please check your Firebase rules and internet connection.`);
-            }
-        });
+#chat-header h2 {
+    font-size: 1.25rem; /* Larger font for room name */
+    font-weight: 600;
+}
 
-        usernameInput.addEventListener('focus', () => loginError.classList.add('hidden'));
-        roomcodeInput.addEventListener('focus', () => loginError.classList.add('hidden'));
+#chat-header button {
+    background-color: rgba(255, 255, 255, 0.2); /* Semi-transparent white buttons */
+    color: white;
+    padding: 0.6rem; /* Padding for icons */
+    border-radius: 9999px; /* Fully rounded buttons */
+    margin-left: 0.5rem;
+    transition: background-color 0.2s ease-in-out, transform 0.2s ease-in-out;
+}
 
-    </script>
-</body>
-</html>
+#chat-header button:hover {
+    background-color: rgba(255, 255, 255, 0.3);
+    transform: scale(1.05); /* Slightly enlarge on hover */
+}
+
+/* Message Area */
+#messages-container {
+    flex: 1; /* Take up all available vertical space */
+    overflow-y: auto; /* Enable vertical scrolling */
+    padding: 1rem;
+    padding-top: 5rem; /* Space for fixed header */
+    padding-bottom: 6rem; /* Space for fixed input area */
+    display: flex;
+    flex-direction: column;
+    scroll-behavior: smooth; /* Smooth scrolling for new messages */
+}
+
+/* Custom Scrollbar for Messages */
+#messages-container::-webkit-scrollbar {
+    width: 8px;
+}
+#messages-container::-webkit-scrollbar-track {
+    background: #f0f4f8; /* Light blue-gray for track */
+}
+#messages-container::-webkit-scrollbar-thumb {
+    background-color: #8bbcdc; /* Soft blue for thumb */
+    border-radius: 4px;
+}
+#messages-container::-webkit-scrollbar-thumb:hover {
+    background-color: #6a9cc9; /* Darker soft blue on hover */
+}
+
+/* Message Bubbles */
+.message-bubble {
+    max-width: 75%; /* Messages take up max 75% of chat width */
+    padding: 0.6rem 0.9rem;
+    border-radius: 0.75rem; /* Rounded corners for bubbles */
+    margin-bottom: 0.5rem;
+    word-wrap: break-word; /* Break long words */
+    box-shadow: 0 1px 2px rgba(0,0,0,0.08); /* Subtle shadow for bubbles */
+}
+
+.message-bubble.mine {
+    background-color: #a7d9f7; /* Soft blue for sender's messages */
+    align-self: flex-end; /* Align to the right */
+    margin-left: auto; /* Push to right */
+}
+
+.message-bubble.other {
+    background-color: #e0f2fe; /* Lightest blue for other's messages */
+    align-self: flex-start; /* Align to the left */
+    margin-right: auto; /* Push to left */
+}
+
+.message-bubble p {
+    margin: 0; /* Remove default paragraph margin */
+    color: #1f2937; /* Dark text for messages */
+}
+
+.message-bubble.system {
+    text-align: center;
+    font-style: italic;
+    font-size: 0.85rem;
+    color: #6b7280; /* Gray for system messages */
+    background-color: transparent; /* No background */
+    box-shadow: none; /* No shadow */
+    width: 100%; /* Take full width */
+    margin: 0.75rem 0;
+}
+
+/* Message Metadata (Sender and Timestamp) */
+.message-meta {
+    font-size: 0.7rem; /* Smaller font for meta info */
+    color: #6b7280; /* Gray for meta info */
+    margin-top: 0.25rem;
+    display: flex;
+    gap: 0.5rem; /* Small gap between sender and timestamp */
+    justify-content: flex-end; /* Default to right for 'mine' */
+}
+.message-bubble.other .message-meta {
+    justify-content: flex-start; /* Align to left for 'other' */
+}
+.message-meta .font-bold {
+    font-weight: 700; /* Bold for username */
+    color: #2563eb; /* Blue for sender's name */
+}
+
+/* Image and File Messages */
+.message-image {
+    max-width: 100%;
+    height: auto;
+    border-radius: 0.5rem; /* Rounded corners for images */
+    margin-top: 0.5rem;
+    cursor: pointer; /* Indicate clickable */
+}
+
+.message-file {
+    display: flex;
+    align-items: center;
+    color: #1d4ed8; /* Darker blue for file links */
+}
+
+.message-file i {
+    font-size: 1.5rem; /* Larger icon for files */
+    margin-right: 0.5rem;
+}
+
+.message-file a {
+    text-decoration: underline;
+    transition: color 0.2s;
+}
+
+.message-file a:hover {
+    color: #3b82f6; /* Lighter blue on hover */
+}
+
+/* Typing Indicator */
+#typing-indicator {
+    color: #4a90e2; /* Blue for typing indicator */
+    font-size: 0.8rem;
+    margin-top: 0.5rem;
+    padding-left: 1rem;
+    padding-bottom: 0.5rem; /* Some padding above input */
+    display: none; /* Hidden by default */
+}
+
+/* Typing indicator dot animation */
+#typing-indicator span {
+    animation: blink 1s infinite;
+    opacity: 0.2; /* Start faded */
+}
+#typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+#typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes blink {
+    0%, 100% { opacity: 0.2; }
+    50% { opacity: 1; }
+}
+
+/* Fixed Message Input Area */
+#message-input-area {
+    display: flex;
+    align-items: center;
+    padding: 1rem;
+    background-color: #ffffff;
+    box-shadow: 0 -4px 6px -1px rgba(0, 0, 0, 0.1); /* Shadow above input area */
+    border-top-left-radius: 1rem; /* Rounded top corners */
+    border-top-right-radius: 1rem;
+    position: fixed; /* Fixed position at the bottom */
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 10; /* Ensure it's above other content */
+    max-width: inherit; /* Inherit max-width from app-container */
+    width: 100%;
+}
+
+#message-input-area input[type="text"] {
+    flex: 1; /* Take up most space */
+    border: 1px solid #d1d5db;
+    border-radius: 9999px; /* Fully rounded input */
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+    line-height: 1.25;
+    transition: all 0.2s ease-in-out;
+}
+
+#message-input-area input[type="text"]:focus {
+    outline: none;
+    border-color: #60a5fa;
+    box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.5);
+}
+
+#message-input-area button,
+#message-input-area label {
+    background-color: #3b82f6;
+    color: white;
+    padding: 0.85rem; /* Padding for rounded buttons/labels */
+    border-radius: 9999px; /* Fully rounded */
+    margin-left: 0.75rem;
+    cursor: pointer;
+    transition: all 0.3s ease-in-out;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+#message-input-area button:hover,
+#message-input-area label:hover {
+    background-color: #2563eb;
+    transform: scale(1.05); /* Slightly enlarge on hover */
+}
+
+/* Hidden file input */
+#image-upload {
+    display: none;
+}
+
+/* --- Jitsi Video Call Styles --- */
+.jitsi-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: black; /* Black background for video calls */
+    z-index: 100; /* Ensure it's on top of everything else */
+    display: none; /* Hidden by default, shown by JS */
+    flex-direction: column;
+}
+
+#jitsi-iframe {
+    flex-grow: 1; /* Make iframe fill available space */
+    border: none;
+}
+
+.jitsi-controls {
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    background: rgba(0, 0, 0, 0.6); /* Semi-transparent black background for controls */
+    display: flex;
+    justify-content: center;
+    padding: 1rem;
+    gap: 1rem;
+    z-index: 101; /* Ensure controls are above iframe */
+}
+
+.jitsi-controls button {
+    background-color: #4CAF50; /* Green for common call actions */
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border-radius: 9999px; /* Fully rounded buttons */
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s, transform 0.2s;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    border: none; /* Remove default button border */
+}
+
+.jitsi-controls button:hover {
+    background-color: #45a049; /* Darker green on hover */
+    transform: translateY(-2px);
+}
+
+.jitsi-controls button.hangup {
+    background-color: #f44336; /* Red for hang up */
+}
+
+.jitsi-controls button.hangup:hover {
+    background-color: #da190b; /* Darker red on hover */
+}
+
+.jitsi-controls button i {
+    margin-right: 0.5rem;
+}
+
+/* --- Confirmation Modal Styles --- */
+.modal {
+    display: none; /* Hidden by default, shown by JS */
+    position: fixed; /* Stay in place */
+    z-index: 200; /* Sit on top of everything */
+    left: 0;
+    top: 0;
+    width: 100%; /* Full width */
+    height: 100%; /* Full height */
+    background-color: rgba(0,0,0,0.5); /* Semi-transparent black background overlay */
+    display: flex; /* Use flexbox to center content */
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-content {
+    background-color: #ffffff;
+    margin: auto;
+    padding: 1.5rem;
+    border-radius: 0.75rem; /* Rounded corners */
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    width: 90%;
+    max-width: 400px;
+    text-align: center;
+}
+
+.modal-content p {
+    font-size: 1.125rem;
+    font-weight: 500;
+    margin-bottom: 1.5rem;
+    color: #1f2937;
+}
+
+.modal-content button {
+    margin: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 1rem;
+    border: none; /* Remove default button border */
+    transition: all 0.2s ease-in-out;
+}
+
+.modal-content .confirm-button {
+    background-color: #3b82f6; /* Blue for confirm */
+    color: white;
+}
+
+.modal-content .confirm-button:hover {
+    background-color: #2563eb;
+    transform: translateY(-1px);
+}
+
+.modal-content .cancel-button {
+    background-color: #cbd5e1; /* Gray for cancel */
+    color: #334155;
+}
+
+.modal-content .cancel-button:hover {
+    background-color: #9ca3af;
+    transform: translateY(-1px);
+}
