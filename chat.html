@@ -42,7 +42,7 @@
             <!-- Message Input Area -->
             <div id="message-input-area">
                 <input type="text" id="message-input" placeholder="Type a message...">
-                <input type="file" id="image-upload" accept="image/*,video/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation" class="hidden">
+                <input type="file" id="image-upload" accept="image/*,video/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.openxmlformats-officedocument.presentationml.presentation" class="hidden">
                 <label for="image-upload" title="Attach File">
                     <i class="fa-solid fa-paperclip"></i>
                 </label>
@@ -197,6 +197,7 @@
 
         if (!urlRoomCode || !urlUsername) {
             // If missing, redirect back to login page (now index.html)
+            console.error("Missing room code or username in URL. Redirecting to login.");
             window.location.href = 'index.html';
         } else {
             currentRoomCode = decodeURIComponent(urlRoomCode);
@@ -215,21 +216,23 @@
 
         // --- Authentication & Initialization ---
         // Only proceed if Firebase was successfully initialized
-        if (auth) {
+        if (auth && db) { // Ensure auth and db objects are ready
             onAuthStateChanged(auth, async (user) => {
                 if (user) {
                     currentUserId = user.uid;
+                    console.log("Authenticated with Firebase. User ID:", currentUserId); // Log auth status
                     // Set up Firebase references after userId is known
                     roomRef = ref(db, `rooms/${currentRoomCode}`);
-                    presenceRef = ref(db, `rooms/<span class="math-inline">\{currentRoomCode\}/presence/</span>{currentUserId}`);
+                    presenceRef = ref(db, `rooms/${currentRoomCode}/presence/${currentUserId}`);
                     messagesRef = ref(db, `rooms/${currentRoomCode}/messages`);
-                    typingRef = ref(db, `rooms/<span class="math-inline">\{currentRoomCode\}/typing/</span>{currentUserId}`);
+                    typingRef = ref(db, `rooms/${currentRoomCode}/typing/${currentUserId}`);
 
                     try {
                         // Set user presence
                         await set(presenceRef, { username: currentUsername, lastSeen: serverTimestamp() });
                         // Remove user from presence when disconnected (browser closed/reloaded, internet lost)
                         onDisconnect(presenceRef).remove();
+                        console.log("User presence set in Firebase."); // Log presence update
 
                         // Send a "joined" message if not already present (e.g., from login.html)
                         // This uses localStorage to prevent sending "joined" message on every reload
@@ -243,21 +246,26 @@
                         listenForMessages();
                         listenForPresence(); // This will now update the online user count
                         listenForTyping();
+                        console.log("Firebase listeners started."); // Log listener setup
 
                         messageInput.focus(); // Focus on input field
 
                     } catch (error) {
-                        console.error("Error setting up chat:", error);
-                        // Redirect back to login with an error
+                        console.error("Error setting up chat (presence/listeners):", error);
+                        // Redirect back to login with a more specific error
                         localStorage.removeItem('paritalk_username');
                         localStorage.removeItem('paritalk_roomcode');
-                        window.location.href = `index.html?error=${encodeURIComponent('Failed to join room. Please try again.')}`;
+                        window.location.href = `index.html?error=${encodeURIComponent('Failed to set up chat. Please try again.')}`;
                     }
                 } else {
                     // If not authenticated, ensure redirect to login (index.html)
+                    console.warn("User not authenticated in chat.html. Redirecting to login.");
                     window.location.href = 'index.html';
                 }
             });
+        } else {
+            console.error("Firebase Auth or DB not initialized. Cannot set up onAuthStateChanged listener.");
+            window.location.href = `index.html?error=${encodeURIComponent('Core app services not ready. Please try again.')}`;
         }
 
 
@@ -287,6 +295,10 @@
 
         // --- Chat Logic ---
         function listenForMessages() {
+            if (!messagesRef) {
+                console.error("messagesRef is not initialized. Cannot listen for messages.");
+                return;
+            }
             onChildAdded(messagesRef, (snapshot) => {
                 const message = snapshot.val();
                 const messageId = snapshot.key; // Get the message key for reactions
@@ -316,7 +328,7 @@
             if (message.type === 'text') {
                 contentHTML += `<p>${message.text}</p>`;
             } else if (message.type === 'image') {
-                contentHTML += `<img src="<span class="math-inline">\{message\.imageUrl\}" alt\="Shared Image" class\="message\-image" onclick\="window\.open\('</span>{message.imageUrl}', '_blank')">`;
+                contentHTML += `<img src="${message.imageUrl}" alt="Shared Image" class="message-image" onclick="window.open('${message.imageUrl}', '_blank')">`;
             } else if (message.type === 'file') {
                 let fileIcon = 'fa-file';
                 const fileExtension = message.fileName.split('.').pop().toLowerCase();
@@ -330,8 +342,8 @@
 
                 contentHTML += `
                     <div class="message-file">
-                        <i class="fa-solid <span class="math-inline">\{fileIcon\}"\></i\>
-<a href\="</span>{message.fileUrl}" target="_blank">${message.fileName}</a>
+                        <i class="fa-solid ${fileIcon}"></i>
+                        <a href="${message.fileUrl}" target="_blank">${message.fileName}</a>
                     </div>
                 `;
             }
@@ -365,7 +377,7 @@
                         if (count > 0) {
                             const reactionSpan = document.createElement('span');
                             reactionSpan.classList.add('text-sm', 'bg-blue-100', 'px-2', 'py-0.5', 'rounded-full', 'inline-flex', 'items-center', 'cursor-pointer');
-                            reactionSpan.innerHTML = `<span class="math-inline">\{emoji\} <span class\="ml\-1 text\-xs text\-blue\-700"\></span>{count}</span>`;
+                            reactionSpan.innerHTML = `${emoji} <span class="ml-1 text-xs text-blue-700">${count}</span>`;
                             reactionSpan.title = `Reacted with ${emoji}`;
                             reactionSpan.dataset.emoji = emoji; // Store emoji for click handling
 
@@ -391,14 +403,19 @@
 
 
         async function sendMessage(text, type = 'text', imageUrl = null, fileUrl = null, fileName = null) {
+            console.log("sendMessage called. Type:", type, "Text:", text); // Debugging log
             if (!currentUserId || !currentRoomCode) {
-                console.error("Not in a chat room or user ID is unknown.");
+                console.error("Not in a chat room or user ID is unknown. Cannot send message.");
+                return;
+            }
+            if (!messagesRef) {
+                console.error("messagesRef is not initialized. Cannot send message.");
                 return;
             }
 
             const message = {
                 sender: currentUsername,
-                timestamp: serverTimestamp(),
+                timestamp: serverTimestamp(), // Firebase server timestamp
                 type: type,
             };
 
@@ -415,10 +432,12 @@
 
             try {
                 await push(messagesRef, message);
+                console.log("Message pushed to Firebase successfully!"); // Debugging log
                 messageInput.value = ''; // Clear input after sending
                 setTypingStatus(false); // Clear typing status for self after sending a message
             } catch (error) {
-                console.error("Error sending message:", error);
+                console.error("Error sending message to Firebase:", error); // Detailed error log
+                // Optionally show a message to the user that sending failed
             }
         }
 
@@ -432,7 +451,7 @@
                 return;
             }
 
-            const fileName = `<span class="math-inline">\{currentRoomCode\}/</span>{currentUserId}/<span class="math-inline">\{Date\.now\(\)\}\_</span>{file.name}`;
+            const fileName = `${currentRoomCode}/${currentUserId}/${Date.now()}_${file.name}`;
             const fileType = file.type;
 
             try {
@@ -526,4 +545,298 @@
                 // If an emoji option was clicked, the handler for that will run
                 // and then hide the picker. This prevents immediate hide on emoji click.
             } else if (event.target.closest('.message-bubble')) {
-                // If another message
+                // If another message bubble was clicked, the new click event will handle showing the picker for that message.
+                // We don't want to hide it immediately if another message is being selected.
+            }
+        }
+
+        // Add reaction to a message
+        async function toggleReaction(messageId, emoji, userId) {
+            if (!messagesRef || !messageId) {
+                console.error("Cannot add reaction: missing messageRef or messageId");
+                return;
+            }
+
+            const reactionPath = `messages/${messageId}/reactions/${emoji}`;
+            const messageReactionRef = ref(db, reactionPath);
+
+            try {
+                await runTransaction(messageReactionRef, (currentCount) => {
+                    // Initialize count if null, otherwise increment/decrement
+                    // For simplicity, we are just incrementing/decrementing a count
+                    // A more advanced system would track which users reacted to prevent double-counting
+                    return (currentCount || 0) + 1; // Always increment for simplicity.
+                                                     // To allow toggling (remove reaction), you'd need to store user IDs.
+                                                     // This example just adds reactions.
+                });
+            } catch (error) {
+                console.error("Transaction failed: ", error);
+            }
+            hideEmojiPicker(); // Hide picker after reacting
+        }
+
+
+        // Event listeners for emoji picker options
+        document.querySelectorAll('.emoji-option').forEach(emojiSpan => {
+            emojiSpan.addEventListener('click', (event) => {
+                event.stopPropagation(); // Prevent message bubble click
+                if (currentMessageElementForReaction) {
+                    const messageId = currentMessageElementForReaction.dataset.messageId;
+                    const emoji = event.target.textContent.trim();
+                    toggleReaction(messageId, emoji, currentUserId);
+                }
+            });
+        });
+
+
+        // --- Presence and Room Limit Logic ---
+        function listenForPresence() {
+            if (!currentRoomCode || !db) {
+                console.error("Room code or DB not initialized. Cannot listen for presence.");
+                return;
+            }
+            const roomPresenceRef = ref(db, `rooms/${currentRoomCode}/presence`);
+            onValue(roomPresenceRef, (snapshot) => {
+                const users = [];
+                snapshot.forEach((childSnapshot) => {
+                    const userData = childSnapshot.val();
+                    // Include all users in the count for the display, but exclude self for Jitsi check if needed
+                    if (userData.username) {
+                        users.push(userData.username);
+                    }
+                });
+
+                onlineUsersCountDisplay.textContent = `Online: ${users.length}`; // Update display
+                console.log("Online users updated:", users.length); // Log online count
+
+                // Check if the other user has left during a Jitsi call
+                if (jitsiApi) {
+                    // Jitsi API getParticipantsInfo returns current participants in Jitsi meeting
+                    const jitsiParticipantsCount = jitsiApi.getParticipantsInfo().length;
+                    // Firebase users count (excluding self, to detect if OTHER person left)
+                    const firebaseOtherUsersCount = users.filter(u => u !== currentUsername).length;
+
+
+                    // If we're in a Jitsi call and Firebase shows no other users in the room,
+                    // and Jitsi also only has one participant (us), then the other person left.
+                    if (firebaseOtherUsersCount === 0 && jitsiParticipantsCount <= 1) {
+                        console.log("Other user left room (Firebase) and Jitsi, ending call.");
+                        endVideoCall();
+                        addMessageToChat({
+                            sender: 'System',
+                            text: 'The other user has left the room, ending the video call.',
+                            type: 'system',
+                            timestamp: Date.now()
+                        }, null);
+                    }
+                }
+            });
+        }
+
+
+        // --- Leave Room Logic ---
+        async function handleLeaveRoom() {
+            const confirmed = await showModal('Are you sure you want to leave the chat?');
+            if (confirmed) {
+                if (jitsiApi) {
+                    endVideoCall(); // End Jitsi call if active
+                }
+                if (presenceRef) {
+                    console.log("Removing user presence from Firebase."); // Log removal
+                    await set(presenceRef, null); // Explicitly remove user from presence
+                    sendMessage(`**${currentUsername}** left the chat.`, 'system'); // Send "left" message
+                }
+                // Clear localStorage for a clean exit
+                localStorage.removeItem('paritalk_username');
+                localStorage.removeItem('paritalk_roomcode');
+                localStorage.removeItem('paritalk_has_joined_session'); // Clear session marker
+
+                // Redirect to login page (now index.html)
+                window.location.href = 'index.html';
+            }
+            hideModal();
+        }
+
+        // --- Typing Indicator Logic ---
+        function setTypingStatus(isTyping) {
+            if (typingRef) {
+                console.log("Setting typing status to:", isTyping); // Log typing status
+                set(typingRef, isTyping);
+            } else {
+                console.warn("typingRef not initialized. Cannot set typing status.");
+            }
+        }
+
+        function listenForTyping() {
+            if (!currentRoomCode || !db) {
+                console.error("Room code or DB not initialized. Cannot listen for typing.");
+                return;
+            }
+            const allTypingRef = ref(db, `rooms/${currentRoomCode}/typing`);
+            onValue(allTypingRef, (snapshot) => {
+                const typingUsers = [];
+                snapshot.forEach((childSnapshot) => {
+                    // Check if it's not the current user and their status is true
+                    if (childSnapshot.key !== currentUserId && childSnapshot.val() === true) {
+                        typingUsers.push(childSnapshot.key);
+                    }
+                });
+
+                if (typingUsers.length > 0) {
+                    typingIndicator.textContent = 'Typing...';
+                    typingIndicator.classList.remove('hidden');
+                } else {
+                    typingIndicator.classList.add('hidden');
+                }
+            });
+        }
+
+        // --- Jitsi Video Call Logic ---
+        function startVideoCall() {
+            if (jitsiApi) {
+                console.log("Jitsi call already active.");
+                return;
+            }
+            if (!currentRoomCode || !currentUsername) {
+                console.error("Cannot start video call: missing room code or username.");
+                return;
+            }
+
+            const domain = 'meet.jit.si';
+            const options = {
+                roomName: `Paritalk_${currentRoomCode}`, // Unique room name based on chat room
+                width: '100%',
+                height: '100%',
+                parentNode: jitsiIframe.parentNode, // Use the parent of iframe
+                userInfo: {
+                    displayName: currentUsername
+                },
+                configOverwrite: {
+                    startWithAudioMuted: false,
+                    startWithVideoMuted: false,
+                    enableWelcomePage: false,
+                    prejoinPageEnabled: false,
+                    toolbarButtons: ['microphone', 'camera', 'desktop', 'fullscreen', 'fodeviceselection', 'hangup', 'profile', 'chat', 'raisehand', 'tileview', 'mute-everyone', 'security', 'settings', 'shortcuts', 'subject', 'toggle-camera']
+                },
+                interfaceConfigOverwrite: {
+                    SHOW_JITSI_WATERMARK: false,
+                    SHOW_WATERMARK_FOR_GUESTS: false,
+                    SHOW_BRAND_WATERMARK: false,
+                    // You can customize more here if needed
+                }
+            };
+
+            jitsiApi = new JitsiMeetExternalAPI(domain, options);
+            console.log("Jitsi API initialized."); // Log Jitsi init
+
+            // Show Jitsi container
+            jitsiContainer.style.display = 'flex';
+            // Hide chat elements that would be under the call
+            messagesContainer.classList.add('hidden');
+            document.getElementById('chat-header').classList.add('hidden'); // Use ID for header
+            document.getElementById('message-input-area').classList.add('hidden'); // Use ID for input area
+
+
+            // Jitsi API Event Listeners (optional, but good for robust handling)
+            jitsiApi.addEventListener('participantLeft', (participant) => {
+                console.log('Jitsi Participant Left:', participant);
+                // The Firebase presence listener will handle ending the call if the other user leaves the room
+                // so we primarily rely on that for overall room state.
+            });
+
+            jitsiApi.addEventListener('readyToClose', () => {
+                console.log('Jitsi API ready to close event fired.');
+                // This event fires when the Jitsi meeting is explicitly ended from within Jitsi UI
+                endVideoCall();
+            });
+
+            // Ensure our hangup button also ends the Jitsi call
+            hangupButton.onclick = endVideoCall;
+        }
+
+        function endVideoCall() {
+            if (jitsiApi) {
+                jitsiApi.dispose();
+                jitsiApi = null;
+                console.log("Jitsi API disposed."); // Log Jitsi dispose
+            }
+            jitsiContainer.style.display = 'none';
+            // Show chat elements again
+            messagesContainer.classList.remove('hidden');
+            document.getElementById('chat-header').classList.remove('hidden');
+            document.getElementById('message-input-area').classList.remove('hidden');
+        }
+
+        // --- Event Listeners ---
+        messageInput.addEventListener('input', () => {
+            // Set typing status to true
+            setTypingStatus(true);
+            // Clear any existing timeout and set a new one
+            clearTimeout(typingTimeout);
+            typingTimeout = setTimeout(() => {
+                setTypingStatus(false);
+            }, 2000); // Set to false after 2 seconds of no typing
+        });
+
+        messageInput.addEventListener('blur', () => {
+            // If user clicks away from input, stop typing immediately
+            setTypingStatus(false);
+            clearTimeout(typingTimeout);
+        });
+
+        messageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                const messageText = messageInput.value.trim();
+                if (messageText) {
+                    sendMessage(messageText, 'text');
+                }
+            }
+        });
+
+        sendButton.addEventListener('click', () => {
+            const messageText = messageInput.value.trim();
+            if (messageText) {
+                sendMessage(messageText, 'text');
+            }
+        });
+
+        imageUploadInput.addEventListener('change', handleFileUpload);
+        videoCallButton.addEventListener('click', startVideoCall);
+        leaveRoomButton.addEventListener('click', handleLeaveRoom);
+
+        // Modal event listeners
+        modalConfirm.addEventListener('click', () => {
+            if (resolveModalPromise) resolveModalPromise(true);
+            hideModal();
+        });
+        modalCancel.addEventListener('click', () => {
+            if (resolveModalPromise) resolveModalPromise(false);
+            hideModal();
+        });
+
+
+        // Handle browser window close/reload
+        window.addEventListener('beforeunload', async (e) => {
+            if (presenceRef) {
+                console.log("Beforeunload: Removing user presence."); // Log beforeunload
+                // Explicitly remove user from presence when window is closing
+                await set(presenceRef, null);
+                if (jitsiApi) {
+                    jitsiApi.dispose(); // Dispose Jitsi API
+                }
+                // Clearing localStorage here would prevent rejoining, so avoid it on 'beforeunload'
+                // The index.html will check localStorage on load.
+            }
+            // No e.preventDefault() to allow the browser to close without prompt
+        });
+
+        // Add a click listener to the entire document to hide the emoji picker when clicking outside
+        document.addEventListener('click', (event) => {
+            if (!emojiPicker.classList.contains('hidden') && !emojiPicker.contains(event.target) && !event.target.closest('.message-bubble')) {
+                hideEmojiPicker();
+            }
+        });
+
+    </script>
+</body>
+</html>
