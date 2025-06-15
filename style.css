@@ -1,422 +1,98 @@
 /* styles.css */
 
-/* Import Roboto font from Google Fonts */
-@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
+/* Custom scrollbar for chat messages */
+.chat-messages::-webkit-scrollbar {
+    width: 8px;
+}
+.chat-messages::-webkit-scrollbar-track {
+    background: #f0f4f8; /* Light blue-gray for track */
+}
+.chat-messages::-webkit-scrollbar-thumb {
+    background-color: #8bbcdc; /* Soft blue for thumb */
+    border-radius: 4px;
+}
+.chat-messages::-webkit-scrollbar-thumb:hover {
+    background-color: #6a9cc9; /* Darker soft blue on hover */
+}
 
-/* General Body and App Container Styles */
+/* Fixed positioning for header and input bar */
 body {
     display: flex;
     justify-content: center;
     align-items: center;
-    min-height: 100vh; /* Full viewport height */
+    min-height: 100vh;
     background-color: #e0f2fe; /* Lightest blue background */
-    font-family: 'Roboto', sans-serif; /* Changed to Roboto */
-    margin: 0; /* Remove default body margin */
-    padding: 0; /* Remove default body padding */
-    overflow: hidden; /* Prevent body scroll, app container handles its own scroll */
+    font-family: 'Inter', sans-serif;
 }
 
 #app-container {
     width: 100%;
-    max-width: 480px; /* Max width to give a mobile app feel on larger screens */
+    max-width: 480px; /* Max width for mobile-like experience */
     height: 100vh; /* Full viewport height on small screens */
-    max-height: 900px; /* Max height for app container on desktop */
+    max-height: 900px; /* Max height for larger screens */
     display: flex;
     flex-direction: column;
-    border-radius: 1.5rem; /* Large rounded corners for the entire app */
-    overflow: hidden; /* Hide anything that overflows the rounded corners */
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1); /* Subtle shadow for depth */
-    background-color: #ffffff; /* White background for the app's content */
+    border-radius: 1.5rem; /* Large rounded corners for the app container */
+    overflow: hidden;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.06); /* Subtle shadow */
+    background-color: #ffffff; /* White background for the app */
+    position: relative; /* Needed for absolute positioning of jitsi-container */
 }
 
-/* Responsive Adjustments for Larger Screens */
+/* Adjust for responsiveness */
 @media (min-width: 640px) {
     #app-container {
-        height: 95vh; /* Slightly less than full height on desktop, allowing background to show */
-        margin: 2.5vh auto; /* Center vertically on desktop */
+        height: 95vh; /* Slightly less than full height on desktop */
+        margin: 2.5vh auto; /* Center vertically */
     }
 }
 
-/* --- Login Screen Styles --- */
-#login-screen {
-    flex-grow: 1; /* Make login screen fill available space */
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 1.5rem; /* Standard padding */
-    background: linear-gradient(to bottom right, #e0f7fa, #ffffff); /* Soft gradient background */
-    color: #374151; /* Dark gray for text */
-    text-align: center;
-}
-
-#login-screen h1 {
-    font-size: 2.5rem; /* Large font for app title */
-    font-weight: bold;
-    margin-bottom: 2rem;
-    color: #2563eb; /* A vibrant blue for the app name */
-}
-
-#login-screen p {
-    font-size: 1.125rem; /* Slightly larger text for taglines/messages */
-    margin-bottom: 1.5rem;
-}
-
-#login-screen .login-box {
-    background-color: #ffffff;
-    padding: 2rem;
-    border-radius: 1rem; /* Rounded corners for the login box */
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); /* Soft shadow */
-    width: 100%;
-    max-width: 384px; /* Max width for login box */
-}
-
-#login-screen label {
-    display: block;
-    color: #4b5563; /* Darker gray for labels */
-    font-size: 0.875rem; /* Small font for labels */
-    font-weight: 500; /* Medium weight */
-    margin-bottom: 0.5rem;
-    text-align: left; /* Align labels to the left */
-}
-
-#login-screen input[type="text"] {
-    width: 100%;
-    padding: 0.75rem 1rem;
-    border: 1px solid #d1d5db; /* Light gray border */
-    border-radius: 0.5rem; /* Rounded input fields */
-    color: #1f2937; /* Dark text in input */
-    line-height: 1.25;
-    transition: all 0.2s ease-in-out; /* Smooth transition for focus */
-    box-shadow: inset 0 1px 2px rgba(0,0,0,0.06); /* Subtle inner shadow */
-}
-
-#login-screen input[type="text"]:focus {
-    outline: none;
-    border-color: #60a5fa; /* Blue border on focus */
-    box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.5); /* Blue ring on focus */
-}
-
-#login-screen button {
-    width: 100%;
-    background-color: #3b82f6; /* Blue button */
-    color: white;
-    font-weight: bold;
-    padding: 0.75rem 1rem;
-    border-radius: 0.75rem; /* Rounded button */
-    transition: all 0.3s ease-in-out; /* Smooth transition for hover effects */
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-}
-
-#login-screen button:hover {
-    background-color: #2563eb; /* Darker blue on hover */
-    transform: translateY(-2px); /* Slight lift effect */
-    box-shadow: 0 6px 8px -2px rgba(0, 0, 0, 0.15), 0 4px 6px -2px rgba(0, 0, 0, 0.08);
-}
-
-#login-screen .privacy-message {
-    font-size: 0.875rem;
-    color: #6b7280; /* Gray text for privacy message */
-    margin-top: 1.5rem;
-    padding: 0 1rem; /* Padding to prevent text touching edges */
-    line-height: 1.4;
-}
-
-#login-screen .text-red-500 {
-    color: #ef4444; /* Red for error messages */
-}
-
-/* --- Chat Screen Styles --- */
-#chat-screen {
-    flex-grow: 1; /* Allow chat screen to fill remaining height */
-    display: flex;
-    flex-direction: column;
-    width: 100%;
-}
-
-/* Fixed Chat Header */
-#chat-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 1rem;
-    background-color: #3b82f6; /* Blue header */
-    color: white;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); /* Shadow for header */
-    border-bottom-left-radius: 1rem; /* Rounded bottom corners */
-    border-bottom-right-radius: 1rem;
-    position: fixed; /* Fixed position at the top */
-    top: 0;
-    left: 0;
-    right: 0;
-    z-index: 10; /* Ensure it's above other content */
-    max-width: inherit; /* Inherit max-width from app-container */
-    width: 100%;
-}
-
-#chat-header h2 {
-    font-size: 1.25rem; /* Larger font for room name */
-    font-weight: 600;
-}
-
-#chat-header button {
-    background-color: rgba(255, 255, 255, 0.2); /* Semi-transparent white buttons */
-    color: white;
-    padding: 0.6rem; /* Padding for icons */
-    border-radius: 9999px; /* Fully rounded buttons */
-    margin-left: 0.5rem;
-    transition: background-color 0.2s ease-in-out, transform 0.2s ease-in-out;
-}
-
-#chat-header button:hover {
-    background-color: rgba(255, 255, 255, 0.3);
-    transform: scale(1.05); /* Slightly enlarge on hover */
-}
-
-/* Message Area */
-#messages-container {
-    flex: 1; /* Take up all available vertical space */
-    overflow-y: auto; /* Enable vertical scrolling */
-    padding: 1rem;
-    padding-top: 5rem; /* Space for fixed header */
-    padding-bottom: 6rem; /* Space for fixed input area */
-    display: flex;
-    flex-direction: column;
-    scroll-behavior: smooth; /* Smooth scrolling for new messages */
-}
-
-/* Custom Scrollbar for Messages */
-#messages-container::-webkit-scrollbar {
-    width: 8px;
-}
-#messages-container::-webkit-scrollbar-track {
-    background: #f0f4f8; /* Light blue-gray for track */
-}
-#messages-container::-webkit-scrollbar-thumb {
-    background-color: #8bbcdc; /* Soft blue for thumb */
-    border-radius: 4px;
-}
-#messages-container::-webkit-scrollbar-thumb:hover {
-    background-color: #6a9cc9; /* Darker soft blue on hover */
-}
-
-/* Message Bubbles */
-.message-bubble {
-    max-width: 75%; /* Messages take up max 75% of chat width */
-    padding: 0.6rem 0.9rem;
-    border-radius: 0.75rem; /* Rounded corners for bubbles */
-    margin-bottom: 0.5rem;
-    word-wrap: break-word; /* Break long words */
-    box-shadow: 0 1px 2px rgba(0,0,0,0.08); /* Subtle shadow for bubbles */
-}
-
-.message-bubble.mine {
-    background-color: #a7d9f7; /* Soft blue for sender's messages */
-    align-self: flex-end; /* Align to the right */
-    margin-left: auto; /* Push to right */
-}
-
-.message-bubble.other {
-    background-color: #e0f2fe; /* Lightest blue for other's messages */
-    align-self: flex-start; /* Align to the left */
-    margin-right: auto; /* Push to left */
-}
-
-.message-bubble p {
-    margin: 0; /* Remove default paragraph margin */
-    color: #1f2937; /* Dark text for messages */
-}
-
-.message-bubble.system {
-    text-align: center;
-    font-style: italic;
-    font-size: 0.85rem;
-    color: #6b7280; /* Gray for system messages */
-    background-color: transparent; /* No background */
-    box-shadow: none; /* No shadow */
-    width: 100%; /* Take full width */
-    margin: 0.75rem 0;
-}
-
-/* Message Metadata (Sender and Timestamp) */
-.message-meta {
-    font-size: 0.7rem; /* Smaller font for meta info */
-    color: #6b7280; /* Gray for meta info */
-    margin-top: 0.25rem;
-    display: flex;
-    gap: 0.5rem; /* Small gap between sender and timestamp */
-    justify-content: flex-end; /* Default to right for 'mine' */
-}
-.message-bubble.other .message-meta {
-    justify-content: flex-start; /* Align to left for 'other' */
-}
-.message-meta .font-bold {
-    font-weight: 700; /* Bold for username */
-    color: #2563eb; /* Blue for sender's name */
-}
-
-/* Image and File Messages */
-.message-image {
-    max-width: 100%;
-    height: auto;
-    border-radius: 0.5rem; /* Rounded corners for images */
-    margin-top: 0.5rem;
-    cursor: pointer; /* Indicate clickable */
-}
-
-.message-file {
-    display: flex;
-    align-items: center;
-    color: #1d4ed8; /* Darker blue for file links */
-}
-
-.message-file i {
-    font-size: 1.5rem; /* Larger icon for files */
-    margin-right: 0.5rem;
-}
-
-.message-file a {
-    text-decoration: underline;
-    transition: color 0.2s;
-}
-
-.message-file a:hover {
-    color: #3b82f6; /* Lighter blue on hover */
-}
-
-/* Typing Indicator */
-#typing-indicator {
-    color: #4a90e2; /* Blue for typing indicator */
-    font-size: 0.8rem;
-    margin-top: 0.5rem;
-    padding-left: 1rem;
-    padding-bottom: 0.5rem; /* Some padding above input */
-    display: none; /* Hidden by default */
-}
-
-/* Typing indicator dot animation */
-#typing-indicator span {
-    animation: blink 1s infinite;
-    opacity: 0.2; /* Start faded */
-}
-#typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
-#typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
-@keyframes blink {
-    0%, 100% { opacity: 0.2; }
-    50% { opacity: 1; }
-}
-
-/* Fixed Message Input Area */
-#message-input-area {
-    display: flex;
-    align-items: center;
-    padding: 1rem;
-    background-color: #ffffff;
-    box-shadow: 0 -4px 6px -1px rgba(0, 0, 0, 0.1); /* Shadow above input area */
-    border-top-left-radius: 1rem; /* Rounded top corners */
-    border-top-right-radius: 1rem;
-    position: fixed; /* Fixed position at the bottom */
-    bottom: 0;
-    left: 0;
-    right: 0;
-    z-index: 10; /* Ensure it's above other content */
-    max-width: inherit; /* Inherit max-width from app-container */
-    width: 100%;
-}
-
-#message-input-area input[type="text"] {
-    flex: 1; /* Take up most space */
-    border: 1px solid #d1d5db;
-    border-radius: 9999px; /* Fully rounded input */
-    padding: 0.75rem 1rem;
-    font-size: 1rem;
-    line-height: 1.25;
-    transition: all 0.2s ease-in-out;
-}
-
-#message-input-area input[type="text"]:focus {
-    outline: none;
-    border-color: #60a5fa;
-    box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.5);
-}
-
-#message-input-area button,
-#message-input-area label {
-    background-color: #3b82f6;
-    color: white;
-    padding: 0.85rem; /* Padding for rounded buttons/labels */
-    border-radius: 9999px; /* Fully rounded */
-    margin-left: 0.75rem;
-    cursor: pointer;
-    transition: all 0.3s ease-in-out;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-}
-
-#message-input-area button:hover,
-#message-input-area label:hover {
-    background-color: #2563eb;
-    transform: scale(1.05); /* Slightly enlarge on hover */
-}
-
-/* Hidden file input */
-#image-upload {
-    display: none;
-}
-
-/* --- Jitsi Video Call Styles --- */
+/* Jitsi Container Styles */
 .jitsi-container {
     position: absolute;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: black; /* Black background for video calls */
-    z-index: 100; /* Ensure it's on top of everything else */
-    display: none; /* Hidden by default, shown by JS */
-    flex-direction: column;
+    background-color: black;
+    z-index: 100; /* Ensure it's on top of chat */
+    display: none; /* Hidden by default */
+    flex-direction: column; /* To make iframe fill available space */
 }
 
 #jitsi-iframe {
     flex-grow: 1; /* Make iframe fill available space */
     border: none;
+    width: 100%;
+    height: 100%; /* Ensure it takes full height within its flex parent */
 }
 
 .jitsi-controls {
     position: absolute;
     bottom: 0;
     width: 100%;
-    background: rgba(0, 0, 0, 0.6); /* Semi-transparent black background for controls */
+    background: rgba(0, 0, 0, 0.5); /* Semi-transparent black background for controls */
     display: flex;
     justify-content: center;
     padding: 1rem;
     gap: 1rem;
-    z-index: 101; /* Ensure controls are above iframe */
+    z-index: 101;
 }
 
 .jitsi-controls button {
-    background-color: #4CAF50; /* Green for common call actions */
+    background-color: #f44336; /* Red for hang up */
     color: white;
     padding: 0.75rem 1.5rem;
     border-radius: 9999px; /* Fully rounded buttons */
-    font-size: 1.1rem;
+    font-size: 1.25rem;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: background-color 0.2s, transform 0.2s;
+    transition: background-color 0.2s;
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-    border: none; /* Remove default button border */
 }
 
 .jitsi-controls button:hover {
-    background-color: #45a049; /* Darker green on hover */
-    transform: translateY(-2px);
-}
-
-.jitsi-controls button.hangup {
-    background-color: #f44336; /* Red for hang up */
-}
-
-.jitsi-controls button.hangup:hover {
     background-color: #da190b; /* Darker red on hover */
 }
 
@@ -424,37 +100,222 @@ body {
     margin-right: 0.5rem;
 }
 
-/* --- Confirmation Modal Styles --- */
+
+/* Chat Screen Specific Styles */
+#chat-screen {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    width: 100%;
+    position: relative; /* For header/footer positioning */
+}
+
+#chat-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between; /* Space out title and buttons */
+    padding: 1rem;
+    background-color: #3b82f6; /* Blue header */
+    color: white;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    border-bottom-left-radius: 0.75rem; /* Rounded bottom corners */
+    border-bottom-right-radius: 0.75rem;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 10;
+    width: 100%;
+    max-width: inherit; /* Inherit from parent */
+}
+#chat-header .flex.items-center.gap-2 button { /* Buttons in header */
+    background-color: rgba(255, 255, 255, 0.2);
+    border: none;
+    color: white;
+    font-size: 1.1rem;
+    padding: 0.5rem;
+    border-radius: 9999px;
+    transition: background-color 0.2s;
+}
+#chat-header .flex.items-center.gap-2 button:hover {
+    background-color: rgba(255, 255, 255, 0.3);
+}
+
+#messages-container {
+    flex: 1; /* Take up remaining space */
+    overflow-y: auto;
+    padding: 1rem;
+    padding-top: 72px; /* Account for fixed header */
+    padding-bottom: 92px; /* Account for fixed input area */
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    background-color: #f8fafc; /* Very light background for messages */
+}
+
+#message-input-area {
+    display: flex;
+    align-items: center;
+    padding: 1rem;
+    background-color: #ffffff;
+    box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.05);
+    border-top-left-radius: 0.75rem;
+    border-top-right-radius: 0.75rem;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 10;
+    width: 100%;
+    max-width: inherit; /* Inherit from parent */
+}
+#message-input-area input[type="text"] {
+    flex-grow: 1;
+    padding: 0.75rem 1rem;
+    border: 1px solid #cbd5e1;
+    border-radius: 9999px; /* Fully rounded input */
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+#message-input-area input[type="text"]:focus {
+    border-color: #63b3ed;
+    box-shadow: 0 0 0 3px rgba(99, 179, 237, 0.5);
+}
+#message-input-area label,
+#message-input-area button {
+    background-color: #3b82f6;
+    color: white;
+    padding: 0.75rem;
+    border-radius: 9999px;
+    margin-left: 0.5rem;
+    cursor: pointer;
+    transition: background-color 0.2s, transform 0.1s;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+#message-input-area label:hover,
+#message-input-area button:hover {
+    background-color: #2563eb;
+    transform: translateY(-1px);
+}
+
+.message-bubble {
+    max-width: 75%;
+    padding: 0.75rem 1rem;
+    border-radius: 1rem;
+    margin-bottom: 0.25rem;
+    word-wrap: break-word;
+}
+
+.message-bubble.mine {
+    background-color: #a7d9f7; /* Soft blue */
+    align-self: flex-end;
+    margin-left: auto;
+    border-bottom-right-radius: 0.25rem; /* Slightly less rounded corner on bottom-right for "mine" */
+}
+
+.message-bubble.other {
+    background-color: #e0f2fe; /* Lighter soft blue */
+    align-self: flex-start;
+    margin-right: auto;
+    border-bottom-left-radius: 0.25rem; /* Slightly less rounded corner on bottom-left for "other" */
+}
+
+.message-meta {
+    font-size: 0.75rem;
+    color: #6b7280;
+    margin-top: 0.25rem;
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-end;
+}
+.message-bubble.other .message-meta {
+    justify-content: flex-start;
+}
+
+.message-image {
+    max-width: 100%;
+    max-height: 128px; /* Fixed small size */
+    object-fit: cover; /* Cover area */
+    border-radius: 0.5rem;
+    margin-top: 0.5rem;
+    cursor: pointer;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+.message-file {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    background-color: #e2e8f0; /* Light gray for files */
+    border-radius: 0.5rem;
+    max-width: 250px; /* Limit width for file bubble */
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+.message-file a {
+    color: #2b6cb0; /* Darker blue for link */
+    text-decoration: none;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.message-file a:hover {
+    text-decoration: underline;
+}
+.message-file i {
+    color: #4299e1; /* Blue icon */
+    font-size: 1.25rem;
+    flex-shrink: 0;
+}
+
+.typing-indicator {
+    color: #4a90e2;
+    font-size: 0.8rem;
+    padding-left: 1rem;
+    position: fixed;
+    bottom: 70px; /* Above the input bar */
+    left: 0;
+    right: 0;
+    z-index: 10;
+    background-color: #f8fafc;
+    padding-bottom: 0.5rem;
+    display: none;
+}
+.typing-indicator span {
+    animation: blink 1s infinite;
+}
+.typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+.typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes blink {
+    0%, 100% { opacity: 0.2; }
+    50% { opacity: 1; }
+}
+
+/* Modal for confirmation */
 .modal {
-    display: none; /* Hidden by default, shown by JS */
-    position: fixed; /* Stay in place */
-    z-index: 200; /* Sit on top of everything */
+    display: none;
+    position: fixed;
+    z-index: 200;
     left: 0;
     top: 0;
-    width: 100%; /* Full width */
-    height: 100%; /* Full height */
-    background-color: rgba(0,0,0,0.5); /* Semi-transparent black background overlay */
-    display: flex; /* Use flexbox to center content */
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.4);
     align-items: center;
     justify-content: center;
 }
 
 .modal-content {
-    background-color: #ffffff;
-    margin: auto;
-    padding: 1.5rem;
-    border-radius: 0.75rem; /* Rounded corners */
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-    width: 90%;
+    background-color: #fefefe;
+    padding: 2rem;
+    border-radius: 1rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    width: 80%;
     max-width: 400px;
     text-align: center;
-}
-
-.modal-content p {
-    font-size: 1.125rem;
-    font-weight: 500;
-    margin-bottom: 1.5rem;
-    color: #1f2937;
 }
 
 .modal-content button {
@@ -463,27 +324,23 @@ body {
     border-radius: 0.5rem;
     cursor: pointer;
     font-weight: 600;
-    font-size: 1rem;
-    border: none; /* Remove default button border */
-    transition: all 0.2s ease-in-out;
+    transition: background-color 0.2s, transform 0.1s;
 }
-
 .modal-content .confirm-button {
-    background-color: #3b82f6; /* Blue for confirm */
+    background-color: #3b82f6; /* Blue */
     color: white;
+    border: none;
 }
-
 .modal-content .confirm-button:hover {
     background-color: #2563eb;
     transform: translateY(-1px);
 }
-
 .modal-content .cancel-button {
-    background-color: #cbd5e1; /* Gray for cancel */
+    background-color: #cbd5e1; /* Gray */
     color: #334155;
+    border: none;
 }
-
 .modal-content .cancel-button:hover {
-    background-color: #9ca3af;
+    background-color: #a0aec0;
     transform: translateY(-1px);
 }
