@@ -34,15 +34,14 @@ body {
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    display: flex;
-    justify-content: center;
-    align-items: center;
+    /* REMOVED: display: flex; justify-content: center; align-items: center; from body */
     min-height: 100vh; /* Full viewport height */
     overflow-x: hidden; /* Prevent horizontal scrolling */
 }
 
 /* App Container (overall wrapper for login/chat views) */
-.login-page-container, .chat-app-container-premium { /* Applies to both login and chat main containers */
+/* The login-page-container needs flex centering now that body doesn't do it globally */
+.login-page-container {
     display: flex;
     justify-content: center;
     align-items: center;
@@ -50,8 +49,12 @@ body {
     width: 100%;
 }
 
-/* Specific styling for the main app container on chat.html */
-.chat-app-container-premium {
+.chat-app-container-premium { /* Applies to chat main container */
+    display: flex; /* Kept flex for its internal layout (column) */
+    justify-content: flex-start; /* Ensure content starts from left */
+    align-items: stretch; /* Stretch items to fill width */
+    min-height: 100vh; /* Full height on mobile */
+    width: 100%; /* Take full width */
     background-color: var(--color-white);
     border-radius: 0; /* No border-radius on small screens for full coverage */
     box-shadow: none; /* No shadow on small screens for full coverage */
@@ -64,12 +67,14 @@ body {
 
 /* Responsive adjustment for larger screens (e.g., tablets and desktops) */
 @media (min-width: 600px) {
-    .login-page-container, .chat-app-container-premium {
-        height: 100vh; /* Change to 100vh for full height */
-        margin: 0; /* REMOVED: margin: 2.5vh auto; to go edge-to-edge */
+    .login-page-container {
+        height: 95vh; /* Slightly less than full height on desktop */
+        margin: 2.5vh auto; /* Center login card vertically and horizontally */
     }
 
     .chat-app-container-premium {
+        height: 100vh; /* Full height for chat on desktop */
+        margin: 0; /* Ensure no external margins push it in */
         border-radius: 0; /* Removed rounded corners on large screens for true edge-to-edge */
         box-shadow: none; /* Removed shadow on large screens */
         /* REMOVED: max-width: 420px; to allow it to expand on desktop */
