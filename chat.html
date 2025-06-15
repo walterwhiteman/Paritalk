@@ -4,23 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Paritalk - Chat Room</title>
-    <!-- Google Fonts: Roboto (clean, modern, Apple-like feel) -->
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
-    <!-- Google Material Symbols (Premium Icon Feel) -->
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
-    <!-- Link to our custom styles.css - IMPORTANT: Stays in root as per your structure -->
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,-50..200" rel="stylesheet" />
     <link rel="stylesheet" href="style.css">
 
-    <!-- Jitsi Meet External API - IMPORTANT: MUST be loaded as a regular script before module scripts use it -->
     <script src="https://meet.jit.si/external_api.js"></script>
 </head>
 <body>
     <div id="app-container" class="chat-app-container-premium">
 
-        <!-- Chat Content Wrapper: This div holds all the main chat UI elements -->
-        <!-- It will be hidden/shown by Jitsi video call logic -->
         <div id="chat-content-wrapper">
-            <!-- Chat Header -->
             <header class="chat-header-premium">
                 <div class="chat-header-info">
                     <span class="material-symbols-outlined chat-header-avatar-icon">person</span>
@@ -35,19 +28,14 @@
                 </div>
             </header>
 
-            <!-- Message Area -->
             <main id="messages-container" class="messages-container-premium">
-                <!-- Messages will be appended here -->
-            </main>
+                </main>
 
-            <!-- Typing Indicator -->
             <div id="typing-indicator" class="typing-indicator-premium hidden">
                 <span>.</span><span>.</span><span>.</span>
             </div>
 
-            <!-- Message Input Area -->
             <footer class="message-input-area-premium">
-                <!-- File attachment button - MOVED TO LEFT -->
                 <input type="file" id="image-upload" accept="image/*,video/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation" class="hidden">
                 <label for="image-upload" title="Attach File" class="attach-file-button">
                     <span class="material-symbols-outlined">attach_file</span>
@@ -58,10 +46,7 @@
                     <span class="material-symbols-outlined">send</span>
                 </button>
             </footer>
-        </div> <!-- End #chat-content-wrapper -->
-
-        <!-- Jitsi Video Call Container -->
-        <div id="jitsi-container" class="jitsi-container-premium hidden">
+        </div> <div id="jitsi-container" class="jitsi-container-premium hidden">
             <iframe id="jitsi-iframe" allow="camera; microphone; display-capture; autoplay; fullscreen"></iframe>
             <div id="jitsi-controls" class="jitsi-controls-premium">
                 <button id="hangup-button" class="hangup-button-premium">
@@ -70,7 +55,6 @@
             </div>
         </div>
 
-        <!-- Confirmation Modal -->
         <div id="confirmation-modal" class="modal-premium hidden">
             <div class="modal-content-premium">
                 <p id="modal-message" class="modal-message-text-premium"></p>
@@ -87,7 +71,6 @@
             </div>
         </div>
 
-        <!-- Emoji Picker (hidden by default) - if needed, re-add in chat_main.js for visibility control -->
         <div id="emoji-picker" class="emoji-picker-premium hidden">
             <span class="emoji-option-premium">👍</span>
             <span class="emoji-option-premium">❤️</span>
@@ -99,7 +82,6 @@
 
     </div>
 
-    <!-- Combined Firebase and Supabase JS - THIS BLOCK IS PRESERVED AND ADAPTED -->
     <script type="module">
         // Firebase SDK Imports
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
@@ -385,10 +367,6 @@
             const isMine = message.sender === currentUsername;
             messageElement.classList.add(isMine ? 'mine-bubble-premium' : 'other-bubble-premium');
 
-            if (!isMine && message.sender) {
-                contentHTML += `<p class="message-sender-premium">${message.sender}</p>`;
-            }
-
             if (message.type === 'text') {
                 contentHTML += `<p class="message-content-premium">${message.text}</p>`;
             } else if (message.type === 'image') {
@@ -420,7 +398,13 @@
                 `;
             }
 
-            contentHTML += `<p class="message-timestamp-premium">${formatTimestamp(message.timestamp)}</p>`;
+            // NEW: Combine sender name and timestamp at the bottom
+            contentHTML += `
+                <div class="message-info-footer-premium">
+                    <span class="message-sender-name-bottom">${message.sender}</span>
+                    <span class="message-timestamp-premium">${formatTimestamp(message.timestamp)}</span>
+                </div>
+            `;
 
             messageElement.innerHTML = contentHTML;
             messagesContainer.appendChild(messageElement);
@@ -453,8 +437,7 @@
                     <span class="material-symbols-outlined">close</span>
                 </button>
                 <div class="full-media-display-area">
-                    <!-- Media will be dynamically inserted here -->
-                </div>
+                    </div>
                 <div class="full-media-controls">
                     <a id="full-media-download-link" href="#" download class="full-media-download-button">
                         <span class="material-symbols-outlined">download</span> Download
@@ -547,7 +530,10 @@
                 message.fileUrl = fileUrl;
                 message.fileName = fileName;
                 message.text = 'File'; // Placeholder text
+            } else if (type === 'system') { // Handle system messages correctly
+                message.text = text;
             }
+
 
             try {
                 await push(messagesRef, message);
@@ -767,13 +753,32 @@
             onValue(allTypingRef, (snapshot) => {
                 const typingUsers = [];
                 snapshot.forEach((childSnapshot) => {
-                    if (childSnapshot.key !== currentUserId && childSnapshot.val() === true) {
-                        typingUsers.push(childSnapshot.val().username || 'Someone');
+                    // Only consider users who are actually typing (value is true) AND are not the current user
+                    if (childSnapshot.val() === true && childSnapshot.key !== currentUserId) {
+                        // To get the username, we would need to fetch it from the presence node
+                        // For simplicity now, let's just use a generic 'Someone' or get it from presence if available.
+                        // For a more robust solution, 'typing' node should store the username itself.
+                        // Assuming typing node stores {userId: true}
+                        const presenceSnapshot = snapshot.child(`../presence/${childSnapshot.key}`);
+                        if (presenceSnapshot.exists() && presenceSnapshot.val().username) {
+                            typingUsers.push(presenceSnapshot.val().username);
+                        } else {
+                            typingUsers.push('Someone');
+                        }
                     }
                 });
 
                 if (typingUsers.length > 0) {
-                    typingIndicator.textContent = `${typingUsers[0]} is typing...`;
+                    // Display up to 2 typing users, or "multiple people"
+                    let displayString = '';
+                    if (typingUsers.length === 1) {
+                        displayString = `${typingUsers[0]} is typing`;
+                    } else if (typingUsers.length === 2) {
+                        displayString = `${typingUsers[0]} and ${typingUsers[1]} are typing`;
+                    } else {
+                        displayString = `Multiple people are typing`;
+                    }
+                    typingIndicator.textContent = `${displayString}...`;
                     typingIndicator.classList.remove('hidden');
                 } else {
                     typingIndicator.classList.add('hidden');
@@ -791,8 +796,11 @@
         });
 
         messageInput.addEventListener('blur', () => {
-            setTypingStatus(false);
-            clearTimeout(typingTimeout);
+            // Only set to false if the user is truly not typing or input is empty
+            if (messageInput.value.trim() === '') {
+                 setTypingStatus(false);
+                 clearTimeout(typingTimeout);
+            }
         });
 
         messageInput.addEventListener('keypress', (e) => {
@@ -852,11 +860,11 @@
 
         // FIX: Ensure `remove(presenceRef)` is called for explicit unload/close.
         window.addEventListener('beforeunload', async (e) => {
-            if (presenceRef) {
+            if (presenceRef && currentUserId) { // Only attempt if user ID is known
                 console.log("Beforeunload: Attempting to remove user presence explicitly.");
-                // Using `set(presenceRef, null)` is a robust way to remove data on disconnect.
+                // Use `set(presenceRef, null)` which is effectively a remove.
                 // The `onDisconnect` set up earlier is the primary safeguard for unexpected closures.
-                await set(presenceRef, null); // Explicitly set null to remove presence
+                await set(presenceRef, null);
                 if (jitsiApi) {
                     jitsiApi.dispose(); // Dispose Jitsi API
                 }
