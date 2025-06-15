@@ -8,101 +8,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Font Awesome CDN for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <style>
-        /* Shared styles for consistency */
-        html, body {
-            height: 100%;
-            margin: 0;
-            font-family: 'Inter', sans-serif;
-            background-color: #e0f2fe; /* Lightest blue background */
-        }
-        #app-container {
-            width: 100%;
-            max-width: 480px; /* Max width for mobile-like experience */
-            height: 100vh; /* Full viewport height on small screens */
-            max-height: 900px; /* Max height for larger screens */
-            display: flex;
-            flex-direction: column;
-            border-radius: 1.5rem; /* Large rounded corners for the app container */
-            overflow: hidden;
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1); /* Subtle shadow */
-            background-color: #ffffff; /* White background for the app */
-        }
-        @media (min-width: 640px) {
-            #app-container {
-                height: 95vh;
-                margin: 2.5vh auto;
-            }
-        }
-        /* Login screen specific styles */
-        #login-screen {
-            flex-grow: 1; /* Make it fill available space */
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 1.5rem;
-            background: linear-gradient(to bottom right, #e0f2fe, #ffffff); /* Gradient background */
-            color: #2d3748;
-        }
-        .login-box {
-            background-color: #ffffff;
-            padding: 2rem;
-            border-radius: 1rem;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-            width: 100%;
-            max-width: 320px;
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-        }
-        .login-box label {
-            display: block;
-            font-weight: 600;
-            margin-bottom: 0.5rem;
-            color: #4a5568;
-        }
-        .login-box input {
-            width: 100%;
-            padding: 0.75rem 1rem;
-            border: 1px solid #cbd5e1;
-            border-radius: 0.5rem;
-            font-size: 1rem;
-            color: #2d3748;
-            outline: none;
-            transition: border-color 0.2s, box-shadow 0.2s;
-        }
-        .login-box input:focus {
-            border-color: #63b3ed;
-            box-shadow: 0 0 0 3px rgba(99, 179, 237, 0.5);
-        }
-        #join-chat-button {
-            background-color: #3b82f6; /* Blue */
-            color: white;
-            padding: 0.75rem 1.5rem;
-            border-radius: 0.75rem;
-            font-weight: 700;
-            cursor: pointer;
-            transition: background-color 0.2s, transform 0.1s;
-        }
-        #join-chat-button:hover {
-            background-color: #2563eb;
-            transform: translateY(-1px);
-        }
-        #login-error {
-            text-align: center;
-            margin-top: 1rem;
-            color: #ef4444; /* Red */
-            font-size: 0.9rem;
-        }
-        .privacy-message {
-            font-size: 0.85rem;
-            color: #6b7280;
-            margin-top: 2rem;
-            text-align: center;
-            max-width: 300px;
-        }
-    </style>
+    <!-- Link to our custom styles.css -->
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <div id="app-container">
@@ -128,17 +35,45 @@
         </div>
     </div>
 
-    <!-- Combined Firebase and Supabase JS -->
+    <!-- Main Login Logic (Module) -->
     <script type="module">
-        // Firebase SDK Imports
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-        import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+        import { initializeFirebase, auth, db, get, ref, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from './js/firebase_service.js';
+        import { createSupabaseClient } from './js/supabase_service.js';
 
-        // Supabase Client SDK Import
-        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+        // --- Firebase Configuration (YOUR ACTUAL CONFIG) ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyA8Yj1Z1Mpv2lyt9SRxJ_w4U04BXt8hajk",
+            authDomain: "paritalk.firebaseapp.com",
+            databaseURL: "https://paritalk-default-rtdb.firebaseio.com",
+            projectId: "paritalk",
+            storageBucket: "paritalk.firebasestorage.app",
+            messagingSenderId: "441945619664",
+            appId: "1:441945619664:web:045e0c872e67e0eb9fb2d5"
+        };
+        const initialAuthToken = null; // Used by Canvas; keep null for GitHub Pages
 
-        // --- UI Elements ---
+        // Initialize Firebase services
+        try {
+            initializeFirebase(firebaseConfig);
+            console.log("Firebase services initialized in index.html via module.");
+        } catch (error) {
+            console.error("Error initializing Firebase services in index.html:", error.message);
+            displayLoginError(`App config error: ${error.message}.`);
+        }
+
+        // Supabase Configuration (Using your confirmed URL and provided Anon Key)
+        const SUPABASE_URL = 'https://uokpkgybjzvpngoxasnm.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVva3BrZ3lianp2cG5nb3hhc25tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk5MjE4NTcsImV4cCI6MjA2NTQ5Nzg1N30.FNv_13S3oj7fjartmY2PzKL25T3AWbMxP2KRI0rFU2E';
+
+        let supabaseClient;
+        try {
+            supabaseClient = createSupabaseClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            console.log("Supabase client initialized successfully in index.html via module.");
+        } catch (error) {
+            console.error('Failed to initialize Supabase in index.html:', error);
+        }
+
+        // UI Elements
         const usernameInput = document.getElementById('username-input');
         const roomcodeInput = document.getElementById('roomcode-input');
         const joinChatButton = document.getElementById('join-chat-button');
@@ -149,68 +84,33 @@
             loginError.classList.remove('hidden');
         }
 
-        // --- Firebase Configuration ---
-        const firebaseConfig = {
-            apiKey: "AIzaSyA8Yj1Z1Mpv2lyt9SRxJ_w4U04BXt8hajk",
-            authDomain: "paritalk.firebaseapp.com",
-            databaseURL: "https://paritalk-default-rtdb.firebaseio.com",
-            projectId: "paritalk",
-            storageBucket: "paritalk.firebasestorage.app",
-            messagingSenderId: "441945619664",
-            appId: "1:441945619664:web:045e0c872e67e0eb9fb2d5"
-        };
-        const initialAuthToken = null;
-
-        // Initialize Firebase
-        let app;
-        let auth;
-        let db;
         let currentUserId = null;
 
-        try {
-            app = initializeApp(firebaseConfig);
-            auth = getAuth(app);
-            db = getDatabase(app);
-            console.log("Firebase initialized successfully in index.html.");
-
-            onAuthStateChanged(auth, async (user) => {
-                if (user) {
-                    currentUserId = user.uid;
-                } else {
-                    try {
-                        if (initialAuthToken) {
-                            await signInWithCustomToken(auth, initialAuthToken);
-                        } else {
-                            await signInAnonymously(auth);
-                        }
-                    } catch (error) {
-                        console.error("Error signing in:", error.message);
-                        displayLoginError(`Authentication error: ${error.message}. Please try again.`);
+        // Firebase Auth listener for anonymous sign-in
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                currentUserId = user.uid;
+                console.log("Authenticated with Firebase. User ID:", currentUserId);
+            } else {
+                try {
+                    if (initialAuthToken) {
+                        await signInWithCustomToken(auth, initialAuthToken);
+                        console.log("Signed in with custom token.");
+                    } else {
+                        await signInAnonymously(auth);
+                        console.log("Signed in anonymously.");
                     }
+                } catch (error) {
+                    console.error("Error signing in anonymously:", error.message);
+                    displayLoginError(`Authentication error: ${error.message}. Please try again.`);
                 }
-            });
-        } catch (error) {
-            console.error("Error during Firebase initialization in index.html:", error.message);
-            displayLoginError(`Initialization error: ${error.message}. Make sure your Firebase config is correct.`);
-        }
+            }
+        });
 
-        // Supabase Configuration (Using your confirmed URL and provided Anon Key)
-        const SUPABASE_URL = 'https://uokpkgybjzvpngoxasnm.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVva3BrZ3lianp2cG5nb3hhc25tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk5MjE4NTcsImV4cCI6MjA2NTQ5Nzg1N30.FNv_13S3oj7fjartmY2PzKL25T3AWbMxP2KRI0rFU2E';
-
-        let supabase;
-        try {
-            supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-            console.log("Supabase client initialized successfully in index.html.");
-        } catch (error) {
-            console.error('Failed to initialize Supabase in index.html:', error);
-            supabase = null;
-        }
-
-        // --- Join Chat Logic ---
+        // Join Chat Logic
         joinChatButton.addEventListener('click', async () => {
-            if (!db || !auth || !auth.currentUser || !currentUserId) {
-                displayLoginError("App is not fully loaded. Please wait a moment and try again.");
+            if (!auth || !auth.currentUser || !currentUserId) {
+                displayLoginError("App is not fully loaded. Please wait a moment for authentication to complete.");
                 return;
             }
 
@@ -218,7 +118,7 @@
             const roomCode = roomcodeInput.value.trim();
 
             if (!username || !roomCode) {
-                displayLoginError('Please enter both username and room code.');
+                displayLoginError('Please enter both your name and room code.');
                 return;
             }
 
