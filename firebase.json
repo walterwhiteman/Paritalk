@@ -1,6 +1,6 @@
 {
   "hosting": {
-    "public": ".",  // THIS IS CRUCIAL: It tells Firebase to serve files from the project root
+    "public": ".", 
     "ignore": [
       "firebase.json",
       "**/.*",
