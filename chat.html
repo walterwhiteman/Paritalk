@@ -6,7 +6,7 @@
     <title>Paritalk - Chat Room</title>
     <!-- Google Fonts: Roboto (clean, modern, Apple-like feel) -->
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
-    <!-- Google Material Symbols (Premium Icon Feel) - CRITICAL LINE FOR ICONS -->
+    <!-- Google Material Symbols (Premium Icon Feel) -->
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
     <!-- Link to our custom styles.css - IMPORTANT: Stays in root as per your structure -->
     <link rel="stylesheet" href="style.css">
@@ -404,7 +404,6 @@
                 `;
             }
 
-            // NEW: Combine sender name and timestamp at the bottom
             contentHTML += `
                 <div class="message-info-footer-premium">
                     <span class="message-sender-name-bottom">${message.sender}</span>
@@ -416,13 +415,11 @@
             messagesContainer.appendChild(messageElement);
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
 
-            // Event listener for opening full view of images/files
             if (message.type === 'image' || message.type === 'file') {
                 const mediaPreview = messageElement.querySelector('.message-image-preview') || messageElement.querySelector('.message-file-premium-preview');
                 if (mediaPreview) {
                     mediaPreview.style.cursor = 'pointer';
                     mediaPreview.addEventListener('click', (event) => {
-                        // Prevent click on download icon from also opening the modal
                         if (event.target.closest('.download-icon')) {
                             return;
                         }
@@ -436,10 +433,10 @@
             }
         }
 
-        // --- Full Media View Modal Logic (Dynamically created and appended) ---
+        // --- Full Media View Modal Logic ---
         const fullMediaModal = document.createElement('div');
         fullMediaModal.id = 'full-media-modal';
-        fullMediaModal.classList.add('full-media-modal-premium', 'hidden'); // Ensure hidden by default
+        fullMediaModal.classList.add('full-media-modal-premium', 'hidden');
         fullMediaModal.innerHTML = `
             <div class="full-media-content-premium">
                 <button class="full-media-close-button">
@@ -541,7 +538,6 @@
                 message.text = text;
             }
 
-
             try {
                 await push(messagesRef, message);
                 messageInput.value = '';
@@ -642,8 +638,15 @@
                 typingRef = ref(db, `rooms/${currentRoomCode}/typing/${currentUserId}`);
 
                 try {
+                    // Set user presence
+                    console.log(`Setting presence for user: ${currentUserId} in room: ${currentRoomCode}`);
                     await set(presenceRef, { username: currentUsername, lastSeen: serverTimestamp() });
-                    onDisconnect(presenceRef).remove();
+                    // THIS IS THE PRIMARY MECHANISM for auto-removal on unexpected disconnects
+                    onDisconnect(presenceRef).remove().then(() => {
+                        console.log("onDisconnect handler set up successfully.");
+                    }).catch(error => {
+                        console.error("Error setting onDisconnect handler:", error);
+                    });
 
                     if (!localStorage.getItem('paritalk_joined_message_sent_for_' + currentRoomCode + currentUsername)) {
                         console.log("Sending 'joined' message...");
@@ -661,6 +664,7 @@
 
                 } catch (error) {
                     console.error("Error setting up chat listeners/presence:", error);
+                    // Clear relevant localStorage items for a clean retry
                     localStorage.removeItem('paritalk_username');
                     localStorage.removeItem('paritalk_roomcode');
                     localStorage.removeItem('paritalk_joined_message_sent_for_' + currentRoomCode + currentUsername);
@@ -715,23 +719,43 @@
             });
         }
 
+        // FIX: Ensure remove(presenceRef) is explicitly called and awaited, with better error handling.
         async function handleLeaveRoom() {
+            console.log("Leave Room button clicked.");
             const confirmed = await showModal('Are you sure you want to leave the chat?', true);
             if (confirmed) {
+                console.log("Leave confirmed by user.");
                 const currentJitsiApi = getJitsiApi();
                 if (currentJitsiApi) {
+                    console.log("Ending Jitsi call...");
                     endVideoCall();
                 }
-                if (presenceRef) {
-                    console.log("Leaving room: Explicitly removing user presence.");
-                    await remove(presenceRef);
-                    sendMessage(`**${currentUsername}** left the chat.`, 'system');
+
+                if (presenceRef && currentUserId) {
+                    try {
+                        console.log(`Attempting to explicitly remove presence for ${currentUserId}.`);
+                        await remove(presenceRef); // Explicitly remove user from presence
+                        console.log(`Presence removed for ${currentUserId}.`);
+                        // Only send 'left' message if presence removal was successful
+                        sendMessage(`**${currentUsername}** left the chat.`, 'system');
+                    } catch (error) {
+                        console.error("Error removing presence on leave:", error);
+                        showModal('Failed to leave room cleanly: ' + error.message, false);
+                    }
+                } else {
+                    console.warn("Presence reference or current user ID not available. Cannot explicitly remove presence.");
                 }
+                
+                // Clear localStorage regardless of explicit presence removal success,
+                // as `onDisconnect` should eventually clean up if explicit fails.
                 localStorage.removeItem('paritalk_username');
                 localStorage.removeItem('paritalk_roomcode');
                 localStorage.removeItem('paritalk_joined_message_sent_for_' + currentRoomCode + currentUsername);
 
+                console.log("Redirecting to index.html...");
                 window.location.href = 'index.html';
+            } else {
+                console.log("Leave cancelled by user.");
             }
             hideModal();
         }
@@ -843,10 +867,18 @@
         } else { console.error("Modal Cancel button not found!"); }
 
 
+        // FIX: Ensure `remove(presenceRef)` is called for explicit unload/close with logging.
         window.addEventListener('beforeunload', async (e) => {
             if (presenceRef && currentUserId) {
-                console.log("Beforeunload: Attempting to remove user presence explicitly.");
-                await set(presenceRef, null);
+                console.log("Beforeunload event: Attempting to remove user presence explicitly.");
+                try {
+                    // This explicit `set(null)` will attempt to remove the presence immediately.
+                    // However, `onDisconnect` is still the most reliable fallback for unexpected closures.
+                    await set(presenceRef, null);
+                    console.log("Presence explicitly removed on beforeunload.");
+                } catch (error) {
+                    console.error("Error explicitly removing presence on beforeunload:", error);
+                }
                 if (jitsiApi) {
                     jitsiApi.dispose();
                 }
