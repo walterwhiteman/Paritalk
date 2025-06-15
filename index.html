@@ -4,36 +4,52 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Paritalk - Login</title>
-    <!-- Link to our custom styles.css -->
-    <link rel="stylesheet" href="styles.css">
-    <!-- Font Awesome CDN for icons (used in chat.html, but good to have here for consistency) -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Google Fonts: Roboto (clean, modern, Apple-like feel) -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <!-- Google Material Symbols (Premium Icon Feel) -->
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
+    <!-- Link to our custom styles.css - IMPORTANT: Stays in root as per your structure -->
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div id="app-container">
-        <!-- Login Screen -->
-        <div id="login-screen">
-            <h1 class="text-4xl font-bold mb-4 text-blue-600">Paritalk</h1>
-            <p class="text-lg text-center mb-6">A private space for intimate conversation.</p>
-            <div class="login-box">
-                <div class="mb-5">
-                    <label for="roomcode-input">Room Code</label>
-                    <input type="text" id="roomcode-input" placeholder="Enter room code" required>
-                </div>
-                <div class="mb-6">
-                    <label for="username-input">Your Name</label>
-                    <input type="text" id="username-input" placeholder="Enter your username" required>
-                </div>
-                <button id="join-chat-button">Join Chat</button>
-                <p id="login-error" class="text-red-500 text-xs italic mt-4 hidden"></p>
+    <div class="login-page-container">
+        <!-- Login Screen Content -->
+        <div class="login-card">
+            <!-- App Logo/Icon Area -->
+            <div class="app-brand-logo-circle">
+                <span class="material-symbols-outlined app-brand-icon">favorite</span> <!-- Heart icon for premium feel -->
             </div>
-            <p class="privacy-message mt-8">
-                🔒 Your conversations are private and secure. Share the room code only with someone special.
+            <h1 class="app-brand-title">Paritalk</h1>
+            <p class="app-tagline">A private space for intimate conversations</p>
+            
+            <div class="input-form-section">
+                <div class="input-group-premium">
+                    <label for="roomcode-input" class="input-label-premium">
+                        <span class="material-symbols-outlined input-icon-premium">lock</span>
+                        Room Code
+                    </label>
+                    <input type="text" id="roomcode-input" placeholder="Enter your private room code" required class="input-field-premium">
+                </div>
+                <div class="input-group-premium">
+                    <label for="username-input" class="input-label-premium">
+                        <span class="material-symbols-outlined input-icon-premium">person</span>
+                        Your Name
+                    </label>
+                    <input type="text" id="username-input" placeholder="How should we call you?" required class="input-field-premium">
+                </div>
+                
+                <button id="join-chat-button" class="primary-action-button">Enter Chat Room</button>
+                <p id="login-error" class="error-message-premium hidden"></p>
+            </div>
+
+            <p class="privacy-note-premium">
+                <span class="material-symbols-outlined privacy-icon-premium">verified_user</span> <!-- More premium feel icon -->
+                Your conversations are private and secure. Share the room code only with someone special.
             </p>
         </div>
     </div>
 
-    <!-- Combined Firebase and Supabase JS -->
+    <!-- Combined Firebase and Supabase JS - THIS BLOCK REMAINS UNCHANGED -->
     <script type="module">
         // Firebase SDK Imports
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
