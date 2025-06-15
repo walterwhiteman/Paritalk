@@ -1,1219 +1,920 @@
-/* style.css - Full Responsive Design */
-
-/* Universal Box-sizing */
-*, *::before, *::after {
-    box-sizing: border-box;
-}
-
-/* Color Variables for easy theme management */
-:root {
-    --color-primary-blue: #3469F5; /* A vibrant blue like Signal's logo */
-    --color-primary-blue-dark: #2A54D4; /* Slightly darker for hover */
-    --color-primary-blue-light: #EBF1FF; /* Very light blue for backgrounds/accents */
-    --color-white: #FFFFFF;
-    --color-off-white: #F9F9F9; /* Subtle background for pages/cards */
-    --color-light-gray: #E5E5EA; /* For borders, subtle dividers */
-    --color-medium-gray: #8E8E93; /* For secondary text, placeholders */
-    --color-dark-gray: #1C1C1C; /* For primary text */
-    --color-error: #FF453A; /* A clean red for errors */
-    --color-success: #34C759; /* Green for online/success */
-
-    --border-radius-small: 8px;
-    --border-radius-medium: 12px;
-    --border-radius-large: 18px;
-    --border-radius-full: 9999px; /* Max value for perfect circles/pill shapes */
-}
-
-/* Basic Loading Spinner Styles (Moved from HTML inline style) */
-.loading-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: var(--color-white); /* Match app background */
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    flex-direction: column;
-    z-index: 9999; /* Ensure it's on top */
-    transition: opacity 0.3s ease;
-}
-.loading-overlay.hidden {
-    opacity: 0;
-    pointer-events: none; /* Allow clicks through once hidden */
-}
-.loading-spinner {
-    border: 4px solid var(--color-light-gray);
-    border-top: 4px solid var(--color-primary-blue);
-    border-radius: 50%;
-    width: 40px;
-    height: 40px;
-    animation: spin 1s linear infinite;
-}
-.loading-text {
-    margin-top: 15px;
-    color: var(--color-medium-gray);
-    font-size: 0.9em;
-}
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
-
-/* Base Body Styles */
-body {
-    font-family: 'Roboto', sans-serif;
-    margin: 0;
-    padding: 0;
-    background-color: var(--color-off-white); /* Soft off-white background */
-    color: var(--color-dark-gray);
-    line-height: 1.6;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    min-height: 100vh; /* Full viewport height */
-    overflow-x: hidden; /* Prevent horizontal scrolling */
-}
-
-/* App Container (overall wrapper for login/chat views) */
-/* The login-page-container needs flex centering now that body doesn't do it globally */
-.login-page-container {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 100vh; /* Full height on mobile */
-    width: 100%;
-}
-
-.chat-app-container-premium { /* Applies to chat main container */
-    display: flex; /* Kept flex for its internal layout (column) */
-    justify-content: flex-start; /* Ensure content starts from left */
-    align-items: stretch; /* Stretch items to fill width */
-    min-height: 100vh; /* Full height on mobile */
-    width: 100%; /* Take full width */
-    background-color: var(--color-white);
-    border-radius: 0; /* No border-radius on small screens for full coverage */
-    box-shadow: none; /* No shadow on small screens for full coverage */
-    max-width: 100%; /* Take full width on mobile */
-    height: 100vh;
-    overflow: hidden;
-    position: relative; /* For overlays like Jitsi/modals */
-    flex-direction: column; /* Default flex direction for chat content */
-}
-
-/* Responsive adjustment for larger screens (e.g., tablets and desktops) */
-@media (min-width: 600px) {
-    .login-page-container {
-        height: 95vh; /* Slightly less than full height on desktop */
-        margin: 2.5vh auto; /* Center login card vertically and horizontally */
-    }
-
-    .chat-app-container-premium {
-        height: 100vh; /* Full height for chat on desktop */
-        margin: 0; /* Ensure no external margins push it in */
-        border-radius: 0; /* Removed rounded corners on large screens for true edge-to-edge */
-        box-shadow: none; /* Removed shadow on large screens */
-    }
-}
-
-
-/* --- Login Screen Styles (targeting new classes from index.html) --- */
-.login-card {
-    background-color: var(--color-white);
-    padding: 2rem; /* Adjusted for mobile */
-    border-radius: var(--border-radius-medium);
-    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.06);
-    text-align: center;
-    width: 90%;
-    max-width: 380px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 1.2rem; /* Adjusted for mobile */
-}
-
-@media (min-width: 600px) {
-    .login-card {
-        padding: 2.5rem;
-        gap: 1.5rem;
-    }
-}
-
-.app-brand-logo-circle {
-    background-color: var(--color-primary-blue-light);
-    border-radius: var(--border-radius-full);
-    width: 80px; /* Adjusted for mobile */
-    height: 80px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    margin-bottom: 0.5rem;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-}
-
-@media (min-width: 600px) {
-    .app-brand-logo-circle {
-        width: 90px;
-        height: 90px;
-    }
-}
-
-.app-brand-icon {
-    font-size: 45px; /* Adjusted for mobile */
-    color: var(--color-primary-blue);
-    font-variation-settings: 'FILL' 1; /* Filled icon for branding */
-}
-
-@media (min-width: 600px) {
-    .app-brand-icon {
-        font-size: 50px;
-    }
-}
-
-.app-brand-title {
-    font-size: 2rem; /* Adjusted for mobile */
-    font-weight: 700;
-    color: var(--color-dark-gray);
-    margin: 0;
-    letter-spacing: -0.02em;
-}
-
-@media (min-width: 600px) {
-    .app-brand-title {
-        font-size: 2.2rem;
-    }
-}
-
-.app-tagline {
-    font-size: 0.9rem; /* Adjusted for mobile */
-    color: var(--color-medium-gray);
-    margin-top: -0.5rem;
-    margin-bottom: 1rem; /* Adjusted for mobile */
-}
-
-@media (min-width: 600px) {
-    .app-tagline {
-        font-size: 0.95rem;
-        margin-bottom: 1.5rem;
-    }
-}
-
-.input-form-section {
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    gap: 1rem; /* Adjusted for mobile */
-}
-
-@media (min-width: 600px) {
-    .input-form-section {
-        gap: 1.2rem;
-    }
-}
-
-.input-group-premium {
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-}
-
-.input-label-premium {
-    font-size: 0.8rem; /* Adjusted for mobile */
-    color: var(--color-dark-gray);
-    font-weight: 500;
-    margin-bottom: 0.3rem; /* Adjusted for mobile */
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-}
-
-@media (min-width: 600px) {
-    .input-label-premium {
-        font-size: 0.85rem;
-        margin-bottom: 0.4rem;
-    }
-}
-
-.input-icon-premium {
-    font-size: 16px; /* Adjusted for mobile */
-    color: var(--color-medium-gray);
-    font-variation-settings: 'FILL' 0;
-}
-
-@media (min-width: 600px) {
-    .input-icon-premium {
-        font-size: 18px;
-    }
-}
-
-.input-field-premium {
-    width: 100%;
-    padding: 0.8rem 1rem; /* Adjusted for mobile */
-    border: 1px solid var(--color-light-gray);
-    border-radius: var(--border-radius-small);
-    font-size: 0.9em; /* Adjusted for mobile */
-    color: var(--color-dark-gray);
-    outline: none;
-    transition: border-color 0.3s ease, box-shadow 0.3s ease;
-}
-
-@media (min-width: 600px) {
-    .input-field-premium {
-        padding: 0.9rem 1.1rem;
-        font-size: 0.95em;
-    }
-}
-
-.input-field-premium::placeholder {
-    color: var(--color-medium-gray);
-}
-
-.input-field-premium:focus {
-    border-color: var(--color-primary-blue);
-    box-shadow: 0 0 0 3px rgba(52, 105, 245, 0.2);
-}
-
-.primary-action-button {
-    width: 100%;
-    padding: 1rem 1.2rem; /* Adjusted for mobile */
-    background-color: var(--color-primary-blue);
-    color: var(--color-white);
-    border: none;
-    border-radius: var(--border-radius-small);
-    font-size: 0.95em; /* Adjusted for mobile */
-    font-weight: 600;
-    cursor: pointer;
-    transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    margin-top: 0.8rem;
-    box-shadow: 0 5px 15px rgba(52, 105, 245, 0.25);
-}
-
-@media (min-width: 600px) {
-    .primary-action-button {
-        padding: 1.1rem 1.4rem;
-        font-size: 1em;
-    }
-}
-
-.primary-action-button:hover {
-    background-color: var(--color-primary-blue-dark);
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(52, 105, 245, 0.35);
-}
-
-.primary-action-button:active {
-    background-color: var(--color-primary-blue-dark);
-    transform: translateY(0);
-}
-
-.error-message-premium {
-    color: var(--color-error);
-    font-size: 0.75em; /* Adjusted for mobile */
-    margin-top: 0.5rem;
-    text-align: center;
-}
-
-@media (min-width: 600px) {
-    .error-message-premium {
-        font-size: 0.8em;
-    }
-}
-
-.privacy-note-premium {
-    font-size: 0.75em; /* Adjusted for mobile */
-    color: var(--color-medium-gray);
-    margin-top: 1.5rem;
-    line-height: 1.4;
-    display: flex;
-    align-items: flex-start;
-    justify-content: center;
-    gap: 0.4rem;
-    padding: 0.6rem 0.8rem; /* Adjusted for mobile */
-    border-radius: var(--border-radius-small);
-    background-color: var(--color-primary-blue-light);
-    border: 1px solid rgba(52, 105, 245, 0.1);
-    box-shadow: inset 0 1px 3px rgba(0,0,0,0.02);
-}
-
-@media (min-width: 600px) {
-    .privacy-note-premium {
-        font-size: 0.8em;
-        padding: 0.7rem 1em;
-    }
-}
-
-.privacy-icon-premium {
-    font-size: 15px; /* Adjusted for mobile */
-    color: var(--color-primary-blue);
-    font-variation-settings: 'FILL' 1;
-    flex-shrink: 0;
-    margin-top: 2px;
-}
-
-@media (min-width: 600px) {
-    .privacy-icon-premium {
-        font-size: 16px;
-    }
-}
-
-
-/* --- Chat Screen Styles (targeting classes from chat.html) --- */
-#chat-content-wrapper {
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-    width: 100%;
-    background-color: var(--color-off-white);
-}
-
-/* Chat Header */
-.chat-header-premium {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0.7rem 1em; /* Adjusted for mobile */
-    background-color: var(--color-white);
-    color: var(--color-dark-gray);
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
-    position: fixed; /* Changed from sticky to fixed */
-    top: 0;
-    left: 0; /* Ensure it sticks to the left edge */
-    width: 100%;
-    z-index: 10;
-    border-bottom: 1px solid var(--color-light-gray);
-}
-
-@media (min-width: 600px) {
-    .chat-header-premium {
-        padding: 0.8rem 1.2em;
-    }
-}
-
-.chat-header-info {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem; /* Adjusted for mobile */
-}
-
-@media (min-width: 600px) {
-    .chat-header-info {
-        gap: 0.6rem;
-    }
-}
-
-.chat-header-avatar-icon {
-    font-size: 26px; /* Adjusted for mobile */
-    color: var(--color-primary-blue);
-    background-color: var(--color-primary-blue-light);
-    border-radius: var(--border-radius-full);
-    padding: 0.25rem; /* Adjusted for mobile */
-    font-variation-settings: 'FILL' 1;
-}
-
-@media (min-width: 600px) {
-    .chat-header-avatar-icon {
-        font-size: 28px;
-        padding: 0.3rem;
-    }
-}
-
-.chat-header-details {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-}
-
-.chat-room-display-name {
-    font-size: 1em; /* Adjusted for mobile */
-    font-weight: 500;
-    margin: 0;
-    color: var(--color-dark-gray);
-    line-height: 1.2;
-}
-
-@media (min-width: 600px) {
-    .chat-room-display-name {
-        font-size: 1.1em;
-    }
-}
-
-.chat-online-users-count {
-    font-size: 0.7em; /* Adjusted for mobile */
-    color: var(--color-medium-gray);
-    display: flex;
-    align-items: center;
-    gap: 0.3rem;
-    margin-top: 0.1rem;
-}
-
-@media (min-width: 600px) {
-    .chat-online-users-count .status-dot {
-        width: 8px;
-        height: 8px;
-    }
-}
-
-.chat-online-users-count .status-dot {
-    width: 7px; /* Adjusted for mobile */
-    height: 7px;
-    background-color: var(--color-success);
-    border-radius: var(--border-radius-full);
-    display: inline-block;
-}
-
-.chat-header-actions {
-    display: flex;
-    gap: 0.3rem; /* Adjusted for mobile */
-}
-
-@media (min-width: 600px) {
-    .chat-header-actions {
-        gap: 0.4rem;
-    }
-}
-
-.chat-action-icon {
-    font-size: 22px; /* Adjusted for mobile */
-    color: var(--color-medium-gray);
-    cursor: pointer;
-    padding: 0.4rem; /* Adjusted for mobile */
-    border-radius: var(--border-radius-full);
-    transition: background-color 0.2s ease, color 0.2s ease, font-variation-settings 0.2s ease;
-    font-variation-settings: 'FILL' 0; /* Default to outlined */
-}
-
-@media (min-width: 600px) {
-    .chat-action-icon {
-        font-size: 24px;
-        padding: 0.5rem;
-    }
-}
-
-.chat-action-icon:hover {
-    background-color: var(--color-off-white);
-    color: var(--color-primary-blue);
-    font-variation-settings: 'FILL' 1;
-}
-
-
-/* Chat Messages Area */
-.messages-container-premium {
-    flex-grow: 1;
-    overflow-y: auto;
-    padding: 0.8rem; /* Adjusted for mobile */
-    /* Updated padding-top/bottom to account for fixed header/footer height */
-    padding-top: calc(4.5rem + 0.7rem); /* Header height + some extra */
-    padding-bottom: calc(4.5rem + 0.6rem); /* Footer height + some extra */
-    display: flex;
-    flex-direction: column;
-    gap: 0.4rem; /* Adjusted for tighter gap between bubbles */
-    background-color: var(--color-off-white);
-}
-
-@media (min-width: 600px) {
-    .messages-container-premium {
-        padding: 1em;
-        padding-top: calc(5em + 0.8rem); /* Adjusted for desktop header height */
-        padding-bottom: calc(5em + 0.75rem); /* Adjusted for desktop footer height */
-        gap: 0.5rem; /* Adjusted for tighter gap */
-    }
-}
-
-/* Custom Scrollbar for messages-container-premium */
-.messages-container-premium::-webkit-scrollbar {
-    width: 8px;
-}
-.messages-container-premium::-webkit-scrollbar-track {
-    background: var(--color-off-white);
-}
-.messages-container-premium::-webkit-scrollbar-thumb {
-    background-color: var(--color-light-gray);
-    border-radius: 4px;
-}
-.messages-container-premium::-webkit-scrollbar-thumb:hover {
-    background-color: var(--color-medium-gray);
-}
-
-/* Message Bubble */
-.message-bubble-premium {
-    max-width: 80%;
-    word-wrap: break-word;
-    border-radius: var(--border-radius-medium);
-    padding: 0.5rem 0.8rem; /* Adjusted for smaller padding */
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
-    position: relative;
-}
-
-@media (min-width: 600px) {
-    .message-bubble-premium {
-        padding: 0.6rem 0.9em; /* Adjusted for smaller padding */
-    }
-}
-
-.mine-bubble-premium {
-    align-self: flex-end;
-    background-color: var(--color-primary-blue-light);
-    color: var(--color-dark-gray);
-    border-bottom-right-radius: var(--border-radius-small);
-}
-
-.other-bubble-premium {
-    align-self: flex-start;
-    background-color: var(--color-white);
-    color: var(--color-dark-gray);
-    border-bottom-left-radius: var(--border-radius-small);
-}
-
-.system-message-premium {
-    background-color: transparent;
-    box-shadow: none;
-    text-align: center; /* Keeps the text centered within the bubble */
-    font-size: 0.75em; /* Adjusted for mobile */
-    color: var(--color-medium-gray);
-    font-style: italic;
-    width: 100%; /* Ensures the bubble itself tries to take full width */
-    margin: 0.3rem 0; /* Adjusted for mobile */
-    align-self: center; /* ADDED: Centers the entire system message bubble horizontally */
-}
-
-@media (min-width: 600px) {
-    .system-message-premium {
-        font-size: 0.8em;
-        margin: 0.4rem 0;
-    }
-}
-
-.message-content-premium {
-    font-size: 0.9em; /* Adjusted for mobile */
-    color: inherit;
-}
-
-@media (min-width: 600px) {
-    .message-content-premium {
-        font-size: 0.95em;
-    }
-}
-
-/* --- Message Info Footer (Sender and Timestamp) --- */
-/* This is for the structure where sender and timestamp are together at the bottom */
-.message-info-footer-premium {
-    display: flex;
-    gap: 0.4rem; /* Small gap between sender and timestamp */
-    margin-top: 0.15rem; /* Small gap between content and footer */
-    font-size: 0.65em; /* Make sender and timestamp small and same size */
-    color: var(--color-medium-gray);
-}
-
-.mine-bubble-premium .message-info-footer-premium {
-    justify-content: flex-end;
-}
-
-.other-bubble-premium .message-info-footer-premium {
-    justify-content: flex-start;
-}
-
-.message-sender-name-bottom {
-    font-weight: 500;
-    /* Color will be inherited from .message-info-footer-premium for consistency */
-}
-
-.message-timestamp-premium {
-    white-space: nowrap; /* Prevent timestamp from wrapping */
-}
-
-/* File/Image Previews */
-.message-image-preview {
-    max-width: 150px; /* Fixed width for image preview */
-    max-height: 100px; /* Fixed height for image preview */
-    overflow: hidden;
-    border-radius: var(--border-radius-small);
-    margin-top: 0.4rem;
-    position: relative; /* For overlay icon */
-    cursor: pointer;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-    display: flex; /* To center content within */
-    justify-content: center;
-    align-items: center;
-    background-color: var(--color-light-gray); /* Placeholder background */
-}
-
-.message-image-premium-thumb {
-    width: 100%;
-    height: 100%;
-    object-fit: cover; /* Cover the container */
-    display: block;
-    transition: opacity 0.2s ease;
-}
-
-.message-image-preview .message-media-overlay-icon {
-    position: absolute;
-    font-size: 30px; /* Larger icon */
-    color: rgba(255, 255, 255, 0.9); /* White icon */
-    background-color: rgba(0, 0, 0, 0.4); /* Dark overlay for icon */
-    border-radius: var(--border-radius-full);
-    padding: 0.4rem;
-    transition: background-color 0.2s ease, transform 0.2s ease;
-    opacity: 0; /* Hidden by default */
-}
-
-.message-image-preview:hover .message-media-overlay-icon {
-    opacity: 1; /* Show on hover */
-    transform: scale(1.1);
-}
-.message-image-preview:hover .message-image-premium-thumb {
-    opacity: 0.8; /* Dim image slightly on hover */
-}
-
-
-.message-file-premium-preview {
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-    background-color: var(--color-primary-blue-light);
-    padding: 0.6rem 0.8rem;
-    border-radius: var(--border-radius-small);
-    margin-top: 0.4rem;
-    color: var(--color-primary-blue);
-    font-weight: 500;
-    word-break: break-all;
-    max-width: 200px; /* Fixed max width for file bubble */
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-    transition: background-color 0.2s ease;
-    position: relative; /* For download icon */
-}
-
-.message-file-premium-preview:hover {
-    background-color: rgba(52, 105, 245, 0.2); /* Slightly darker blue on hover */
-}
-
-.message-file-premium-preview .file-icon {
-    font-size: 20px;
-    color: var(--color-primary-blue);
-    flex-shrink: 0;
-}
-
-.message-file-premium-preview .file-name-link {
-    text-decoration: none;
-    color: inherit;
-    word-break: break-all;
-    flex-grow: 1; /* Allow link to take space */
-    white-space: nowrap; /* Prevent wrapping initially */
-    overflow: hidden; /* Hide overflow */
-    text-overflow: ellipsis; /* Show ellipsis for long names */
-    max-width: calc(100% - 60px); /* Adjust max-width considering icon and download button */
-}
-.message-file-premium-preview .file-name-link:hover {
-    text-decoration: underline;
-}
-
-.message-file-premium-preview .download-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--color-primary-blue);
-    text-decoration: none;
-    padding: 0.2rem;
-    border-radius: var(--border-radius-full);
-    transition: background-color 0.2s ease;
-    flex-shrink: 0;
-}
-.message-file-premium-preview .download-icon:hover {
-    background-color: rgba(52, 105, 245, 0.1);
-}
-.message-file-premium-preview .download-icon .material-symbols-outlined {
-    font-size: 20px;
-    font-variation-settings: 'FILL' 0; /* Outlined download icon */
-}
-
-
-/* Typing Indicator */
-.typing-indicator-premium {
-    font-size: 0.8em; /* Adjusted for mobile */
-    color: var(--color-medium-gray);
-    padding: 0.4rem 1em;
-    text-align: left;
-    position: absolute; /* Changed to absolute to position relative to chat-app-container-premium */
-    bottom: 4.5rem; /* Based on footer height */
-    left: 0;
-    width: 100%;
-    background-color: var(--color-off-white);
-    z-index: 9;
-    display: none; /* Keep this as 'none', JS will remove/add .hidden */
-}
-
-@media (min-width: 600px) {
-    .typing-indicator-premium {
-        font-size: 0.85em;
-    }
-}
-
-.typing-indicator-premium span {
-    animation: bounce-dot 1s infinite;
-}
-.typing-indicator-premium span:nth-child(2) { animation-delay: 0.2s; }
-.typing-indicator-premium span:nth-child(3) { animation-delay: 0.4s; }
-
-@keyframes bounce-dot {
-    0%, 80%, 100% { transform: scale(0); opacity: 0; }
-    40% { transform: scale(1); opacity: 1; }
-}
-
-/* Chat Footer (Message Input Area) */
-.message-input-area-premium {
-    display: flex;
-    align-items: center;
-    padding: 0.6rem 0.8em; /* Adjusted for mobile */
-    background-color: var(--color-white);
-    box-shadow: 0 -1px 4px rgba(0, 0, 0, 0.08);
-    position: fixed; /* Changed from sticky to fixed */
-    bottom: 0;
-    left: 0; /* Ensure it sticks to the left edge */
-    width: 100%;
-    z-index: 10;
-}
-
-@media (min-width: 600px) {
-    .message-input-area-premium {
-        padding: 0.75rem 1em;
-    }
-}
-
-.attach-file-button {
-    background-color: var(--color-off-white);
-    border-radius: var(--border-radius-full);
-    width: 40px; /* Adjusted for mobile */
-    height: 40px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    cursor: pointer;
-    transition: background-color 0.2s ease;
-    margin-right: 0.5rem; /* Adjusted for mobile */
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-}
-
-@media (min-width: 600px) {
-    .attach-file-button {
-        width: 44px;
-        height: 44px;
-        margin-right: 0.6rem;
-    }
-}
-
-.attach-file-button:hover {
-    background-color: var(--color-light-gray);
-}
-
-.attach-file-button .material-symbols-outlined {
-    font-size: 20px; /* Adjusted for mobile */
-    color: var(--color-medium-gray);
-}
-
-@media (min-width: 600px) {
-    .attach-file-button .material-symbols-outlined {
-        font-size: 22px;
-    }
-}
-
-.message-input-area-premium #message-input {
-    flex-grow: 1;
-    padding: 0.7rem 1em; /* Adjusted for mobile */
-    border: 1px solid var(--color-light-gray);
-    border-radius: var(--border-radius-full);
-    font-size: 0.9em; /* Adjusted for mobile */
-    outline: none;
-    transition: border-color 0.3s ease, box-shadow 0.3s ease;
-}
-
-@media (min-width: 600px) {
-    .message-input-area-premium #message-input {
-        padding: 0.8rem 1.2em;
-        font-size: 0.95em;
-    }
-}
-
-.message-input-area-premium #message-input:focus {
-    border-color: var(--color-primary-blue);
-    box-shadow: 0 0 0 3px rgba(52, 105, 245, 0.2);
-}
-
-.send-message-button {
-    background-color: var(--color-primary-blue);
-    border: none;
-    border-radius: var(--border-radius-full);
-    width: 40px; /* Adjusted for mobile */
-    height: 40px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    cursor: pointer;
-    transition: background-color 0.2s ease, transform 0.2s ease;
-    margin-left: 0.5rem; /* Adjusted for mobile */
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-}
-
-@media (min-width: 600px) {
-    .send-message-button {
-        width: 44px;
-        height: 44px;
-        margin-left: 0.6rem;
-    }
-}
-
-.send-message-button:hover {
-    background-color: var(--color-primary-blue-dark);
-    transform: scale(1.05);
-}
-
-.send-message-button .material-symbols-outlined {
-    font-size: 20px;
-    color: var(--color-white);
-    font-variation-settings: 'FILL' 1;
-}
-
-@media (min-width: 600px) {
-    .send-message-button .material-symbols-outlined {
-        font-size: 22px;
-    }
-}
-
-
-/* --- Jitsi Video Call UI (responsive) --- */
-.jitsi-container-premium {
-    position: fixed; /* Changed to fixed for full viewport coverage */
-    top: 0;
-    left: 0;
-    width: 100vw; /* Full viewport width */
-    height: 100vh; /* Full viewport height */
-    background-color: #000000;
-    z-index: 100;
-    display: none; /* Keep hidden by default, JS will change to flex */
-    flex-direction: column;
-}
-
-.jitsi-container-premium iframe {
-    width: 100%;
-    height: calc(100% - 60px); /* Adjust height to accommodate controls on mobile */
-    border: none;
-}
-
-@media (min-width: 600px) {
-    .jitsi-container-premium iframe {
-        height: calc(100% - 70px); /* Taller controls on desktop */
-    }
-}
-
-.jitsi-controls-premium {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    height: 60px; /* Controls height for mobile */
-    background-color: rgba(0, 0, 0, 0.8);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 1rem; /* Adjusted for mobile */
-    z-index: 101;
-}
-
-@media (min-width: 600px) {
-    .jitsi-controls-premium {
-        height: 70px;
-        gap: 1.5rem;
-    }
-}
-
-.hangup-button-premium {
-    background-color: var(--color-error);
-    color: var(--color-white);
-    border: none;
-    border-radius: var(--border-radius-full);
-    width: 55px; /* Adjusted for mobile */
-    height: 55px;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    cursor: pointer;
-    font-size: 0.7em; /* Adjusted for mobile */
-    font-weight: 500;
-    transition: background-color 0.2s ease, transform 0.2s ease;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-}
-
-@media (min-width: 600px) {
-    .hangup-button-premium {
-        width: 60px;
-        height: 60px;
-        font-size: 0.75em;
-    }
-}
-
-.hangup-button-premium:hover {
-    background-color: #CC2929;
-    transform: translateY(-2px);
-}
-
-.hangup-button-premium .material-symbols-outlined {
-    font-size: 30px; /* Adjusted for mobile */
-    margin-bottom: 0.1rem;
-    font-variation-settings: 'FILL' 1;
-}
-
-@media (min-width: 600px) {
-    .hangup-button-premium .material-symbols-outlined {
-        font-size: 32px;
-    }
-}
-
-/* --- Full Media Modal (New) --- */
-#full-media-modal {
-    position: fixed; /* Fixed to viewport */
-    top: 0;
-    left: 0;
-    width: 100vw; /* Full viewport width */
-    height: 100vh; /* Full viewport height */
-    background-color: rgba(0, 0, 0, 0.85); /* Darker opaque overlay */
-    z-index: 200; /* Above all other content, even Jitsi */
-    display: none; /* Keep hidden by default, JS will change to flex */
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    opacity: 0; /* Start hidden */
-    visibility: hidden; /* Also hidden */
-    transition: opacity 0.3s ease, visibility 0.3s ease;
-}
-
-#full-media-modal:not(.hidden) {
-    opacity: 1;
-    visibility: visible;
-}
-
-.full-media-content-premium {
-    position: relative;
-    max-width: 90%;
-    max-height: 90%;
-    background-color: #000; /* Black background for media */
-    border-radius: var(--border-radius-medium);
-    display: flex;
-    flex-direction: column;
-    box-shadow: 0 5px 20px rgba(0,0,0,0.5);
-    overflow: hidden; /* Hide anything outside content area */
-    padding: 20px;
-}
-
-.full-media-close-button {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    background-color: rgba(255, 255, 255, 0.2);
-    color: var(--color-white);
-    border: none;
-    border-radius: var(--border-radius-full);
-    width: 36px;
-    height: 36px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    cursor: pointer;
-    font-size: 20px;
-    z-index: 201; /* Above media content */
-    transition: background-color 0.2s ease;
-}
-.full-media-close-button:hover {
-    background-color: rgba(255, 255, 255, 0.4);
-}
-
-.full-media-display-area {
-    flex-grow: 1;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 20px;
-    overflow: auto; /* Allow scrolling for large media */
-}
-
-.full-media-image, .full-media-video, .full-media-document {
-    max-width: 100%;
-    max-height: 100%;
-    object-fit: contain; /* Contain within the display area */
-    border-radius: var(--border-radius-small);
-}
-
-.full-media-video {
-    width: 100%; /* Ensure video takes full width of its container */
-    height: auto;
-}
-
-.full-media-document {
-    width: 100%;
-    height: 100%;
-    min-height: 300px; /* Ensure iframe has a minimum height */
-}
-
-.full-media-info-text {
-    color: var(--color-medium-gray);
-    font-size: 1em;
-    text-align: center;
-}
-
-.full-media-controls {
-    background-color: rgba(0, 0, 0, 0.7);
-    padding: 10px 20px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    flex-shrink: 0; /* Don't shrink */
-    gap: 1rem;
-}
-
-.full-media-download-button {
-    background-color: var(--color-primary-blue);
-    color: var(--color-white);
-    border: none;
-    border-radius: var(--border-radius-small);
-    padding: 0.8rem 1.5rem;
-    font-size: 0.9em;
-    font-weight: 500;
-    text-decoration: none;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    cursor: pointer;
-    transition: background-color 0.2s ease, transform 0.2s ease;
-}
-.full-media-download-button:hover {
-    background-color: var(--color-primary-blue-dark);
-    transform: translateY(-1px);
-}
-.full-media-download-button .material-symbols-outlined {
-    font-size: 20px;
-    font-variation-settings: 'FILL' 0; /* Outlined */
-}
-
-
-/* --- Confirmation Modal (responsive) --- */
-.modal-premium {
-    /* Changed display to none by default, JS will set to flex */
-    display: none;
-    position: fixed; /* Changed to fixed for full viewport overlay */
-    top: 0;
-    left: 0;
-    width: 100vw; /* Full viewport width */
-    height: 100vh; /* Full viewport height */
-    background-color: rgba(0, 0, 0, 0.6);
-    z-index: 150;
-    justify-content: center;
-    align-items: center;
-}
-
-.modal-content-premium {
-    background-color: var(--color-white);
-    padding: 1.5rem; /* Adjusted for mobile */
-    border-radius: var(--border-radius-medium);
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
-    text-align: center;
-    width: 90%;
-    max-width: 350px; /* Adjusted for mobile */
-    display: flex;
-    flex-direction: column;
-    gap: 1.2rem; /* Adjusted for mobile */
-}
-
-@media (min-width: 600px) {
-    .modal-content-premium {
-        padding: 2em;
-        max-width: 380px;
-        gap: 1.5rem;
-    }
-}
-
-.modal-message-text-premium {
-    font-size: 1.05em; /* Adjusted for mobile */
-    font-weight: 500;
-    color: var(--color-dark-gray);
-    margin: 0;
-}
-
-@media (min-width: 600px) {
-    .modal-message-text-premium {
-        font-size: 1.15em;
-    }
-}
-
-.modal-actions-premium {
-    display: flex;
-    justify-content: center;
-    gap: 0.8rem; /* Adjusted for mobile */
-}
-
-@media (min-width: 600px) {
-    .modal-actions-premium {
-        gap: 1em;
-    }
-}
-
-.modal-button-premium {
-    padding: 0.7rem 1.4rem; /* Adjusted for mobile */
-    border: none;
-    border-radius: var(--border-radius-small);
-    font-size: 0.9em; /* Adjusted for mobile */
-    font-weight: 600;
-    cursor: pointer;
-    transition: background-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
-    display: flex; /* Ensure icon and text are aligned */
-    align-items: center;
-    justify-content: center;
-    gap: 0.3rem;
-}
-
-@media (min-width: 600px) {
-    .modal-button-premium .material-symbols-outlined {
-        font-size: 22px;
-    }
-}
-
-.modal-button-premium .material-symbols-outlined {
-    font-size: 20px;
-    font-variation-settings: 'FILL' 1;
-}
-
-.modal-button-premium.confirm-button-premium {
-    background-color: var(--color-primary-blue);
-    color: var(--color-white);
-    box-shadow: 0 2px 6px rgba(52, 105, 245, 0.2);
-}
-
-.modal-button-premium.confirm-button-premium:hover {
-    background-color: var(--color-primary-blue-dark);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 10px rgba(52, 105, 245, 0.3);
-}
-
-.modal-button-premium.cancel-button-premium {
-    background-color: var(--color-light-gray);
-    color: var(--color-dark-gray);
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-}
-
-.modal-button-premium.cancel-button-premium:hover {
-    background-color: var(--color-medium-gray);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
-}
-
-
-/* Utility/Helper Classes (ensure these exist and are compatible) */
-.hidden {
-    display: none !important;
-}
-
-.text-center {
-    text-align: center;
-}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Paritalk - Private Chat</title>
+
+    <!-- Preconnect to Firebase, Supabase, and Google Fonts for faster loading -->
+    <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://www.googleapis.com" crossorigin>
+    <link rel="preconnect" href="https://uokpkgybjzvpngoxasnm.supabase.co" crossorigin>
+    <link rel="preconnect" href="https://meet.jit.si" crossorigin>
+
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+    <link rel="stylesheet" href="style.css"> <!-- THIS IS THE CRITICAL LINE FOR CSS -->
+    <link rel="icon" href="favicon.ico" type="image/x-icon">
+
+</head>
+<body>
+    <div class="loading-overlay" id="loading-overlay">
+        <div class="loading-spinner"></div>
+        <p class="loading-text">Loading chat...</p>
+    </div>
+
+    <div class="chat-app-container-premium" id="chat-app-container">
+        <header class="chat-header-premium">
+            <div class="chat-header-info">
+                <span class="material-symbols-outlined chat-header-avatar-icon">account_circle</span>
+                <div class="chat-header-details">
+                    <h1 class="chat-room-display-name" id="room-code-display">Room Code</h1>
+                    <span class="chat-online-users-count" id="online-users-count">
+                        <span class="status-dot"></span> <span id="user-count-text">0 online</span>
+                    </span>
+                </div>
+            </div>
+            <div class="chat-header-actions">
+                <span class="material-symbols-outlined chat-action-icon" id="video-call-button" title="Start Video Call">videocam</span>
+                <span class="material-symbols-outlined chat-action-icon" id="leave-room-button" title="Leave Room">exit_to_app</span>
+            </div>
+        </header>
+
+        <main class="messages-container-premium" id="messages-container">
+            </main>
+
+        <div class="typing-indicator-premium hidden" id="typing-indicator">
+            <span id="typing-username"></span> is typing<span>.</span><span>.</span><span>.</span>
+        </div>
+
+        <footer class="message-input-area-premium">
+            <input type="file" id="file-input" class="hidden" accept="image/*, application/pdf">
+            <span class="material-symbols-outlined attach-file-button" id="attach-file-button" title="Attach File">attach_file</span>
+            <input type="text" id="message-input" class="input-field-premium" placeholder="Type a message...">
+            <button id="send-message-button" class="send-message-button" title="Send Message">
+                <span class="material-symbols-outlined">send</span>
+            </button>
+        </footer>
+
+        <div class="jitsi-container-premium hidden" id="jitsi-container">
+            <div id="jitsi-meet-api"></div>
+            <div class="jitsi-controls-premium">
+                <button class="hangup-button-premium" id="hangup-button">
+                    <span class="material-symbols-outlined">call_end</span>
+                    Hang Up
+                </button>
+            </div>
+        </div>
+
+        <div class="full-media-modal hidden" id="full-media-modal">
+            <button class="full-media-close-button" id="full-media-close-button" title="Close">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+            <div class="full-media-content-premium">
+                <div class="full-media-display-area" id="full-media-display-area">
+                    </div>
+                <div class="full-media-controls" id="full-media-controls">
+                    <a id="full-media-download-button" class="full-media-download-button" download>
+                        <span class="material-symbols-outlined">download</span> Download
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Confirmation Modal -->
+        <div class="modal-premium hidden" id="confirmation-modal">
+            <div class="modal-content-premium">
+                <p class="modal-message-text-premium" id="modal-message"></p>
+                <div class="modal-buttons-premium">
+                    <button class="modal-button-premium confirm-button-premium" id="modal-confirm">Confirm</button>
+                    <button class="modal-button-premium cancel-button-premium" id="modal-cancel">Cancel</button>
+                </div>
+            </div>
+        </div>
+
+    </div> <!-- Close chat-app-container-premium -->
+
+    <script type="module">
+        // Import the functions you need from the SDKs you need
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { getDatabase, ref, push, onValue, set, serverTimestamp, remove, onDisconnect, query, limitToLast, orderByChild, off } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+        import { getStorage, ref as storageRef, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+
+
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyA8Yj1Z1Mpv2lyt9SRxJ_w4U04BXt8hajk", // Your Firebase API Key
+            authDomain: "paritalk.firebaseapp.com",
+            projectId: "paritalk",
+            databaseURL: "https://paritalk-default-rtdb.firebaseio.com",
+            storageBucket: "paritalk.firebasestorage.app",
+            messagingSenderId: "441945619664",
+            appId: "1:441945619664:web:045e0c872e67e0eb9fb2d5"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getDatabase(app);
+        const storage = getStorage(app);
+
+        // Supabase Configuration
+        const SUPABASE_URL = 'https://uokpkgybjzvpngoxasnm.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVva3BrZ3lianp2cG5nb3hhc25tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk5MjE4NTcsImV4cCI6MjA2NTQ5Nzg1N30.FNv_13S3oj7fjartmY2PzKL25T3AWbMxP2KRI0rFU2E';
+
+        const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+
+        // Jitsi Meet API (will be loaded dynamically)
+        let jitsiApi = null;
+        let jitsiScriptLoaded = false; // Flag to track if Jitsi script is loaded
+
+        // DOM Elements
+        const loadingOverlay = document.getElementById('loading-overlay'); // Get loading overlay
+        const roomCodeDisplay = document.getElementById('room-code-display');
+        const onlineUsersCountSpan = document.getElementById('online-users-count');
+        const userCountText = document.getElementById('user-count-text');
+        const messagesContainer = document.getElementById('messages-container');
+        const messageInput = document.getElementById('message-input');
+        const sendMessageButton = document.getElementById('send-message-button');
+        const videoCallButton = document.getElementById('video-call-button');
+        const leaveRoomButton = document.getElementById('leave-room-button');
+        const jitsiContainer = document.getElementById('jitsi-container');
+        const hangupButton = document.getElementById('hangup-button');
+        const attachFileButton = document.getElementById('attach-file-button');
+        const fileInput = document.getElementById('file-input');
+        const fullMediaModal = document.getElementById('full-media-modal');
+        const fullMediaCloseButton = document.getElementById('full-media-close-button');
+        const fullMediaDisplayArea = document.getElementById('full-media-display-area');
+        const fullMediaDownloadButton = document.getElementById('full-media-download-button');
+        const typingIndicator = document.getElementById('typing-indicator');
+        const typingUsernameSpan = document.getElementById('typing-username');
+
+        // Modal Elements
+        const confirmationModal = document.getElementById('confirmation-modal');
+        const modalMessage = document.getElementById('modal-message');
+        const modalConfirmButton = document.getElementById('modal-confirm');
+        const modalCancelButton = document.getElementById('modal-cancel');
+
+
+        // Global Variables
+        let currentUserId = null;
+        let currentUsername = null;
+        let currentRoomCode = null;
+        let messagesRef = null;
+        let presenceRef = null;
+        let typingRef = null; // Reference to our own typing status
+        let otherUserTypingRef = null; // Reference to the other user's typing status
+        let otherUserId = null;
+        let typingTimeout = null;
+        let currentCallId = null; // To store the ID of the active video call message
+
+        // --- Utility Functions ---
+
+        // Show Confirmation Modal
+        async function showConfirmationModal(message) {
+            modalMessage.textContent = message;
+            confirmationModal.classList.remove('hidden');
+            confirmationModal.style.display = 'flex'; // Ensure it's flex for centering
+
+            return new Promise((resolve) => {
+                const confirmListener = () => {
+                    confirmationModal.classList.add('hidden');
+                    confirmationModal.style.display = 'none'; // Hide properly
+                    modalConfirmButton.removeEventListener('click', confirmListener);
+                    modalCancelButton.removeEventListener('click', cancelListener);
+                    resolve(true);
+                };
+
+                const cancelListener = () => {
+                    confirmationModal.classList.add('hidden');
+                    confirmationModal.style.display = 'none'; // Hide properly
+                    modalConfirmButton.removeEventListener('click', confirmListener);
+                    modalCancelButton.removeEventListener('click', cancelListener);
+                    resolve(false);
+                };
+
+                modalConfirmButton.addEventListener('click', confirmListener);
+                modalCancelButton.addEventListener('click', cancelListener);
+            });
+        }
+
+        // Auto-scroll messages to bottom
+        function scrollToBottom() {
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        // Format timestamp
+        function formatTimestamp(timestamp) {
+            if (!timestamp) return '';
+            const date = new Date(timestamp);
+            const hours = date.getHours().toString().padStart(2, '0');
+            const minutes = date.getMinutes().toString().padStart(2, '0');
+            return `${hours}:${minutes}`;
+        }
+
+        // --- Core Chat Functions ---
+
+        // Display Message in UI
+        function displayMessage(message) {
+            const messageElement = document.createElement('div');
+            messageElement.classList.add('message-bubble-premium');
+
+            if (message.type === 'system') {
+                if (message.action === 'videoCallStarted') {
+                    // Specific styling and button for video call start notification
+                    messageElement.classList.add('system-message-premium', 'system-message-with-action');
+                    messageElement.innerHTML = `
+                        <p>${message.text}</p>
+                        <button class="join-call-button" data-call-id="${message.callId}">
+                            <span class="material-symbols-outlined">videocam</span>
+                            Join Video Call
+                        </button>
+                    `;
+                } else if (message.action === 'videoCallEnded') {
+                    // Specific styling for video call ended notification
+                    messageElement.classList.add('system-message-premium', 'system-message-with-action');
+                    messageElement.innerHTML = `
+                        <p>${message.text}</p>
+                        <span class="material-symbols-outlined" style="font-size: 20px; color: var(--color-error); margin-top: 5px;">call_end</span>
+                    `;
+                }
+                 else {
+                    // Default system message
+                    messageElement.classList.add('system-message-premium');
+                    messageElement.textContent = message.text;
+                }
+            } else {
+                messageElement.classList.add(message.senderId === currentUserId ? 'mine-bubble-premium' : 'other-bubble-premium');
+
+                let contentHTML = `<span class="message-content-premium">${message.text || ''}</span>`;
+
+                if (message.file) {
+                    if (message.file.type.startsWith('image/')) {
+                        contentHTML = `
+                            <div class="message-image-preview" data-url="${message.file.url}" data-type="${message.file.type}">
+                                <img src="${message.file.url}" alt="Image" class="message-image-premium-thumb">
+                                <span class="material-symbols-outlined message-media-overlay-icon">zoom_in</span>
+                            </div>
+                        `;
+                    } else {
+                        contentHTML = `
+                            <div class="message-file-premium-preview" data-url="${message.file.url}" data-type="${message.file.type}" data-name="${message.file.name}">
+                                <span class="material-symbols-outlined file-icon">attach_file</span>
+                                <a href="${message.file.url}" target="_blank" rel="noopener noreferrer" class="file-name-link">${message.file.name}</a>
+                                <a href="${message.file.url}" download="${message.file.name}" class="download-icon">
+                                    <span class="material-symbols-outlined">download</span>
+                                </span>
+                            </div>
+                        `;
+                    }
+                }
+
+                messageElement.innerHTML = `
+                    ${contentHTML}
+                    <div class="message-info-footer-premium">
+                        <span class="message-sender-name-bottom">${message.senderName}</span>
+                        <span class="message-timestamp-premium">${formatTimestamp(message.timestamp)}</span>
+                    </div>
+                `;
+            }
+
+            messagesContainer.appendChild(messageElement);
+            scrollToBottom();
+        }
+
+
+        // Send Message
+        async function sendMessage(text = '', file = null) {
+            if ((!text && !file) || (text.trim() === '' && !file)) {
+                return; // Don't send empty messages without a file
+            }
+
+            const message = {
+                senderId: currentUserId,
+                senderName: currentUsername,
+                text: text.trim(),
+                timestamp: serverTimestamp(),
+                type: 'text', // Default type
+                readBy: {
+                    [currentUserId]: true // Mark as read by sender
+                }
+            };
+
+            if (file) {
+                message.type = file.type.startsWith('image/') ? 'image' : 'file';
+                message.file = {
+                    name: file.name,
+                    url: file.url,
+                    type: file.type,
+                    size: file.size
+                };
+            }
+
+            try {
+                await push(messagesRef, message);
+                messageInput.value = ''; // Clear input after sending text message
+                if (file) fileInput.value = ''; // Clear file input
+                updateTypingStatus(false); // Ensure typing status is reset after sending
+            } catch (error) {
+                console.error("Error sending message:", error);
+            }
+        }
+
+        // --- Presence & Typing Status ---
+
+        // Setup User Presence
+        async function setupPresence() {
+            presenceRef = ref(db, `rooms/${currentRoomCode}/presence/${currentUserId}`);
+            await set(presenceRef, { username: currentUsername, isTyping: false, lastOnline: serverTimestamp() });
+            onDisconnect(presenceRef).remove(); // Remove user from presence when they disconnect
+            console.log(`Presence set for ${currentUsername} in ${currentRoomCode}`);
+        }
+
+        // Update Online Users Count
+        function updateOnlineUsersCount() {
+            const roomPresenceRef = ref(db, `rooms/${currentRoomCode}/presence`);
+            onValue(roomPresenceRef, (snapshot) => {
+                const onlineUsers = snapshot.val();
+                const count = onlineUsers ? Object.keys(onlineUsers).length : 0;
+                userCountText.textContent = `${count} online`;
+
+                // Determine otherUserId for typing indicator
+                if (onlineUsers) {
+                    const onlineUserIds = Object.keys(onlineUsers);
+                    if (onlineUserIds.length === 2) {
+                        otherUserId = onlineUserIds.find(id => id !== currentUserId);
+                        console.log("Other user ID found:", otherUserId);
+                        // Re-setup listener if otherUserId changes (e.g., new user joins)
+                        if (otherUserTypingRef) {
+                            off(otherUserTypingRef); // Detach old listener
+                        }
+                        setupTypingIndicator(otherUserId);
+                    } else {
+                        if (otherUserTypingRef) {
+                            off(otherUserTypingRef); // Detach listener if less/more than 2 users
+                        }
+                        otherUserId = null;
+                        typingIndicator.classList.add('hidden'); // Hide indicator if not 2 users
+                    }
+                } else {
+                    if (otherUserTypingRef) {
+                        off(otherUserTypingRef);
+                    }
+                    otherUserId = null;
+                    typingIndicator.classList.add('hidden');
+                }
+            });
+        }
+
+        // Update own typing status in Firebase
+        async function updateTypingStatus(isTyping) {
+            if (!typingRef) { // Ensure typingRef is initialized
+                typingRef = ref(db, `rooms/${currentRoomCode}/presence/${currentUserId}/isTyping`);
+            }
+            await set(typingRef, isTyping);
+        }
+
+        // Setup typing indicator for OTHER user
+        function setupTypingIndicator(idOfOtherUser) {
+            if (!idOfOtherUser) {
+                typingIndicator.classList.add('hidden');
+                return;
+            }
+
+            otherUserTypingRef = ref(db, `rooms/${currentRoomCode}/presence/${idOfOtherUser}/isTyping`);
+            const otherUsernameRef = ref(db, `rooms/${currentRoomCode}/presence/${idOfOtherUser}/username`);
+
+            onValue(otherUserTypingRef, (snapshot) => {
+                const isOtherUserTyping = snapshot.val();
+                if (isOtherUserTyping) {
+                    // Fetch other user's username to display
+                    onValue(otherUsernameRef, (nameSnapshot) => {
+                        const otherUserName = nameSnapshot.val();
+                        if (otherUserName) {
+                            typingUsernameSpan.textContent = otherUserName;
+                            typingIndicator.classList.remove('hidden');
+                        }
+                    }, { onlyOnce: true }); // Only fetch username once per typing session
+                } else {
+                    typingIndicator.classList.add('hidden');
+                }
+            });
+        }
+
+
+        // --- File Upload & Media Display ---
+
+        // Upload File to Supabase Storage
+        async function uploadFile(file) {
+            const filePath = `files/${currentRoomCode}/${Date.now()}_${file.name}`;
+            const { data, error } = await supabase.storage
+                .from('paritalk-files') // Make sure 'paritalk-files' is the name of your bucket in Supabase
+                .upload(filePath, file, {
+                    cacheControl: '3600',
+                    upsert: false
+                });
+
+            if (error) {
+                console.error("Supabase file upload failed:", error);
+                throw error;
+            }
+
+            const { data: publicUrlData } = supabase.storage
+                .from('paritalk-files')
+                .getPublicUrl(filePath);
+
+            if (publicUrlData && publicUrlData.publicUrl) {
+                return {
+                    name: file.name,
+                    url: publicUrlData.publicUrl,
+                    type: file.type,
+                    size: file.size
+                };
+            } else {
+                throw new Error("Failed to get public URL for uploaded file.");
+            }
+        }
+
+        // Show Full Media Modal
+        function showFullMediaModal(url, type, fileName) {
+            fullMediaDisplayArea.innerHTML = ''; // Clear previous content
+            fullMediaDownloadButton.href = url;
+            fullMediaDownloadButton.download = fileName || 'download'; // Set download name
+
+            if (type.startsWith('image/')) {
+                const img = document.createElement('img');
+                img.src = url;
+                img.classList.add('full-media-image');
+                fullMediaDisplayArea.appendChild(img);
+            } else if (type.startsWith('video/')) {
+                const video = document.createElement('video');
+                video.src = url;
+                video.controls = true;
+                video.autoplay = true;
+                video.classList.add('full-media-video');
+                fullMediaDisplayArea.appendChild(video);
+            } else if (type === 'application/pdf') {
+                const iframe = document.createElement('iframe');
+                iframe.src = url;
+                iframe.classList.add('full-media-document');
+                iframe.setAttribute('frameborder', '0');
+                fullMediaDisplayArea.appendChild(iframe);
+            } else {
+                // For other file types, just provide download option
+                const infoText = document.createElement('p');
+                infoText.classList.add('full-media-info-text');
+                infoText.textContent = `File type not previewable: ${fileName}`;
+                fullMediaDisplayArea.appendChild(infoText);
+            }
+
+            fullMediaModal.classList.remove('hidden');
+            fullMediaModal.style.display = 'flex'; // Ensure it's flex for centering
+        }
+
+        // Close Full Media Modal
+        function closeFullMediaModal() {
+            fullMediaModal.classList.add('hidden');
+            fullMediaModal.style.display = 'none'; // Hide properly
+            fullMediaDisplayArea.innerHTML = ''; // Clear content
+            // Stop any playing video if exists
+            const video = fullMediaDisplayArea.querySelector('video');
+            if (video) {
+                video.pause();
+                video.currentTime = 0;
+            }
+        }
+
+
+        // --- Jitsi Integration ---
+
+        // Function to load the Jitsi Meet external API script
+        function loadJitsiScript() {
+            return new Promise((resolve, reject) => {
+                if (jitsiScriptLoaded && window.JitsiMeetExternalAPI) {
+                    console.log("Jitsi script already loaded.");
+                    return resolve();
+                }
+
+                const existingScript = document.querySelector('script[src="https://meet.jit.si/external_api.js"]');
+                if (existingScript) {
+                    // If script element exists but not fully loaded, wait for it
+                    if (window.JitsiMeetExternalAPI) {
+                        jitsiScriptLoaded = true;
+                        return resolve();
+                    } else {
+                        // If script element exists but JitsiMeetExternalAPI isn't ready,
+                        // this might be a failed previous load or a very slow one.
+                        // We will re-append it, browser handles duplicates safely.
+                        console.warn("Jitsi script element found but JitsiMeetExternalAPI not ready. Re-attempting load.");
+                        existingScript.remove(); // Remove the old one to ensure a fresh load
+                    }
+                }
+
+                const script = document.createElement('script');
+                script.src = 'https://meet.jit.si/external_api.js';
+                script.async = true;
+                script.onload = () => {
+                    console.log("Jitsi external_api.js loaded successfully.");
+                    jitsiScriptLoaded = true;
+                    resolve();
+                };
+                script.onerror = (e) => {
+                    console.error('Failed to load Jitsi API script:', e);
+                    jitsiScriptLoaded = false;
+                    reject(new Error('Failed to load Jitsi API script.'));
+                };
+                document.body.appendChild(script);
+            });
+        }
+
+
+        async function startVideoCall() {
+            const confirmed = await showConfirmationModal('Are you sure you want to start a video call?');
+            if (!confirmed) {
+                console.log("Video call initiation cancelled by user.");
+                return;
+            }
+
+            try {
+                // First, ensure the Jitsi script is loaded
+                await loadJitsiScript();
+
+                // Generate a unique call ID for this session
+                const callId = `${currentRoomCode}-${Date.now()}`;
+                currentCallId = callId; // Store the active call ID
+
+                // Add system message to chat that video call has started
+                await push(messagesRef, {
+                    type: 'system',
+                    action: 'videoCallStarted', // New action type
+                    text: `${currentUsername} started a video call.`,
+                    callId: callId, // Include the unique call ID
+                    timestamp: serverTimestamp()
+                });
+
+                // Proceed with Jitsi initialization
+                initializeJitsiInstance(callId); // Pass the callId to initialize Jitsi
+            } catch (error) {
+                console.error("Error preparing for video call:", error);
+                alert('Could not start video call. Check console for details.');
+            }
+        }
+
+        // Modified to accept a room name/callId
+        async function initializeJitsiInstance(callIdToJoin = currentCallId) { // Default to currentCallId
+            const jitsiRoomName = callIdToJoin; // Use the passed callId as Jitsi room name
+            console.log("Attempting to initialize Jitsi with room name:", jitsiRoomName);
+
+
+            if (!window.JitsiMeetExternalAPI) {
+                // This check should ideally pass now due to loadJitsiScript()
+                console.error('JitsiMeetExternalAPI not found. This should not happen if loadJitsiScript was successful.');
+                alert('Jitsi video call service not ready. Please try again.');
+                hangUpCall(); // Ensure cleanup if something went wrong
+                return;
+            }
+
+            if (jitsiApi) {
+                console.log("Jitsi API already initialized. Disposing existing instance.");
+                jitsiApi.dispose(); // Dispose existing instance before creating a new one
+                jitsiApi = null;
+            }
+
+            jitsiContainer.classList.remove('hidden');
+            jitsiContainer.style.display = 'flex'; // Ensure it becomes visible as flex container
+
+            const domain = 'meet.jit.si';
+            const options = {
+                roomName: jitsiRoomName, // Use the unique Jitsi room name
+                width: '100%',
+                height: '100%',
+                parentNode: document.querySelector('#jitsi-meet-api'),
+                userInfo: {
+                    displayName: currentUsername
+                },
+                configOverwrite: {
+                    startWithAudioMuted: false,
+                    startWithVideoMuted: false,
+                    disableSelfView: false,
+                    enableClosePage: false,
+                    prejoinPageEnabled: false, // Explicitly disable prejoin page (lobby)
+                    enableWelcomePage: false,
+                    startSilent: false,
+                    toolbarButtons: [
+                        'microphone', 'camera', 'desktop', 'fullscreen',
+                        'fodeviceselection', 'hangup', 'profile', 'chat',
+                        'settings', 'tileview', 'toggle-raise-hand',
+                        'videoquality', 'filmstrip',
+                    ],
+                    // Add these to explicitly disable authentication features if they are being inadvertently enabled
+                    requireDisplayName: false, // Ensure display name is not strictly required for authentication
+                    enableUserRolesBasedOnToken: false, // Do not try to assign roles based on a token we aren't providing
+                    enableLobby: false, // Explicitly disable the lobby feature
+                },
+                interfaceConfigOverwrite: {
+                    APP_NAME: 'Paritalk',
+                    DEFAULT_BACKGROUND: '#F9F9F9',
+                    NATIVE_APP_NAME: 'Paritalk',
+                    TOOLBAR_BUTTONS: [
+                        'microphone', 'camera', 'desktop', 'fullscreen',
+                        'fodeviceselection', 'hangup', 'profile', 'chat',
+                        'settings', 'tileview', 'toggle-raise-hand',
+                        'videoquality', 'filmstrip',
+                    ]
+                }
+            };
+
+            try {
+                jitsiApi = new JitsiMeetExternalAPI(domain, options);
+
+                jitsiApi.addEventListener('iframe-ready', () => {
+                    console.log("Jitsi iFrame is ready.");
+                });
+                jitsiApi.addEventListener('participantJoined', (participant) => {
+                    console.log("Jitsi: Participant joined:", participant);
+                });
+
+                jitsiApi.addEventListener('readyToClose', () => {
+                    console.log("Jitsi: Ready to close event detected.");
+                    hangUpCall();
+                });
+                jitsiApi.addEventListener('videoConferenceLeft', () => {
+                    console.log("Jitsi: Video conference left.");
+                    hangUpCall();
+                });
+                jitsiApi.addEventListener('participantLeft', (participant) => {
+                    console.log("Jitsi: Participant left:", participant);
+                });
+
+
+                console.log("Jitsi API initialized and event listeners attached.");
+
+            } catch (error) {
+                console.error("Error initializing Jitsi API:", error);
+                alert('Failed to start video call. Please check console for details.');
+                hangUpCall();
+            }
+        }
+
+
+        function hangUpCall() {
+            if (jitsiApi) {
+                jitsiApi.dispose();
+                jitsiApi = null;
+                console.log("Jitsi API disposed.");
+            }
+            jitsiContainer.classList.add('hidden');
+            jitsiContainer.style.display = 'none'; // Hide properly
+
+            // Add system message to chat that video call has ended (only if there was an active call)
+            if (currentCallId) {
+                push(messagesRef, {
+                    type: 'system',
+                    action: 'videoCallEnded',
+                    text: `${currentUsername} ended the video call.`,
+                    callId: currentCallId,
+                    timestamp: serverTimestamp()
+                });
+                currentCallId = null; // Clear the active call ID
+            }
+
+            // Remove the dynamically added Jitsi script if it exists
+            const jitsiScript = document.querySelector('script[src="https://meet.jit.si/external_api.js"]');
+            if (jitsiScript) {
+                jitsiScript.remove();
+                jitsiScriptLoaded = false; // Reset flag
+                console.log("Jitsi API script removed from DOM.");
+            }
+        }
+
+        // --- Event Listeners ---
+
+        // Send message on button click
+        sendMessageButton.addEventListener('click', () => {
+            sendMessage(messageInput.value);
+        });
+
+        // Send message on Enter key press
+        messageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendMessage(messageInput.value);
+            }
+        });
+
+        // Handle typing status
+        messageInput.addEventListener('input', () => {
+            if (typingTimeout) {
+                clearTimeout(typingTimeout);
+            }
+            updateTypingStatus(true);
+            typingTimeout = setTimeout(() => {
+                updateTypingStatus(false);
+            }, 3000); // User stops typing after 3 seconds
+        });
+
+        // Handle blur to reset typing status
+        messageInput.addEventListener('blur', () => {
+            if (typingTimeout) {
+                clearTimeout(typingTimeout);
+            }
+            updateTypingStatus(false);
+        });
+
+        // Start video call
+        videoCallButton.addEventListener('click', startVideoCall);
+
+        // Hang up video call
+        hangupButton.addEventListener('click', hangUpCall);
+
+        // Leave room (NO CONFIRMATION)
+        if (leaveRoomButton) {
+            leaveRoomButton.addEventListener('click', handleLeaveRoom);
+            console.log("Leave Room button event listener attached.");
+        } else {
+            console.error("Leave Room button element not found!");
+        }
+
+        // Attach file button click
+        attachFileButton.addEventListener('click', () => {
+            fileInput.click(); // Trigger the hidden file input
+        });
+
+        // Handle file input change
+        fileInput.addEventListener('change', async (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                console.log("Uploading file:", file.name);
+                try {
+                    const uploadedFileDetails = await uploadFile(file);
+                    await sendMessage('', uploadedFileDetails); // Send message with file details
+                    console.log("File message sent!");
+                } catch (error) {
+                    console.error("Failed to upload or send file:", error);
+                    alert("Failed to send file. Please try again.");
+                } finally {
+                    fileInput.value = ''; // Clear file input value
+                }
+            }
+        });
+
+        // Handle clicking on message images/files to open full modal
+        messagesContainer.addEventListener('click', async (event) => { // Added async here
+            const imagePreview = event.target.closest('.message-image-preview');
+            const filePreview = event.target.closest('.message-file-premium-preview');
+            const downloadIcon = event.target.closest('.download-icon');
+            const joinCallButton = event.target.closest('.join-call-button'); // New: Listen for join call button
+
+            if (imagePreview) {
+                const url = imagePreview.dataset.url;
+                const type = imagePreview.dataset.type;
+                showFullMediaModal(url, type);
+            } else if (filePreview && !downloadIcon) { // Ensure clicking on the file name/bubble, not just download icon
+                const url = filePreview.dataset.url;
+                const type = filePreview.dataset.type;
+                const name = filePreview.dataset.name;
+                showFullMediaModal(url, type, name);
+            } else if (joinCallButton) { // Handle join call button click
+                console.log("Join video call button clicked!");
+                // Crucial: Load the Jitsi script first, then initialize
+                try {
+                    await loadJitsiScript(); // Ensure script is loaded on receiver's side
+                    const callId = joinCallButton.dataset.callId; // Get the callId from the button's data attribute
+                    initializeJitsiInstance(callId); // Then initialize Jitsi with that specific callId
+                } catch (error) {
+                    console.error("Error joining video call:", error);
+                    alert("Failed to join video call. Please try again.");
+                }
+            }
+        });
+
+        // Close full media modal
+        fullMediaCloseButton.addEventListener('click', closeFullMediaModal);
+
+        // --- Initialization ---
+
+        // Get room code and username from URL parameters
+        function getQueryParams() {
+            const params = {};
+            const queryString = window.location.search.substring(1);
+            const regex = /([^&=]+)=([^&]*)/g;
+            let m;
+            while ((m = regex.exec(queryString))) {
+                params[decodeURIComponent(m[1])] = decodeURIComponent(m[2]);
+            }
+            return params;
+        }
+
+        const queryParams = getQueryParams();
+        currentRoomCode = queryParams.room;
+        currentUsername = queryParams.user;
+
+        if (!currentRoomCode || !currentUsername) {
+            alert('Room code or username missing. Redirecting to login.');
+            window.location.href = 'index.html';
+        } else {
+            roomCodeDisplay.textContent = currentRoomCode;
+            messagesRef = ref(db, `rooms/${currentRoomCode}/messages`);
+
+            onAuthStateChanged(auth, async (user) => {
+                if (user) {
+                    currentUserId = user.uid;
+                    console.log("Authenticated with Firebase UID:", currentUserId);
+
+                    await setupPresence();
+                    updateOnlineUsersCount();
+
+                    // Load last 50 messages
+                    onValue(query(messagesRef, limitToLast(50), orderByChild('timestamp')), (snapshot) => {
+                        messagesContainer.innerHTML = ''; // Clear existing messages
+                        snapshot.forEach((childSnapshot) => {
+                            displayMessage(childSnapshot.val());
+                        });
+                        scrollToBottom();
+                        loadingOverlay.classList.add('hidden'); // Hide loading overlay when messages are loaded
+                        setTimeout(() => { // Fully remove from DOM after transition
+                            loadingOverlay.style.display = 'none';
+                        }, 300);
+                    });
+
+                    // Add a system message for user joining
+                    await push(messagesRef, {
+                        type: 'system',
+                        text: `${currentUsername} has joined the room.`,
+                        timestamp: serverTimestamp()
+                    });
+
+                } else {
+                    console.error("No user authenticated. Redirecting to login.");
+                    alert('Authentication failed. Please log in again.');
+                    window.location.href = 'index.html';
+                }
+            });
+        }
+
+
+        // Handle leaving the room logic (NO CONFIRMATION)
+        async function handleLeaveRoom() {
+            console.log("Entering handleLeaveRoom function.");
+
+            console.log("Proceeding to leave the room (no confirmation).");
+            if (presenceRef && currentUserId) {
+                console.log("presenceRef is valid:", presenceRef.toString());
+                console.log("currentUserId is valid:", currentUserId);
+                try {
+                    await remove(presenceRef); // Remove user's presence from DB
+                    console.log("SUCCESS: User presence removed from room:", currentRoomCode);
+                    // Add a system message for user leaving
+                    await push(messagesRef, {
+                        type: 'system',
+                        text: `${currentUsername} has left the room.`,
+                        timestamp: serverTimestamp()
+                    });
+                } catch (error) {
+                    console.error("ERROR: Failed to remove presence on leave:", error);
+                    alert("Failed to perform all leave operations. Check console for details, then you'll be redirected.");
+                }
+            } else {
+                console.warn("WARNING: presenceRef or currentUserId not available. Cannot remove presence.");
+            }
+            if (jitsiApi) {
+                hangUpCall(); // Use hangUpCall to properly dispose Jitsi and remove script
+            }
+            localStorage.removeItem('paritalk_username');
+            localStorage.removeItem('paritalk_roomcode');
+                console.log("Local storage cleared.");
+            window.location.href = 'index.html'; // Redirect to login
+            console.log("Redirecting to index.html...");
+        }
+
+
+        // Cleanup on page reload/close
+        window.addEventListener('beforeunload', async (e) => {
+            // Remove user's presence from Firebase
+            if (presenceRef && currentUserId) {
+                console.log("Beforeunload event: Attempting to remove user presence explicitly.");
+                try {
+                    await set(presenceRef, null); // Explicitly remove presence
+                    console.log("Presence explicitly removed on beforeunload.");
+                } catch (error) {
+                    console.error("Error explicitly removing presence on beforeunload:", error);
+                }
+            }
+
+            // Dispose Jitsi API if active
+            if (jitsiApi) {
+                jitsiApi.dispose();
+                jitsiApi = null;
+            }
+
+            localStorage.removeItem('paritalk_username');
+            localStorage.removeItem('paritalk_roomcode');
+            console.log("Local storage cleared on beforeunload.");
+        });
+
+    </script>
+</body>
+</html>
