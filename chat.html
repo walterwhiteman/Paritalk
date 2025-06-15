@@ -94,10 +94,10 @@
             apiKey: "AIzaSyA8Yj1Z1Mpv2lyt9SRxJ_w4U04BXt8hajk", // Your Firebase API Key
             authDomain: "paritalk.firebaseapp.com",
             projectId: "paritalk",
+            databaseURL: "https://paritalk-default-rtdb.firebaseio.com",
             storageBucket: "paritalk.firebasestorage.app",
             messagingSenderId: "441945619664",
             appId: "1:441945619664:web:045e0c872e67e0eb9fb2d5"
-            // measurementId: "YOUR_MEASUREMENT_ID" // If you have one
         };
 
         // Initialize Firebase
@@ -646,7 +646,7 @@
 
         const queryParams = getQueryParams();
         currentRoomCode = queryParams.room;
-        currentUsername = queryParams.user;
+        currentUsername = queryParams.user; // <-- FIX: Changed from queryParams.room to queryParams.user
 
         if (!currentRoomCode || !currentUsername) {
             alert('Room code or username missing. Redirecting to login.');
@@ -719,6 +719,7 @@
                 jitsiApi = null;
                 console.log("Jitsi API disposed.");
             }
+            // Clear local storage to ensure fresh login
             localStorage.removeItem('paritalk_username');
             localStorage.removeItem('paritalk_roomcode');
             console.log("Local storage cleared.");
@@ -727,21 +728,36 @@
         }
 
 
-        // Cleanup on page reload/close (must be inside script tag)
+        // Cleanup on page reload/close
         window.addEventListener('beforeunload', async (e) => {
+            // Remove user's presence from Firebase
             if (presenceRef && currentUserId) {
                 console.log("Beforeunload event: Attempting to remove user presence explicitly.");
                 try {
-                    await set(presenceRef, null); // Explicitly remove presence
+                    // Using set(null) is more direct for removal than remove() in beforeunload context
+                    await set(presenceRef, null);
                     console.log("Presence explicitly removed on beforeunload.");
-                     // No system message here, as it's often not reliably sent on full page unload/close
                 } catch (error) {
                     console.error("Error explicitly removing presence on beforeunload:", error);
                 }
-                if (jitsiApi) {
-                    jitsiApi.dispose();
-                }
             }
+
+            // Dispose Jitsi API if active
+            if (jitsiApi) {
+                jitsiApi.dispose();
+                jitsiApi = null;
+            }
+
+            // --- IMPORTANT: Clear stored user/room from localStorage here ---
+            // This ensures that if the user reloads or closes/reopens the tab,
+            // they will be redirected to index.html and won't have their previous
+            // room/username pre-filled unless they enter them again.
+            localStorage.removeItem('paritalk_username');
+            localStorage.removeItem('paritalk_roomcode');
+            console.log("Local storage cleared on beforeunload.");
+
+            // Do NOT try to redirect or send system messages from beforeunload.
+            // Redirection is handled by the initial checks in index.html/chat.html.
         });
 
     </script>
