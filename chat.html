@@ -4,16 +4,23 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Paritalk - Chat Room</title>
+    <!-- Google Fonts: Roboto (clean, modern, Apple-like feel) -->
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,-50..200" rel="stylesheet" />
+    <!-- Google Material Symbols (Premium Icon Feel) - CRITICAL LINE FOR ICONS -->
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
+    <!-- Link to our custom styles.css - IMPORTANT: Stays in root as per your structure -->
     <link rel="stylesheet" href="style.css">
 
+    <!-- Jitsi Meet External API - IMPORTANT: MUST be loaded as a regular script before module scripts use it -->
     <script src="https://meet.jit.si/external_api.js"></script>
 </head>
 <body>
     <div id="app-container" class="chat-app-container-premium">
 
+        <!-- Chat Content Wrapper: This div holds all the main chat UI elements -->
+        <!-- It will be hidden/shown by Jitsi video call logic -->
         <div id="chat-content-wrapper">
+            <!-- Chat Header -->
             <header class="chat-header-premium">
                 <div class="chat-header-info">
                     <span class="material-symbols-outlined chat-header-avatar-icon">person</span>
@@ -28,14 +35,19 @@
                 </div>
             </header>
 
+            <!-- Message Area -->
             <main id="messages-container" class="messages-container-premium">
-                </main>
+                <!-- Messages will be appended here -->
+            </main>
 
+            <!-- Typing Indicator -->
             <div id="typing-indicator" class="typing-indicator-premium hidden">
                 <span>.</span><span>.</span><span>.</span>
             </div>
 
+            <!-- Message Input Area -->
             <footer class="message-input-area-premium">
+                <!-- File attachment button - MOVED TO LEFT -->
                 <input type="file" id="image-upload" accept="image/*,video/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation" class="hidden">
                 <label for="image-upload" title="Attach File" class="attach-file-button">
                     <span class="material-symbols-outlined">attach_file</span>
@@ -46,7 +58,10 @@
                     <span class="material-symbols-outlined">send</span>
                 </button>
             </footer>
-        </div> <div id="jitsi-container" class="jitsi-container-premium hidden">
+        </div> <!-- End #chat-content-wrapper -->
+
+        <!-- Jitsi Video Call Container -->
+        <div id="jitsi-container" class="jitsi-container-premium hidden">
             <iframe id="jitsi-iframe" allow="camera; microphone; display-capture; autoplay; fullscreen"></iframe>
             <div id="jitsi-controls" class="jitsi-controls-premium">
                 <button id="hangup-button" class="hangup-button-premium">
@@ -55,6 +70,7 @@
             </div>
         </div>
 
+        <!-- Confirmation Modal -->
         <div id="confirmation-modal" class="modal-premium hidden">
             <div class="modal-content-premium">
                 <p id="modal-message" class="modal-message-text-premium"></p>
@@ -71,6 +87,7 @@
             </div>
         </div>
 
+        <!-- Emoji Picker (hidden by default) - if needed, re-add in chat_main.js for visibility control -->
         <div id="emoji-picker" class="emoji-picker-premium hidden">
             <span class="emoji-option-premium">👍</span>
             <span class="emoji-option-premium">❤️</span>
@@ -82,12 +99,13 @@
 
     </div>
 
+    <!-- Combined Firebase and Supabase JS - THIS BLOCK IS PRESERVED AND ADAPTED -->
     <script type="module">
         // Firebase SDK Imports
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
         import { getDatabase, ref, push, onChildAdded, onValue, set, remove, onDisconnect, serverTimestamp, runTransaction, child } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
-        import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js"; // Added Storage
+        import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 
 
         // Supabase Client SDK Import
@@ -109,14 +127,14 @@
         let app;
         let auth;
         let db;
-        let storage; // Declare storage
+        let storage;
 
         try {
             if (firebaseConfig && firebaseConfig.apiKey && firebaseConfig.projectId && firebaseConfig.databaseURL) {
                 app = initializeApp(firebaseConfig);
                 auth = getAuth(app);
                 db = getDatabase(app);
-                storage = getStorage(app); // Initialize storage
+                storage = getStorage(app);
                 console.log("Firebase initialized successfully in chat.html.");
             } else {
                 console.error("Firebase configuration is missing or empty in chat.html.");
@@ -161,8 +179,8 @@
         let typingTimeout = null;
 
         // UI Elements - UPDATED SELECTORS FOR PREMIUM DESIGN HTML
-        const chatContentWrapper = document.getElementById('chat-content-wrapper'); // New: wraps entire chat UI
-        const roomNameDisplay = document.getElementById('room-name'); // This is the SPAN inside h2
+        const chatContentWrapper = document.getElementById('chat-content-wrapper');
+        const roomNameDisplay = document.getElementById('room-name');
         const onlineUsersCountDisplay = document.getElementById('online-users-count');
         const messagesContainer = document.getElementById('messages-container');
         const messageInput = document.getElementById('message-input');
@@ -194,16 +212,15 @@
         // If not logged in, redirect to index.html
         if (!urlRoomCode || !urlUsername) {
             console.warn("Room code or username missing from URL. Redirecting to login.");
-            window.location.href = 'index.html'; // Redirect to login
+            window.location.href = 'index.html';
         } else {
             currentRoomCode = decodeURIComponent(urlRoomCode);
             currentUsername = decodeURIComponent(urlUsername);
             if (roomNameDisplay) {
-                roomNameDisplay.textContent = currentRoomCode; // Update the span inside the h2
+                roomNameDisplay.textContent = currentRoomCode;
             }
-            // Ensure chat screen is visible initially, or handle visibility via Jitsi logic later
             if (chatContentWrapper) {
-                 chatContentWrapper.classList.remove('hidden'); // Ensure chat screen is visible
+                 chatContentWrapper.classList.remove('hidden');
             }
         }
 
@@ -211,26 +228,24 @@
         function formatTimestamp(timestamp) {
             if (!timestamp) return '';
             const date = new Date(timestamp);
-            if (isNaN(date.getTime())) { // Check if date is valid
+            if (isNaN(date.getTime())) {
                 return '';
             }
             const options = { hour: 'numeric', minute: 'numeric', hour12: true };
             return date.toLocaleTimeString('en-US', options);
         }
 
-        // --- Modal Functions (Adapted for premium class names) ---
+        // --- Modal Functions ---
         let resolveModalPromise;
 
         function showModal(message, isConfirm = true) {
             if (!confirmationModal || !modalMessage || !modalConfirm || !modalCancel) {
                 console.error("Modal elements not found. Cannot show modal.");
-                return Promise.resolve(false); // Fail gracefully
+                return Promise.resolve(false);
             }
 
             modalMessage.textContent = message;
 
-            // Reset button text and visibility
-            // Ensure we're targeting the span inside the button for text content
             if (isConfirm) {
                 if (modalConfirm.querySelector('span:last-child')) modalConfirm.querySelector('span:last-child').textContent = 'Confirm';
                 if (modalCancel.querySelector('span:last-child')) modalCancel.querySelector('span:last-child').textContent = 'Cancel';
@@ -238,10 +253,10 @@
                 modalCancel.classList.remove('hidden');
             } else {
                 if (modalConfirm.querySelector('span:last-child')) modalConfirm.querySelector('span:last-child').textContent = 'OK';
-                modalCancel.classList.add('hidden'); // Hide cancel button for 'OK' mode
+                modalCancel.classList.add('hidden');
             }
 
-            confirmationModal.classList.remove('hidden'); // Show the modal
+            confirmationModal.classList.remove('hidden');
 
             return new Promise(resolve => {
                 resolveModalPromise = resolve;
@@ -254,24 +269,15 @@
             }
         }
 
-        // --- Jitsi Service Functions (Adapted for premium class names and chatContentWrapper) ---
-        // JitsiMeetExternalAPI is globally available from the script tag
-        // jitsiApi is global
+        // --- Jitsi Service Functions ---
         let currentJitsiRoomName = '';
-        // currentUsername is global
-        // jitsiIframe is global
-        // jitsiContainer is global
-        // chatContentWrapperElement is global (re-using the one defined at the top of script)
-        // hangupButton is global
 
-        // This function acts as the equivalent of initializeJitsiService from a separate module
         function initializeJitsiInChat() {
             currentJitsiRoomName = `Paritalk_${currentRoomCode}`;
             
-            // Attach click listener for our custom hangup button
             if (hangupButton) {
                 hangupButton.onclick = () => {
-                    endVideoCall(); // Call our wrapper function
+                    endVideoCall();
                 };
             } else {
                 console.error("Hangup button not found!");
@@ -285,12 +291,12 @@
                 return;
             }
 
-            const domain = 'meet.jit.si'; // Public Jitsi Meet instance
+            const domain = 'meet.jit.si';
             const options = {
                 roomName: currentJitsiRoomName,
                 width: '100%',
                 height: '100%',
-                parentNode: jitsiIframe.parentNode, // This places the Jitsi iframe within its container
+                parentNode: jitsiIframe.parentNode,
                 userInfo: {
                     displayName: currentUsername
                 },
@@ -414,12 +420,15 @@
             if (message.type === 'image' || message.type === 'file') {
                 const mediaPreview = messageElement.querySelector('.message-image-preview') || messageElement.querySelector('.message-file-premium-preview');
                 if (mediaPreview) {
-                    mediaPreview.style.cursor = 'pointer'; // Indicate clickability
-                    mediaPreview.addEventListener('click', () => {
-                        // Check if it's an image or a link to a file viewer
+                    mediaPreview.style.cursor = 'pointer';
+                    mediaPreview.addEventListener('click', (event) => {
+                        // Prevent click on download icon from also opening the modal
+                        if (event.target.closest('.download-icon')) {
+                            return;
+                        }
                         if (message.type === 'image') {
                             showFullMediaModal(message.type, message.imageUrl, message.fileName);
-                        } else { // It's a file, potentially video
+                        } else {
                             showFullMediaModal(message.type, message.fileUrl, message.fileName);
                         }
                     });
@@ -430,14 +439,15 @@
         // --- Full Media View Modal Logic (Dynamically created and appended) ---
         const fullMediaModal = document.createElement('div');
         fullMediaModal.id = 'full-media-modal';
-        fullMediaModal.classList.add('full-media-modal-premium', 'hidden');
+        fullMediaModal.classList.add('full-media-modal-premium', 'hidden'); // Ensure hidden by default
         fullMediaModal.innerHTML = `
             <div class="full-media-content-premium">
                 <button class="full-media-close-button">
                     <span class="material-symbols-outlined">close</span>
                 </button>
                 <div class="full-media-display-area">
-                    </div>
+                    <!-- Media will be dynamically inserted here -->
+                </div>
                 <div class="full-media-controls">
                     <a id="full-media-download-link" href="#" download class="full-media-download-button">
                         <span class="material-symbols-outlined">download</span> Download
@@ -445,7 +455,6 @@
                 </div>
             </div>
         `;
-        // Append to body only after document is loaded
         document.addEventListener('DOMContentLoaded', () => {
             document.body.appendChild(fullMediaModal);
         });
@@ -454,24 +463,23 @@
         const fullMediaCloseButton = fullMediaModal.querySelector('.full-media-close-button');
         const fullMediaDownloadLink = fullMediaModal.querySelector('#full-media-download-link');
 
-        if (fullMediaCloseButton) { // Ensure button exists before attaching listener
+        if (fullMediaCloseButton) {
             fullMediaCloseButton.addEventListener('click', () => {
                 fullMediaModal.classList.add('hidden');
-                fullMediaDisplayArea.innerHTML = ''; // Clear content
+                fullMediaDisplayArea.innerHTML = '';
             });
         }
 
 
         function showFullMediaModal(type, url, fileName) {
-            fullMediaDisplayArea.innerHTML = ''; // Clear previous content
+            fullMediaDisplayArea.innerHTML = '';
             fullMediaDownloadLink.href = url;
-            fullMediaDownloadLink.download = fileName || 'download'; // Ensure filename for download
+            fullMediaDownloadLink.download = fileName || 'download';
 
-            // Remove any existing video elements to prevent multiple players
             const existingVideo = fullMediaDisplayArea.querySelector('video');
             if (existingVideo) {
                 existingVideo.pause();
-                existingVideo.removeAttribute('src'); // Empty source
+                existingVideo.removeAttribute('src');
                 existingVideo.load();
                 fullMediaDisplayArea.removeChild(existingVideo);
             }
@@ -498,7 +506,6 @@
                     iframe.frameBorder = "0";
                     fullMediaDisplayArea.appendChild(iframe);
                 } else {
-                    // For other file types, just show a message and the download link
                     const p = document.createElement('p');
                     p.textContent = `Preview not available for ${fileExtension.toUpperCase()} files.`;
                     p.classList.add('full-media-info-text');
@@ -517,7 +524,7 @@
 
             const message = {
                 sender: currentUsername,
-                timestamp: serverTimestamp(), // Firebase server timestamp
+                timestamp: serverTimestamp(),
                 type: type,
             };
 
@@ -525,20 +532,19 @@
                 message.text = text;
             } else if (type === 'image') {
                 message.imageUrl = imageUrl;
-                message.text = 'Image'; // Placeholder text for display in chat list if needed
+                message.text = 'Image';
             } else if (type === 'file') {
                 message.fileUrl = fileUrl;
                 message.fileName = fileName;
-                message.text = 'File'; // Placeholder text
-            } else if (type === 'system') { // Handle system messages correctly
+                message.text = 'File';
+            } else if (type === 'system') {
                 message.text = text;
             }
 
 
             try {
                 await push(messagesRef, message);
-                messageInput.value = ''; // Clear input after sending
-                // Also clear typing indicator for self
+                messageInput.value = '';
                 if (typingRef) {
                     set(typingRef, false);
                 }
@@ -553,7 +559,7 @@
             const file = event.target.files[0];
             if (!file) return;
 
-            if (!supabase) { // Use the global supabase variable from the inline script
+            if (!supabase) {
                 showModal('Supabase is not configured. File uploads are disabled.', false);
                 console.error('Supabase client is not initialized. Please configure SUPABASE_URL and SUPABASE_ANON_KEY.');
                 return;
@@ -568,19 +574,18 @@
             const fileType = file.type;
 
             try {
-                // Show a temporary message indicating upload
                 addMessageToChat({
                     sender: 'System',
                     text: `Uploading "${file.name}"...`,
                     type: 'system',
-                    timestamp: Date.now() // Use client timestamp for system messages
+                    timestamp: Date.now()
                 });
 
                 const { data, error } = await supabase.storage
-                    .from('parichat-files') // Ensure this bucket exists in your Supabase project
+                    .from('parichat-files')
                     .upload(filePath, file, {
                         cacheControl: '3600',
-                        upsert: false // Do not update existing file if name conflicts
+                        upsert: false
                     });
 
                 if (error) {
@@ -588,7 +593,6 @@
                     throw error;
                 }
 
-                // Get public URL for the uploaded file
                 const { data: publicUrlData, error: publicUrlError } = supabase.storage
                     .from('parichat-files')
                     .getPublicUrl(filePath);
@@ -601,8 +605,7 @@
                     throw new Error('Failed to get public URL for the uploaded file.');
                 }
 
-                // Send chat message with file/image URL
-                if (fileType.startsWith('image/') || fileType.startsWith('video/')) { // Include video type check here
+                if (fileType.startsWith('image/') || fileType.startsWith('video/')) {
                     await sendMessage('', fileType.startsWith('image/') ? 'image' : 'file', publicUrlData.publicUrl, null, file.name);
                 } else {
                     await sendMessage('', 'file', null, publicUrlData.publicUrl, file.name);
@@ -617,7 +620,7 @@
                         timestamp: Date.now()
                     });
             } finally {
-                imageUploadInput.value = ''; // Clear the file input so the same file can be selected again
+                imageUploadInput.value = '';
             }
         }
 
@@ -633,37 +636,31 @@
                     return;
                 }
 
-                // Initialize Firebase Realtime Database references
                 roomRef = ref(db, `rooms/${currentRoomCode}`);
                 presenceRef = ref(db, `rooms/${currentRoomCode}/presence/${currentUserId}`);
                 messagesRef = ref(db, `rooms/${currentRoomCode}/messages`);
                 typingRef = ref(db, `rooms/${currentRoomCode}/typing/${currentUserId}`);
 
                 try {
-                    // Set user presence
                     await set(presenceRef, { username: currentUsername, lastSeen: serverTimestamp() });
-                    onDisconnect(presenceRef).remove(); // Remove user from presence when disconnected (MOST IMPORTANT FOR AUTO-EXIT)
+                    onDisconnect(presenceRef).remove();
 
-                    // Send "joined" message only if not already sent for this session
                     if (!localStorage.getItem('paritalk_joined_message_sent_for_' + currentRoomCode + currentUsername)) {
-                        console.log("Sending 'joined' message..."); // Debugging
+                        console.log("Sending 'joined' message...");
                         sendMessage(`**${currentUsername}** joined the chat.`, 'system');
                         localStorage.setItem('paritalk_joined_message_sent_for_' + currentRoomCode + currentUsername, 'true');
                     }
 
-                    // Start listeners
                     listenForMessages();
                     listenForPresence();
                     listenForTyping();
 
                     messageInput.focus();
 
-                    // Initialize Jitsi service within chat logic
                     initializeJitsiInChat();
 
                 } catch (error) {
                     console.error("Error setting up chat listeners/presence:", error);
-                    // Clear relevant localStorage items for a clean retry
                     localStorage.removeItem('paritalk_username');
                     localStorage.removeItem('paritalk_roomcode');
                     localStorage.removeItem('paritalk_joined_message_sent_for_' + currentRoomCode + currentUsername);
@@ -699,7 +696,6 @@
                     onlineUsersCountDisplay.textContent = `Online: ${users.length}`;
                 }
 
-                // Jitsi call state management based on Firebase presence
                 const currentJitsiApi = getJitsiApi();
                 if (currentJitsiApi) {
                     const jitsiParticipantsCount = currentJitsiApi.getNumberOfParticipants ? currentJitsiApi.getNumberOfParticipants() : 0;
@@ -707,7 +703,7 @@
 
                     if (firebaseOtherUsersCount === 0 && jitsiParticipantsCount <= 1 && users.includes(currentUserId)) {
                         console.log("Other user left room (Firebase) and Jitsi, ending call.");
-                        endVideoCall(); // End the Jitsi call
+                        endVideoCall();
                         addMessageToChat({
                             sender: 'System',
                             text: 'The other user has left the call, ending the video session.',
@@ -724,22 +720,20 @@
             if (confirmed) {
                 const currentJitsiApi = getJitsiApi();
                 if (currentJitsiApi) {
-                    endVideoCall(); // End Jitsi call if active
+                    endVideoCall();
                 }
                 if (presenceRef) {
                     console.log("Leaving room: Explicitly removing user presence.");
-                    await remove(presenceRef); // Explicitly remove user from presence
+                    await remove(presenceRef);
                     sendMessage(`**${currentUsername}** left the chat.`, 'system');
                 }
-                // Clear localStorage for a clean exit
                 localStorage.removeItem('paritalk_username');
                 localStorage.removeItem('paritalk_roomcode');
                 localStorage.removeItem('paritalk_joined_message_sent_for_' + currentRoomCode + currentUsername);
 
-                // Redirect to login page
                 window.location.href = 'index.html';
             }
-            hideModal(); // Ensure modal is hidden even if not confirmed
+            hideModal();
         }
 
         function setTypingStatus(isTyping) {
@@ -753,12 +747,7 @@
             onValue(allTypingRef, (snapshot) => {
                 const typingUsers = [];
                 snapshot.forEach((childSnapshot) => {
-                    // Only consider users who are actually typing (value is true) AND are not the current user
                     if (childSnapshot.val() === true && childSnapshot.key !== currentUserId) {
-                        // To get the username, we would need to fetch it from the presence node
-                        // For simplicity now, let's just use a generic 'Someone' or get it from presence if available.
-                        // For a more robust solution, 'typing' node should store the username itself.
-                        // Assuming typing node stores {userId: true}
                         const presenceSnapshot = snapshot.child(`../presence/${childSnapshot.key}`);
                         if (presenceSnapshot.exists() && presenceSnapshot.val().username) {
                             typingUsers.push(presenceSnapshot.val().username);
@@ -769,7 +758,6 @@
                 });
 
                 if (typingUsers.length > 0) {
-                    // Display up to 2 typing users, or "multiple people"
                     let displayString = '';
                     if (typingUsers.length === 1) {
                         displayString = `${typingUsers[0]} is typing`;
@@ -796,7 +784,6 @@
         });
 
         messageInput.addEventListener('blur', () => {
-            // Only set to false if the user is truly not typing or input is empty
             if (messageInput.value.trim() === '') {
                  setTypingStatus(false);
                  clearTimeout(typingTimeout);
@@ -821,7 +808,6 @@
 
         imageUploadInput.addEventListener('change', handleFileUpload);
 
-        // Event listeners for video call and leave room buttons
         if (videoCallButton) {
             videoCallButton.addEventListener('click', startVideoCall);
             console.log("Video Call button event listener attached.");
@@ -842,7 +828,6 @@
             });
         }
 
-        // Event listeners for modal buttons
         if (modalConfirm) {
             modalConfirm.addEventListener('click', () => {
                 if (resolveModalPromise) resolveModalPromise(true);
@@ -858,15 +843,12 @@
         } else { console.error("Modal Cancel button not found!"); }
 
 
-        // FIX: Ensure `remove(presenceRef)` is called for explicit unload/close.
         window.addEventListener('beforeunload', async (e) => {
-            if (presenceRef && currentUserId) { // Only attempt if user ID is known
+            if (presenceRef && currentUserId) {
                 console.log("Beforeunload: Attempting to remove user presence explicitly.");
-                // Use `set(presenceRef, null)` which is effectively a remove.
-                // The `onDisconnect` set up earlier is the primary safeguard for unexpected closures.
                 await set(presenceRef, null);
                 if (jitsiApi) {
-                    jitsiApi.dispose(); // Dispose Jitsi API
+                    jitsiApi.dispose();
                 }
             }
         });
