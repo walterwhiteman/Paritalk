@@ -104,20 +104,20 @@ body {
 /* Messages Container */
 .messages-container-premium {
     flex-grow: 1;
-    padding: 15px;
+    padding: 10px; /* Reduced horizontal padding for bubbles closer to edges */
     overflow-y: auto;
     display: flex;
     flex-direction: column;
-    gap: 8px; /* Space between messages */
+    gap: 4px; /* Significantly reduced space between messages */
     background-color: #f9f9f9; /* Slightly different background for message area */
 }
 
 /* Message Bubble */
 .message-bubble-premium {
-    max-width: 80%; /* Maintain bubble size */
-    padding: 8px 12px; /* Decreased padding inside the bubble */
+    max-width: 85%; /* Slightly increased width to fill more space, if possible */
+    padding: 6px 10px; /* Significantly decreased padding inside the bubble */
     border-radius: 18px;
-    margin-bottom: 5px; /* Decreased margin between bubbles */
+    margin-bottom: 0; /* Let gap in container handle vertical spacing */
     word-wrap: break-word;
     white-space: pre-wrap; /* Ensures new lines are respected */
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
@@ -156,14 +156,14 @@ body {
     margin: 0;
     font-size: 0.95em;
     line-height: 1.3;
-    padding-bottom: 2px; /* Small padding below content before info footer */
+    padding-bottom: 0px; /* No padding below content before info footer */
 }
 
 /* NEW: Message Info Footer (Sender and Timestamp) */
 .message-info-footer-premium {
     font-size: 0.75em; /* Same size as timestamp */
     color: #757575;
-    margin-top: 2px; /* Reduced gap between message content and timestamp */
+    margin-top: 2px; /* Small margin to separate from content */
     display: flex;
     gap: 6px; /* Space between sender name and timestamp */
     align-items: center;
@@ -653,12 +653,12 @@ body {
     }
 
     .messages-container-premium {
-        padding: 10px;
-        gap: 6px;
+        padding: 8px; /* Even tighter horizontal padding for small screens */
+        gap: 4px; /* Maintain very small gap */
     }
 
     .message-bubble-premium {
-        padding: 7px 10px; /* Even tighter on small screens */
+        padding: 6px 10px; /* Consistent small padding */
         font-size: 0.9em;
     }
 
