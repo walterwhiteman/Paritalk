@@ -1,0 +1,479 @@
+// main_webrtc.js
+
+// Global variables for WebRTC components
+let socket = null;
+let peerConnection = null;
+let localStream = null;
+let remoteStream = null;
+let currentRoomCode = null; // Represents the signaling room (which is the call ID)
+let currentUserId = null; // The chat user's Firebase UID
+let currentUsername = null;
+let uiCallbacks = {}; // Callbacks to update chat.html UI
+let uiElements = {}; // DOM elements from chat.html
+
+// ICE Servers for STUN/TURN (public Google STUN servers)
+const iceServers = {
+    'iceServers': [
+        { 'urls': 'stun:stun.l.google.com:19302' },
+        { 'urls': 'stun:stun1.l.google.com:19302' },
+        // Add TURN servers here if needed for more robust connections
+        // { 'urls': 'turn:your_turn_server.com:3478', 'username': 'user', 'credential': 'password' },
+    ]
+};
+
+// --- Helper Functions ---
+
+function logWebRTC(message) {
+    console.log(`WebRTC: ${message}`);
+    if (uiCallbacks.onStatusUpdate) {
+        uiCallbacks.onStatusUpdate(message);
+    }
+}
+
+// --- Media Functions ---
+
+// startLocalMedia is an internal helper, not exported.
+async function startLocalMedia() {
+    logWebRTC("Requesting local media (camera/microphone)...");
+    try {
+        // Request both video and audio
+        localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        uiElements.localVideoElement.srcObject = localStream;
+        logWebRTC("Local media acquired.");
+        return true;
+    } catch (error) {
+        console.error("WebRTC: Error accessing local media:", error);
+        logWebRTC(`Error accessing media: ${error.name}. Please ensure camera/mic are allowed.`);
+        alert(`Failed to get camera/microphone access. Please check permissions and try again.\nError: ${error.message}`);
+        hangupCall(false); // Automatically hang up if media access fails, but don't send signal to peer
+        return false;
+    }
+}
+
+function stopLocalMedia() {
+    if (localStream) {
+        logWebRTC("Stopping local media tracks.");
+        localStream.getTracks().forEach(track => track.stop());
+        localStream = null;
+    }
+    if (uiElements.localVideoElement) {
+        uiElements.localVideoElement.srcObject = null;
+    }
+}
+
+// --- Peer Connection Functions ---
+
+function createPeerConnection() {
+    logWebRTC("Creating RTCPeerConnection...");
+    if (peerConnection) {
+        logWebRTC("Existing peerConnection found, closing it.");
+        peerConnection.close();
+        peerConnection = null;
+    }
+
+    try {
+        peerConnection = new RTCPeerConnection(iceServers);
+
+        peerConnection.onicecandidate = (event) => {
+            if (event.candidate) {
+                logWebRTC("Sending ICE candidate.");
+                socket.emit('ice_candidate', {
+                    candidate: event.candidate,
+                    room: currentRoomCode,
+                    senderId: currentUserId
+                });
+            }
+        };
+
+        peerConnection.ontrack = (event) => {
+            logWebRTC("Received remote stream track.");
+            if (!remoteStream) {
+                remoteStream = new MediaStream();
+                uiElements.remoteVideoElement.srcObject = remoteStream;
+                uiCallbacks.onRemoteStream(remoteStream, "Other User"); // Placeholder for now
+            }
+            remoteStream.addTrack(event.track);
+        };
+
+        peerConnection.onconnectionstatechange = () => {
+            logWebRTC(`Connection state change: ${peerConnection.connectionState}`);
+            if (peerConnection.connectionState === 'disconnected' || peerConnection.connectionState === 'failed' || peerConnection.connectionState === 'closed') {
+                logWebRTC("Peer connection disconnected or closed.");
+                hangupCall(); // Automatically hang up if connection drops
+            } else if (peerConnection.connectionState === 'connected') {
+                logWebRTC("Peer connection established!");
+                uiCallbacks.onStatusUpdate("Call connected!");
+            }
+        };
+
+        peerConnection.oniceconnectionstatechange = () => {
+            logWebRTC(`ICE connection state change: ${peerConnection.iceConnectionState}`);
+            if (peerConnection.iceConnectionState === 'failed' || peerConnection.iceConnectionState === 'closed') {
+                logWebRTC("ICE connection failed or closed.");
+                // This might indicate a problem that warrants hanging up, or just a temporary network glitch.
+                // For simplicity, we can let onconnectionstatechange handle the hangup.
+            }
+        };
+
+        // Add local stream tracks to peer connection
+        if (localStream) {
+            localStream.getTracks().forEach(track => {
+                peerConnection.addTrack(track, localStream);
+            });
+            logWebRTC("Local tracks added to peer connection.");
+        } else {
+            console.warn("WebRTC: No local stream available when creating peer connection.");
+            logWebRTC("Cannot create peer connection: Local media not available.");
+            hangupCall(); // Hang up if no local stream to add
+        }
+
+    } catch (e) {
+        console.error('WebRTC: Failed to create PeerConnection, error: ' + e.message);
+        logWebRTC(`Failed to create PeerConnection: ${e.message}`);
+        hangupCall();
+    }
+}
+
+async function createOffer() {
+    logWebRTC("Creating offer...");
+    try {
+        const offer = await peerConnection.createOffer();
+        await peerConnection.setLocalDescription(offer);
+        logWebRTC("Sending offer.");
+        socket.emit('offer', {
+            sdp: offer,
+            room: currentRoomCode,
+            senderId: currentUserId,
+            // recipientId is not directly sent here, signaling server determines based on room
+        });
+    } catch (error) {
+        console.error("WebRTC: Error creating offer:", error);
+        logWebRTC(`Error creating offer: ${error.message}`);
+        hangupCall();
+    }
+}
+
+async function createAnswer(offer) {
+    logWebRTC("Creating answer...");
+    try {
+        await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+        const answer = await peerConnection.createAnswer();
+        await peerConnection.setLocalDescription(answer);
+        logWebRTC("Sending answer.");
+        socket.emit('answer', {
+            sdp: answer,
+            room: currentRoomCode,
+            senderId: currentUserId,
+            recipientId: offer.senderId // Send back to the offerer
+        });
+    } catch (error) {
+        console.error("WebRTC: Error creating answer:", error);
+        logWebRTC(`Error creating answer: ${error.message}`);
+        hangupCall();
+    }
+}
+
+// --- Socket.IO Handlers ---
+
+function setupSocketIOListeners() {
+    socket.on('connect', () => {
+        logWebRTC('Connected to signaling server');
+        // Register the chat user ID with the signaling server immediately upon connection
+        // This allows the server to map socket IDs to chat user IDs for call invites
+        socket.emit('register_chat_user', { chatUserId: currentUserId, username: currentUsername });
+        // After connecting, ensure we join the specific call room
+        socket.emit('join_room', { room: currentRoomCode, userId: currentUserId, username: currentUsername });
+    });
+
+    socket.on('disconnect', () => {
+        logWebRTC('Disconnected from signaling server');
+        // This disconnect can happen for various reasons (network, server restart, explicit hangup)
+        // Only clean up UI if not already handled by onCallEnded
+        if (peerConnection) { // If a call was active
+           hangupCall(false); // Clean up locally, but don't try to send signal to a disconnected server
+        }
+    });
+
+    socket.on('connect_error', (error) => {
+        console.error("WebRTC: Socket.IO connection error:", error);
+        logWebRTC(`Socket.IO connection error: ${error.message}`);
+        // If the connection drops or fails at any point, terminate the call
+        hangupCall(); // This will also send a signal if connection was stable enough before error
+    });
+
+    socket.on('registered', (data) => {
+        logWebRTC(`Registered with signaling server: ${data.message}`);
+    });
+
+    socket.on('join_room_ack', (data) => {
+        logWebRTC(`Joined room ${data.room}. Peers: `);
+        console.log(data.peers);
+        // The offer/answer logic is driven by Firebase invites and explicit calls to initiateCall/acceptCall
+    });
+
+    socket.on('room_full', () => {
+        logWebRTC('Room is full. Cannot join.');
+        hangupCall();
+    });
+
+    socket.on('peer_joined', (data) => {
+        logWebRTC(`Peer ${data.peerId} (${data.peerUsername}) joined the room.`);
+        if (data.peerId !== currentUserId) { // Ensure it's not self
+            // If peer joins, and we are already in a call state (e.g., waiting for them)
+            // and we have a local stream, then create an offer.
+            if (localStream && peerConnection && peerConnection.signalingState === 'stable') {
+                createOffer(); // Initiator creates offer after peer joins
+            }
+            if (uiCallbacks.onRemoteStream) {
+                // Update remote user label when peer joins (stream will come later)
+                uiCallbacks.onRemoteStream(null, data.peerUsername);
+            }
+        }
+    });
+
+
+    socket.on('offer', async (data) => {
+        logWebRTC('Received offer.');
+        if (data.senderId === currentUserId) return; // Ignore offers from self
+
+        if (!peerConnection) {
+            // This case happens if an offer arrives before peerConnection is created (e.g., recipient)
+            // The recipient needs to have local media ready first, which acceptCall handles.
+            // If offer arrives before local media is ready, it's an issue with timing.
+            console.warn("WebRTC: Received offer but peerConnection not yet created. Ensure startLocalMedia and createPeerConnection are called before accepting an offer.");
+            // Re-creating peerConnection and calling startLocalMedia here is critical for the recipient.
+            const mediaReady = await startLocalMedia();
+            if (!mediaReady) {
+                 logWebRTC("Cannot accept offer: Media access failed.");
+                 return;
+            }
+            createPeerConnection();
+        }
+
+        // Only set remote description and create answer if not already doing so or done
+        if (peerConnection.signalingState !== 'have-remote-offer' && peerConnection.remoteDescription === null) {
+            await createAnswer(data.sdp);
+        } else {
+            console.warn("WebRTC: Peer connection already has a remote offer or description. Ignoring new offer.");
+        }
+    });
+
+    socket.on('answer', async (data) => {
+        logWebRTC('Received answer.');
+        if (data.senderId === currentUserId) return; // Ignore answers from self
+
+        if (peerConnection && peerConnection.signalingState === 'have-local-offer') {
+            await peerConnection.setRemoteDescription(new RTCSessionDescription(data.sdp));
+        } else {
+             console.warn("WebRTC: Received answer but peerConnection is not in 'have-local-offer' state or remote description already set.");
+        }
+    });
+
+    socket.on('ice_candidate', async (data) => {
+        logWebRTC('Received ICE candidate.');
+        if (data.senderId === currentUserId) return; // Ignore candidates from self
+
+        if (peerConnection && data.candidate) {
+            try {
+                await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
+            } catch (e) {
+                console.error('WebRTC: Error adding received ICE candidate:', e);
+            }
+        } else {
+            console.warn("WebRTC: Received ICE candidate but peerConnection is not ready.");
+        }
+    });
+
+    socket.on('call_ended_signal', (data) => {
+        logWebRTC(`Call ended signal received from ${data.senderUsername}.`);
+        hangupCall(false); // Clean up locally, but don't send hangup signal back
+    });
+}
+
+// --- Public WebRTC Control Functions ---
+
+export function initWebRTCClient(signalingServerUrl, username, userId, initialCallId, callbacks, elements) {
+    currentUsername = username;
+    currentUserId = userId;
+    currentRoomCode = initialCallId; // The initial call ID for signaling room
+
+    uiCallbacks = callbacks;
+    uiElements = elements;
+
+    logWebRTC("Initializing WebRTC Client...");
+
+    // Disconnect existing socket if connected to create a new one for a new room
+    if (socket && socket.connected) {
+        logWebRTC("Socket already connected, disconnecting previous to join new room.");
+        socket.disconnect();
+        socket = null;
+    }
+
+    // Initialize new socket connection
+    socket = io(signalingServerUrl, {
+        autoConnect: false, // We will manually connect
+        transports: ['websocket', 'polling'], // Prefer websocket, fallback to polling
+        query: {
+            userId: currentUserId,
+            username: currentUsername,
+            room: currentRoomCode // Pass room to server upon connection
+        }
+    });
+
+    setupSocketIOListeners(); // Setup listeners for the new socket instance
+    socket.connect(); // Connect the new socket instance. This will trigger 'connect' event and 'join_room'.
+
+    logWebRTC(`Socket connection attempt initiated for signaling room: ${currentRoomCode}`);
+
+    // No direct return of functions like startLocalMedia, createOffer etc.
+    // They are either internal or exported separately.
+}
+
+export async function initiateCall(callID) {
+    logWebRTC(`Initiating call with ID: ${callID}`);
+    currentRoomCode = callID; // Update the signaling room to the specific call ID
+
+    // Ensure socket is connected to the correct call room
+    if (!socket || !socket.connected || socket.io.opts.query.room !== currentRoomCode) {
+        logWebRTC(`Reconnecting socket for initiator to call room: ${currentRoomCode}`);
+        if (socket) socket.disconnect(); // Disconnect existing to ensure new connection
+        socket = io(socket.io.uri, {
+            autoConnect: false,
+            transports: ['websocket', 'polling'],
+            query: { userId: currentUserId, username: currentUsername, room: currentRoomCode }
+        });
+        setupSocketIOListeners();
+        socket.connect();
+        // Wait for connect event to ensure socket is ready before trying to join/send data
+        await new Promise(resolve => socket.on('connect', resolve));
+        logWebRTC("Initiator socket reconnected to correct call room.");
+    } else {
+        logWebRTC("Initiator socket already connected to correct call room.");
+    }
+
+    // Crucial: Get local media BEFORE creating peer connection and offer
+    const mediaReady = await startLocalMedia();
+    if (!mediaReady) {
+        logWebRTC("Media not ready for initiating call.");
+        hangupCall(); // Cleanup if media fails
+        return;
+    }
+
+    createPeerConnection(); // Create PC after media is ready
+    createOffer(); // Initiator creates the offer
+    logWebRTC("Call initiated. Waiting for peer...");
+}
+
+export async function acceptCall(callID) {
+    logWebRTC(`Accepting call with ID: ${callID}`);
+    currentRoomCode = callID; // Set the signaling room to the call ID
+
+    // Ensure socket is connected to the correct call room
+    if (!socket || !socket.connected || socket.io.opts.query.room !== currentRoomCode) {
+        logWebRTC(`Reconnecting socket for acceptor to call room: ${currentRoomCode}`);
+        if (socket) socket.disconnect(); // Disconnect existing to ensure new connection
+        socket = io(socket.io.uri, {
+            autoConnect: false,
+            transports: ['websocket', 'polling'],
+            query: { userId: currentUserId, username: currentUsername, room: currentRoomCode }
+        });
+        setupSocketIOListeners();
+        socket.connect();
+        await new Promise(resolve => socket.on('connect', resolve));
+        logWebRTC("Acceptor socket reconnected to correct call room.");
+    } else {
+        logWebRTC("Acceptor socket already connected to correct call room.");
+    }
+
+    // Crucial: Get local media BEFORE creating peer connection
+    const mediaReady = await startLocalMedia();
+    if (!mediaReady) {
+        logWebRTC("Media not ready for accepting call.");
+        hangupCall(); // Cleanup if media fails
+        return;
+    }
+
+    createPeerConnection(); // Create PC after media is ready
+    // The answer will be created when the offer is received via socket.on('offer')
+    logWebRTC("Call accepted. Waiting for offer...");
+}
+
+export function rejectCall(callID) {
+    logWebRTC(`Rejecting call with ID: ${callID}`);
+    uiCallbacks.onCallRejected(currentUsername); // Notify UI (which also handles Firebase cleanup)
+    hangupCall(false); // Clean up any local media/connections, but don't send signal to peer (Firebase handles rejection)
+}
+
+function closePeerConnection() {
+    if (peerConnection) {
+        logWebRTC("Closing peer connection.");
+        peerConnection.close();
+        peerConnection = null;
+    }
+    if (remoteStream) {
+        logWebRTC("Stopping remote stream tracks.");
+        remoteStream.getTracks().forEach(track => track.stop());
+        remoteStream = null;
+    }
+    if (uiElements.remoteVideoElement) {
+        uiElements.remoteVideoElement.srcObject = null;
+    }
+    uiCallbacks.onRemoteStreamEnded(); // Clear remote video UI
+    stopLocalMedia(); // Stop local media tracks and clear local video UI
+}
+
+export function hangupCall(sendSignal = true) {
+    logWebRTC("Ending video call...");
+    // Only emit hangup signal if we are supposed to send it AND socket is connected
+    if (sendSignal && socket && socket.connected && currentRoomCode) {
+        logWebRTC("Sending call_ended_signal to peer.");
+        socket.emit('call_ended_signal', {
+            room: currentRoomCode,
+            senderId: currentUserId,
+            senderUsername: currentUsername
+        });
+    }
+
+    closePeerConnection(); // Clean up peer connection and media streams
+    if (socket && socket.connected) {
+        logWebRTC("Disconnecting socket from signaling server.");
+        socket.disconnect(); // Disconnect socket from the signaling server
+        socket = null; // Clear the socket reference
+    }
+
+    logWebRTC("Video call ended and resources cleaned up.");
+    // Notify chat.html that the call has fully ended, so it can clean up its UI and Firebase state
+    if (uiCallbacks.onCallEnded) {
+        uiCallbacks.onCallEnded();
+    }
+}
+
+export function toggleLocalAudio() {
+    if (localStream) {
+        const audioTracks = localStream.getAudioTracks();
+        if (audioTracks.length > 0) {
+            const enabled = !audioTracks[0].enabled;
+            audioTracks[0].enabled = enabled;
+            logWebRTC(`Microphone toggled: ${enabled ? 'on' : 'off'}`);
+            uiCallbacks.onMicrophoneToggle(!enabled); // Pass the new muted state
+        }
+    } else {
+        console.warn("WebRTC: No local stream to toggle audio.");
+        logWebRTC("Cannot toggle mic: No local media.");
+    }
+}
+
+export function toggleLocalVideo() {
+    if (localStream) {
+        const videoTracks = localStream.getVideoTracks();
+        if (videoTracks.length > 0) {
+            const enabled = !videoTracks[0].enabled;
+            videoTracks[0].enabled = enabled;
+            logWebRTC(`Camera toggled: ${enabled ? 'on' : 'off'}`);
+            uiCallbacks.onCameraToggle(!enabled); // Pass the new off state
+        }
+    } else {
+        console.warn("WebRTC: No local stream to toggle video.");
+        logWebRTC("Cannot toggle camera: No local media.");
+    }
+}

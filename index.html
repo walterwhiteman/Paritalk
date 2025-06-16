@@ -4,204 +4,180 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Paritalk - Login</title>
+
+    <!-- Preconnect to Firebase and Google Fonts -->
+    <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
     <link rel="stylesheet" href="style.css">
+    <link rel="icon" href="favicon.ico" type="image/x-icon">
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body>
     <div class="login-page-container">
         <div class="login-card">
             <div class="app-brand-logo-circle">
-                <span class="material-symbols-outlined app-brand-icon">favorite</span> </div>
+                <span class="material-symbols-outlined app-brand-icon">chat</span>
+            </div>
             <h1 class="app-brand-title">Paritalk</h1>
-            <p class="app-tagline">A private space for intimate conversations</p>
+            <p class="app-tagline">Your Private Chat Room</p>
 
-            <div class="input-form-section">
+            <section class="input-form-section">
+                <!-- Room Code Input - Now First -->
                 <div class="input-group-premium">
-                    <label for="roomcode-input" class="input-label-premium">
-                        <span class="material-symbols-outlined input-icon-premium">lock</span>
+                    <label for="room-code-input" class="input-label-premium">
+                        <span class="material-symbols-outlined input-icon-premium">meeting_room</span>
                         Room Code
                     </label>
-                    <input type="text" id="roomcode-input" placeholder="Enter your private room code" required class="input-field-premium">
+                    <input type="text" id="room-code-input" class="input-field-premium" placeholder="Enter a room code to join" required>
                 </div>
+
+                <!-- Username Input - Now Second -->
                 <div class="input-group-premium">
                     <label for="username-input" class="input-label-premium">
                         <span class="material-symbols-outlined input-icon-premium">person</span>
-                        Your Name
+                        Your Username
                     </label>
-                    <input type="text" id="username-input" placeholder="How should we call you?" required class="input-field-premium">
+                    <input type="text" id="username-input" class="input-field-premium" placeholder="Enter your display name" required>
                 </div>
 
-                <button id="join-chat-button" class="primary-action-button">Enter Chat Room</button>
-                <p id="login-error" class="error-message-premium hidden"></p>
-            </div>
+                <button id="join-chat-button" class="primary-action-button">
+                    <span id="button-text">Join Chat</span>
+                    <span id="button-spinner" class="loading-spinner hidden"></span>
+                </button>
+                <p id="error-message" class="error-message-premium hidden"></p>
+            </section>
 
             <p class="privacy-note-premium">
-                <span class="material-symbols-outlined privacy-icon-premium">verified_user</span> Your conversations are private and secure. Share the room code only with someone special.
+                <span class="material-symbols-outlined privacy-icon-premium">security</span>
+                Your messages are encrypted end-to-end.
             </p>
         </div>
     </div>
 
     <script type="module">
-        // Firebase SDK Imports
+        console.log("INDEX.HTML: Script starting."); // Diagnostic log 1
+
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-        import { getDatabase, ref, get, set, onDisconnect, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
-        // Supabase Client SDK Import
-        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
-
-        // --- UI Elements (Declared First to avoid 'access before initialization' error) ---
-        const usernameInput = document.getElementById('username-input');
-        const roomcodeInput = document.getElementById('roomcode-input');
-        const joinChatButton = document.getElementById('join-chat-button');
-        const loginError = document.getElementById('login-error');
-
-        // Function to display login errors (can now be defined as UI elements exist)
-        function displayLoginError(message) {
-            loginError.textContent = message;
-            loginError.classList.remove('hidden');
-        }
-
-        // --- Firebase Configuration (Your Actual Config) ---
+        // Your web app's Firebase configuration (same as in chat.html)
         const firebaseConfig = {
-            apiKey: "AIzaSyA8Yj1Z1Mpv2lyt9SRxJ_w4U04BXt8hajk",
+            apiKey: "AIzaSyA8Yj1Z1Mpv2lyt9SRxJ_w4U04BXt8hajk", // Your Firebase API Key
             authDomain: "paritalk.firebaseapp.com",
-            databaseURL: "https://paritalk-default-rtdb.firebaseio.com",
             projectId: "paritalk",
+            databaseURL: "https://paritalk-default-rtdb.firebaseio.com",
             storageBucket: "paritalk.firebasestorage.app",
             messagingSenderId: "441945619664",
             appId: "1:441945619664:web:045e0c872e67e0eb9fb2d5"
         };
 
-        const initialAuthToken = null; // Not used for GitHub Pages deployment.
-
-
         // Initialize Firebase
-        let app;
-        let auth;
-        let db;
-        let currentUserId = null;
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
 
-        try {
-            if (firebaseConfig && firebaseConfig.apiKey && firebaseConfig.projectId && firebaseConfig.databaseURL) {
-                app = initializeApp(firebaseConfig);
-                auth = getAuth(app);
-                db = getDatabase(app);
-                console.log("Firebase initialized successfully in index.html.");
+        // DOM elements
+        const usernameInput = document.getElementById('username-input');
+        const roomCodeInput = document.getElementById('room-code-input');
+        const joinChatButton = document.getElementById('join-chat-button');
+        const errorMessage = document.getElementById('error-message');
+        const buttonText = document.getElementById('button-text');
+        const buttonSpinner = document.getElementById('button-spinner');
 
-                // --- Authentication ---
-                // This listener ensures we have an authenticated user when the page loads
-                onAuthStateChanged(auth, async (user) => {
-                    if (user) {
-                        currentUserId = user.uid;
-                        console.log("Firebase Auth State Changed: User logged in.", user.uid);
-                        const storedUsername = localStorage.getItem('paritalk_username');
-                        const storedRoomCode = localStorage.getItem('paritalk_roomcode');
-                        if (storedUsername) usernameInput.value = storedUsername;
-                        if (storedRoomCode) roomcodeInput.value = storedRoomCode;
-                    } else {
-                        // No user signed in, attempt anonymous sign-in or custom token sign-in
-                        console.log("Firebase Auth State Changed: No user logged in. Attempting sign-in.");
-                        try {
-                            if (initialAuthToken) {
-                                await signInWithCustomToken(auth, initialAuthToken);
-                                console.log("Signed in with custom token.");
-                            } else {
-                                await signInAnonymously(auth); // Sign in anonymously
-                                console.log("Signed in anonymously.");
-                            }
-                        } catch (error) {
-                            console.error("Error signing in during onAuthStateChanged:", error.message);
-                            displayLoginError(`Authentication error: ${error.message}. Please try again.`);
-                        }
-                    }
-                });
+        console.log("INDEX.HTML: DOM elements fetched."); // Diagnostic log 2
 
+        // Show loading state on button
+        function showLoading(isLoading) {
+            if (isLoading) {
+                buttonText.classList.add('hidden');
+                buttonSpinner.classList.remove('hidden');
+                joinChatButton.disabled = true;
             } else {
-                console.error("Firebase configuration is incomplete or invalid.");
-                displayLoginError("App configuration error. Please contact support.");
+                buttonText.classList.remove('hidden');
+                buttonSpinner.classList.add('hidden');
+                joinChatButton.disabled = false;
             }
-        } catch (error) {
-            console.error("Failed to initialize Firebase in index.html:", error);
-            displayLoginError(`Initialization error: ${error.message}.`);
         }
 
-        // --- Supabase Initialization ---
-        const SUPABASE_URL = 'https://uokpkgybjzvpngoxasnm.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVva3BrZ3lianp2cG5nb3hhc25tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk5MjE4NTcsImV4cCI6MjA2NTQ5Nzg1N30.FNv_13S3oj7fjartmY2PzKL25T3AWbMxP2KRI0rFU2E';
-
-        let supabase;
-        try {
-            if (SUPABASE_URL && SUPABASE_ANON_KEY) {
-                supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-                console.log("Supabase client initialized successfully in index.html.");
-            } else {
-                console.warn('Supabase URL or Anon Key not set. File uploads will not work. Please ensure keys are correctly set.');
-                supabase = null;
+        // Check for stored username/room on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log("INDEX.HTML: DOMContentLoaded event fired."); // Diagnostic log 3
+            const storedUsername = localStorage.getItem('paritalk_username');
+            const storedRoomCode = localStorage.getItem('paritalk_roomcode');
+            if (storedUsername) {
+                usernameInput.value = storedUsername;
             }
-        } catch (error) {
-            console.error('Failed to initialize Supabase in index.html:', error);
-            supabase = null;
-        }
-
-
-        // --- Join Chat Logic ---
-        joinChatButton.addEventListener('click', async () => {
-            // Ensure Firebase and Auth are ready before proceeding
-            if (!db || !auth || !auth.currentUser || !currentUserId) {
-                displayLoginError("App is not fully loaded or authenticated. Please wait a moment and try again.");
-                console.warn("Attempted to join before Firebase auth or DB was ready.");
-                return;
-            }
-
-            const username = usernameInput.value.trim();
-            const roomCode = roomcodeInput.value.trim();
-
-            if (!username || !roomCode) {
-                displayLoginError('Please enter both username and room code.');
-                return;
-            }
-
-            const roomPresenceRef = ref(db, `rooms/${roomCode}/presence`);
-
-            try {
-                // Fetch current room occupants once
-                const snapshot = await get(roomPresenceRef);
-                let usersInRoomCount = 0;
-                let currentUsers = {}; // userId: username map
-                if (snapshot.exists()) {
-                    snapshot.forEach((childSnapshot) => {
-                        usersInRoomCount++;
-                        currentUsers[childSnapshot.key] = childSnapshot.val().username;
-                    });
-                }
-
-                // Check if current user (by Firebase UID) is already in the room with the given username
-                const isCurrentUserAlreadyInRoom = currentUserId && currentUsers[currentUserId] === username;
-
-                if (usersInRoomCount >= 2 && !isCurrentUserAlreadyInRoom) {
-                    displayLoginError('This room is currently full. Please try a different room code.');
-                    return;
-                }
-
-                // Save credentials to localStorage for auto-rejoin
-                localStorage.setItem('paritalk_username', username);
-                localStorage.setItem('paritalk_roomcode', roomCode);
-
-                // Redirect to chat.html
-                // Using encodeURIComponent to ensure special characters in room/user are handled correctly
-                window.location.href = `chat.html?room=${encodeURIComponent(roomCode)}&user=${encodeURIComponent(username)}`;
-
-            } catch (error) {
-                console.error("Error checking room presence or joining:", error);
-                displayLoginError(`Failed to join room: ${error.message}. Please check your Firebase rules and internet connection.`);
+            if (storedRoomCode) {
+                roomCodeInput.value = storedRoomCode;
             }
         });
 
-        // Clear error message on input focus
-        usernameInput.addEventListener('focus', () => loginError.classList.add('hidden'));
-        roomcodeInput.addEventListener('focus', () => loginError.classList.add('hidden'));
+        if (joinChatButton) { // Ensure button exists before adding listener
+            joinChatButton.addEventListener('click', async () => {
+                console.log("INDEX.HTML: Join Chat button clicked!"); // Diagnostic log 4
+                errorMessage.classList.add('hidden'); // Hide previous error
+                showLoading(true); // Show spinner
+
+                const username = usernameInput.value.trim();
+                const roomCode = roomCodeInput.value.trim();
+
+                if (!username) {
+                    errorMessage.textContent = 'Please enter your username.';
+                    errorMessage.classList.remove('hidden');
+                    showLoading(false);
+                    return;
+                }
+                if (!roomCode) {
+                    errorMessage.textContent = 'Please enter a room code.';
+                    errorMessage.classList.remove('hidden');
+                    showLoading(false);
+                    return;
+                }
+
+                try {
+                    // Sign in anonymously with Firebase Auth
+                    await signInAnonymously(auth);
+                    console.log("INDEX.HTML: Signed in anonymously with Firebase."); // Diagnostic log 5
+
+                    // Store username and room code in local storage
+                    localStorage.setItem('paritalk_username', username);
+                    localStorage.setItem('paritalk_roomcode', roomCode);
+
+                    console.log("INDEX.HTML: Attempting redirect to chat.html"); // Diagnostic log 6
+                    // Redirect to the chat page with username and room code as query parameters
+                    window.location.href = `chat.html?room=${encodeURIComponent(roomCode)}&user=${encodeURIComponent(username)}`;
+
+                } catch (error) {
+                    console.error("INDEX.HTML: Firebase Anonymous Auth Error:", error); // Diagnostic log for error
+                    errorMessage.textContent = `Login failed: ${error.message || 'An unknown error occurred.'}`;
+                    errorMessage.classList.remove('hidden');
+                } finally {
+                    showLoading(false); // Hide spinner regardless of outcome
+                    console.log("INDEX.HTML: Join Chat button logic finished."); // Diagnostic log 7
+                }
+            });
+        } else {
+            console.error("INDEX.HTML: Join Chat button element not found!"); // Diagnostic log 8
+        }
+
+
+        // Add keypress listener for 'Enter' key on input fields
+        usernameInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                joinChatButton.click();
+            }
+        });
+
+        roomCodeInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                joinChatButton.click();
+            }
+        });
+
+        console.log("INDEX.HTML: Script finished initial execution."); // Diagnostic log 9
 
     </script>
 </body>
