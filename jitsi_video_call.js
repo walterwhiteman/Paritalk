@@ -109,21 +109,133 @@ export async function initializeJitsiInstance(roomCode, username, jitsiContainer
             remoteVideoMenu: {
                 disableKick: true,
                 disableGrantModerator: true,
-                disablePrivateChat: true // Added from your .tsx
+                disablePrivateChat: true
             },
             toolbarButtons: [
                 'microphone', 'camera', 'hangup', 'desktop', 'fullscreen',
-                'fodeviceselection', 'stats' // 'stats' added from .tsx
+                'fodeviceselection', 'stats'
             ],
             disableDeepLinking: true,
             disableAddingBackgroundImages: true,
             disableVirtualBackground: true,
-            roomPasswordNumberOfDigits: false, // From .tsx
-            enableRoomPasswordGeneration: false, // From .tsx
+            roomPasswordNumberOfDigits: false,
+            enableRoomPasswordGeneration: false,
             p2p: {
                 enabled: true,
-                stunServers: [ // From .tsx
+                stunServers: [
                     { urls: 'stun:meet-jit-si-turnrelay.jitsi.net:443' }
+                ]
+            }, // COMMA ADDED HERE
+            resolution: 720,
+            constraints: {
+                video: {
+                    height: { ideal: 720, max: 1080, min: 240 },
+                    width: { ideal: 1280, max: 1920, min: 320 },
+                    frameRate: { ideal: 30, max: 30 }
+                }
+            }, // COMMA ADDED HERE
+            // Additional aggressive settings from the analysis
+            openBridgeChannel: true,
+            doNotDisplayLobbyChat: true,
+            tokenAuthUrl: null,
+            readOnlyName: true,
+            disableModeratorIndicator: true,
+            analytics: { disabled: true },
+            disablePoweredBy: true,
+            autoPinLobby: false,
+            channelLastN: -1,
+            enableLayerSuspension: false,
+            stereo: false,
+            enforceReadonly: false,
+            disablePolls: true,
+            disableReactions: true,
+            e2ee: { enabled: false },
+            inviteMore: false,
+            peopleEnabled: false,
+            startAudioOnly: false,
+            startVideoOnly: false
+        },
+        interfaceConfigOverwrite: {
+            // Branding (from your .tsx)
+            SHOW_JITSI_WATERMARK: false,
+            SHOW_WATERMARK_FOR_GUESTS: false,
+            SHOW_BRAND_WATERMARK: false,
+            BRAND_WATERMARK_LINK: '',
+            SHOW_POWERED_BY: false,
+            APP_NAME: 'Paritalk', // Using 'Paritalk' for consistency with your app
+            NATIVE_APP_NAME: 'Paritalk',
+            PROVIDER_NAME: 'Paritalk',
+
+            // Welcome page (from your .tsx)
+            DISPLAY_WELCOME_PAGE_CONTENT: false,
+            DISPLAY_WELCOME_PAGE_TOOLBAR_ADDITIONAL_CONTENT: false,
+
+            // Invitation features (from your .tsx)
+            HIDE_INVITE_MORE_HEADER: true,
+
+            // Video settings (from your .tsx)
+            DISABLE_VIDEO_BACKGROUND: true,
+            DISABLE_BLUR_SUPPORT: true,
+            VIDEO_LAYOUT_FIT: 'both',
+            FILM_STRIP_MAX_HEIGHT: 90, // From .tsx (original had 120, using 90 for consistency with analysis)
+            TILE_VIEW_MAX_COLUMNS: 2,
+            VERTICAL_FILMSTRIP: false,
+
+            // Misc UI (from your .tsx)
+            CLOSE_PAGE_GUEST_HINT: false,
+            SHOW_PROMOTIONAL_CLOSE_PAGE: false,
+            RANDOM_AVATAR_URL_PREFIX: false,
+            RANDOM_AVATAR_URL_SUFFIX: false,
+            ENABLE_FEEDBACK_ANIMATION: false,
+            DISABLE_FOCUS_INDICATOR: true,
+            DISABLE_DOMINANT_SPEAKER_INDICATOR: true,
+            DISABLE_TRANSCRIPTION_SUBTITLES: true,
+            DISABLE_RINGING: false,
+            AUDIO_LEVEL_PRIMARY_COLOR: 'rgba(255,255,255,0.4)',
+            AUDIO_LEVEL_SECONDARY_COLOR: 'rgba(255,255,255,0.2)',
+            POLICY_LOGO: null,
+            MOBILE_APP_PROMO: false,
+
+            // Connection and quality (from your .tsx)
+            CONNECTION_INDICATOR_AUTO_HIDE_ENABLED: true,
+            CONNECTION_INDICATOR_AUTO_HIDE_TIMEOUT: 5000,
+            CONNECTION_INDICATOR_DISABLED: false,
+            VIDEO_QUALITY_LABEL_DISABLED: false,
+
+            // Recent list and browser support (from your .tsx)
+            RECENT_LIST_ENABLED: false,
+            OPTIMAL_BROWSERS: ['chrome', 'chromium', 'firefox', 'nwjs', 'electron', 'safari'],
+            UNSUPPORTED_BROWSERS: [],
+
+            // Screen sharing (from your .tsx)
+            AUTO_PIN_LATEST_SCREEN_SHARE: true,
+
+            // Notifications (from your .tsx)
+            DISABLE_PRESENCE_STATUS: true,
+            DISABLE_JOIN_LEAVE_NOTIFICATIONS: true,
+
+            // Thumbnails (from your .tsx)
+            LOCAL_THUMBNAIL_RATIO: 16 / 9,
+            REMOTE_THUMBNAIL_RATIO: 16 / 9,
+
+            // Zoom (from your .tsx)
+            MAXIMUM_ZOOMING_COEFFICIENT: 1.3,
+
+            // Support (from your .tsx)
+            SUPPORT_URL: 'https://community.jitsi.org/',
+            LIVE_STREAMING_HELP_LINK: 'https://jitsi.org/live',
+
+            // Additional UI tweaks from analysis
+            SETTINGS_SECTIONS: ['devices', 'language'], // Only essential settings
+            SHOW_CHROME_EXTENSION_BANNER: false,
+            SHOW_DEEPLINKING_LOGO: false,
+            TOOLBAR_ALWAYS_VISIBLE: true, // Ensure toolbar is always there
+        }
+    };
+
+    try {
+        jitsiApi = new window.JitsiMeetExternalAPI(domain, options);
+
         // Event listeners
         jitsiApi.addEventListener('videoConferenceJoined', () => {
             console.log('Successfully joined the conference');
@@ -176,7 +288,7 @@ export async function initializeJitsiInstance(roomCode, username, jitsiContainer
     } catch (error) {
         console.error("Error initializing Jitsi API:", error);
         onConferenceErrorCallback('Failed to initialize video call. Please check console for details.');
-        hangUpCall(); // Ensure cleanup if initialization failed
+        hangUpCall(onConferenceEndedCallback); // Pass the callback here too
     }
 }
 
