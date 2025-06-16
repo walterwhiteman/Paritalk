@@ -96,12 +96,15 @@
     </div> <!-- Close chat-app-container-premium -->
 
     <script type="module">
-        // Import the functions you need from the SDKs you need
+        // Import Firebase modules
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
         import { getDatabase, ref, push, onValue, set, serverTimestamp, remove, onDisconnect, query, limitToLast, orderByChild, off } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
         import { getStorage, ref as storageRef, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
         import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+
+        // Import Jitsi video call functions from the new file
+        import { loadJitsiScript, initializeJitsiInstance, hangUpCall } from './jitsi_video_call.js';
 
 
         // Your web app's Firebase configuration
@@ -128,12 +131,8 @@
         const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 
-        // Jitsi Meet API (will be loaded dynamically)
-        let jitsiApi = null;
-        let jitsiScriptLoaded = false; // Flag to track if Jitsi script is loaded
-
         // DOM Elements
-        const loadingOverlay = document.getElementById('loading-overlay'); // Get loading overlay
+        const loadingOverlay = document.getElementById('loading-overlay');
         const roomCodeDisplay = document.getElementById('room-code-display');
         const onlineUsersCountSpan = document.getElementById('online-users-count');
         const userCountText = document.getElementById('user-count-text');
@@ -142,7 +141,7 @@
         const sendMessageButton = document.getElementById('send-message-button');
         const videoCallButton = document.getElementById('video-call-button');
         const leaveRoomButton = document.getElementById('leave-room-button');
-        const jitsiContainer = document.getElementById('jitsi-container');
+        const jitsiContainer = document.getElementById('jitsi-container'); // This is the main Jitsi UI container
         const hangupButton = document.getElementById('hangup-button');
         const attachFileButton = document.getElementById('attach-file-button');
         const fileInput = document.getElementById('file-input');
@@ -166,11 +165,11 @@
         let currentRoomCode = null;
         let messagesRef = null;
         let presenceRef = null;
-        let typingRef = null; // Reference to our own typing status
-        let otherUserTypingRef = null; // Reference to the other user's typing status
+        let typingRef = null;
+        let otherUserTypingRef = null;
         let otherUserId = null;
         let typingTimeout = null;
-        let currentCallId = null; // To store the ID of the active video call message
+        let currentCallId = null;
 
         // --- Utility Functions ---
 
@@ -178,12 +177,12 @@
         async function showConfirmationModal(message) {
             modalMessage.textContent = message;
             confirmationModal.classList.remove('hidden');
-            confirmationModal.style.display = 'flex'; // Ensure it's flex for centering
+            confirmationModal.style.display = 'flex';
 
             return new Promise((resolve) => {
                 const confirmListener = () => {
                     confirmationModal.classList.add('hidden');
-                    confirmationModal.style.display = 'none'; // Hide properly
+                    confirmationModal.style.display = 'none';
                     modalConfirmButton.removeEventListener('click', confirmListener);
                     modalCancelButton.removeEventListener('click', cancelListener);
                     resolve(true);
@@ -191,7 +190,7 @@
 
                 const cancelListener = () => {
                     confirmationModal.classList.add('hidden');
-                    confirmationModal.style.display = 'none'; // Hide properly
+                    confirmationModal.style.display = 'none';
                     modalConfirmButton.removeEventListener('click', confirmListener);
                     modalCancelButton.removeEventListener('click', cancelListener);
                     resolve(false);
@@ -225,7 +224,6 @@
 
             if (message.type === 'system') {
                 if (message.action === 'videoCallStarted') {
-                    // Specific styling and button for video call start notification
                     messageElement.classList.add('system-message-premium', 'system-message-with-action');
                     messageElement.innerHTML = `
                         <p>${message.text}</p>
@@ -235,7 +233,6 @@
                         </button>
                     `;
                 } else if (message.action === 'videoCallEnded') {
-                    // Specific styling for video call ended notification
                     messageElement.classList.add('system-message-premium', 'system-message-with-action');
                     messageElement.innerHTML = `
                         <p>${message.text}</p>
@@ -243,7 +240,6 @@
                     `;
                 }
                  else {
-                    // Default system message
                     messageElement.classList.add('system-message-premium');
                     messageElement.textContent = message.text;
                 }
@@ -290,7 +286,7 @@
         // Send Message
         async function sendMessage(text = '', file = null) {
             if ((!text && !file) || (text.trim() === '' && !file)) {
-                return; // Don't send empty messages without a file
+                return;
             }
 
             const message = {
@@ -298,9 +294,9 @@
                 senderName: currentUsername,
                 text: text.trim(),
                 timestamp: serverTimestamp(),
-                type: 'text', // Default type
+                type: 'text',
                 readBy: {
-                    [currentUserId]: true // Mark as read by sender
+                    [currentUserId]: true
                 }
             };
 
@@ -316,9 +312,9 @@
 
             try {
                 await push(messagesRef, message);
-                messageInput.value = ''; // Clear input after sending text message
-                if (file) fileInput.value = ''; // Clear file input
-                updateTypingStatus(false); // Ensure typing status is reset after sending
+                messageInput.value = '';
+                if (file) fileInput.value = '';
+                updateTypingStatus(false);
             } catch (error) {
                 console.error("Error sending message:", error);
             }
@@ -331,7 +327,7 @@
             presenceRef = ref(db, `rooms/${currentRoomCode}/presence/${currentUserId}`);
             await set(presenceRef, { username: currentUsername, isTyping: false, lastOnline: serverTimestamp() });
             console.log(`Presence set for ${currentUsername} in ${currentRoomCode}`);
-            onDisconnect(presenceRef).remove(); // Remove user from presence when they disconnect
+            onDisconnect(presenceRef).remove();
         }
 
         // Update Online Users Count
@@ -350,7 +346,6 @@
 
                     if (newOtherUserId && newOtherUserId !== otherUserId) {
                         console.log("Other user ID changed/found:", newOtherUserId);
-                        // Detach old listener if otherUserId changed
                         if (otherUserTypingRef) {
                             off(otherUserTypingRef);
                             console.log("Detached old typing listener.");
@@ -358,20 +353,17 @@
                         otherUserId = newOtherUserId;
                         setupTypingIndicator(otherUserId);
                     } else if (!newOtherUserId && otherUserId) {
-                        // Other user left
                         console.log("Other user left.");
                         if (otherUserTypingRef) {
                             off(otherUserTypingRef);
                             console.log("Detached typing listener for removed user.");
                         }
                         otherUserId = null;
-                        typingIndicator.classList.add('hidden'); // Hide indicator if no other user
+                        typingIndicator.classList.add('hidden');
                     } else if (!newOtherUserId && !otherUserId) {
-                        // Still no other user
                         typingIndicator.classList.add('hidden');
                     }
                 } else {
-                    // No online users at all
                     if (otherUserTypingRef) {
                         off(otherUserTypingRef);
                         console.log("Detached typing listener as no users online.");
@@ -385,7 +377,7 @@
         // Update own typing status in Firebase
         async function updateTypingStatus(isTyping) {
             console.log(`Setting typing status to: ${isTyping}`);
-            if (!typingRef) { // Ensure typingRef is initialized
+            if (!typingRef) {
                 typingRef = ref(db, `rooms/${currentRoomCode}/presence/${currentUserId}/isTyping`);
             }
             try {
@@ -414,7 +406,6 @@
                 console.log(`Other user typing status changed: ${isOtherUserTyping}`);
 
                 if (isOtherUserTyping) {
-                    // Fetch other user's username to display
                     onValue(otherUsernameRef, (nameSnapshot) => {
                         const otherUserName = nameSnapshot.val();
                         if (otherUserName) {
@@ -422,7 +413,7 @@
                             typingIndicator.classList.remove('hidden');
                             console.log(`Typing indicator shown for: ${otherUserName}`);
                         }
-                    }, { onlyOnce: true }); // Only fetch username once per typing session
+                    }, { onlyOnce: true });
                 } else {
                     typingIndicator.classList.add('hidden');
                     console.log("Typing indicator hidden.");
@@ -437,7 +428,7 @@
         async function uploadFile(file) {
             const filePath = `files/${currentRoomCode}/${Date.now()}_${file.name}`;
             const { data, error } = await supabase.storage
-                .from('paritalk-files') // Make sure 'paritalk-files' is the name of your bucket in Supabase
+                .from('paritalk-files')
                 .upload(filePath, file, {
                     cacheControl: '3600',
                     upsert: false
@@ -466,9 +457,9 @@
 
         // Show Full Media Modal
         function showFullMediaModal(url, type, fileName) {
-            fullMediaDisplayArea.innerHTML = ''; // Clear previous content
+            fullMediaDisplayArea.innerHTML = '';
             fullMediaDownloadButton.href = url;
-            fullMediaDownloadButton.download = fileName || 'download'; // Set download name
+            fullMediaDownloadButton.download = fileName || 'download';
 
             if (type.startsWith('image/')) {
                 const img = document.createElement('img');
@@ -489,7 +480,6 @@
                 iframe.setAttribute('frameborder', '0');
                 fullMediaDisplayArea.appendChild(iframe);
             } else {
-                // For other file types, just provide download option
                 const infoText = document.createElement('p');
                 infoText.classList.add('full-media-info-text');
                 infoText.textContent = `File type not previewable: ${fileName}`;
@@ -497,15 +487,14 @@
             }
 
             fullMediaModal.classList.remove('hidden');
-            fullMediaModal.style.display = 'flex'; // Ensure it's flex for centering
+            fullMediaModal.style.display = 'flex';
         }
 
         // Close Full Media Modal
         function closeFullMediaModal() {
             fullMediaModal.classList.add('hidden');
-            fullMediaModal.style.display = 'none'; // Hide properly
-            fullMediaDisplayArea.innerHTML = ''; // Clear content
-            // Stop any playing video if exists
+            fullMediaModal.style.display = 'none';
+            fullMediaDisplayArea.innerHTML = '';
             const video = fullMediaDisplayArea.querySelector('video');
             if (video) {
                 video.pause();
@@ -514,251 +503,14 @@
         }
 
 
-        // --- Jitsi Integration ---
+        // --- Jitsi Integration Callbacks and Handlers for chat.html ---
 
-        // Function to load the Jitsi Meet external API script
-        function loadJitsiScript() {
-            return new Promise((resolve, reject) => {
-                if (jitsiScriptLoaded && window.JitsiMeetExternalAPI) {
-                    console.log("Jitsi script already loaded.");
-                    return resolve();
-                }
-
-                const existingScript = document.querySelector('script[src="https://meet.jit.si/external_api.js"]');
-                if (existingScript) {
-                    // If script element exists but not fully loaded, wait for it
-                    if (window.JitsiMeetExternalAPI) {
-                        jitsiScriptLoaded = true;
-                        return resolve();
-                    } else {
-                        // If script element exists but JitsiMeetExternalAPI isn't ready,
-                        // this might be a failed previous load or a very slow one.
-                        // We will re-append it, browser handles duplicates safely.
-                        console.warn("Jitsi script element found but JitsiMeetExternalAPI not ready. Re-attempting load.");
-                        existingScript.remove(); // Remove the old one to ensure a fresh load
-                    }
-                }
-
-                const script = document.createElement('script');
-                script.src = 'https://meet.jit.si/external_api.js';
-                script.async = true;
-                script.onload = () => {
-                    console.log("Jitsi external_api.js loaded successfully.");
-                    jitsiScriptLoaded = true;
-                    resolve();
-                };
-                script.onerror = (e) => {
-                    console.error('Failed to load Jitsi API script:', e);
-                    jitsiScriptLoaded = false;
-                    reject(new Error('Failed to load Jitsi API script.'));
-                };
-                document.body.appendChild(script);
-            });
-        }
-
-
-        async function startVideoCall() {
-            const confirmed = await showConfirmationModal('Are you sure you want to start a video call?');
-            if (!confirmed) {
-                console.log("Video call initiation cancelled by user.");
-                return;
-            }
-
-            try {
-                // First, ensure the Jitsi script is loaded
-                await loadJitsiScript();
-
-                // Generate a unique call ID for this session
-                const callId = `${currentRoomCode}-${Date.now()}`;
-                currentCallId = callId; // Store the active call ID
-
-                // Add system message to chat that video call has started
-                await push(messagesRef, {
-                    type: 'system',
-                    action: 'videoCallStarted', // New action type
-                    text: `${currentUsername} started a video call.`,
-                    callId: callId, // Include the unique call ID
-                    timestamp: serverTimestamp()
-                });
-
-                // Proceed with Jitsi initialization
-                initializeJitsiInstance(callId); // Pass the callId to initialize Jitsi
-            } catch (error) {
-                console.error("Error preparing for video call:", error);
-                alert('Could not start video call. Check console for details.');
-            }
-        }
-
-        // Modified to accept a room name/callId
-        async function initializeJitsiInstance(callIdToJoin = currentCallId) { // Default to currentCallId
-            const jitsiRoomName = callIdToJoin; // Use the unique Jitsi room name
-            console.log("Attempting to initialize Jitsi with room name:", jitsiRoomName);
-
-
-            if (!window.JitsiMeetExternalAPI) {
-                // This check should ideally pass now due to loadJitsiScript()
-                console.error('JitsiMeetExternalAPI not found. This should not happen if loadJitsiScript was successful.');
-                alert('Jitsi video call service not ready. Please try again.');
-                hangUpCall(); // Ensure cleanup if something went wrong
-                return;
-            }
-
-            if (jitsiApi) {
-                console.log("Jitsi API already initialized. Disposing existing instance.");
-                jitsiApi.dispose(); // Dispose existing instance before creating a new one
-                jitsiApi = null;
-            }
-
-            jitsiContainer.classList.remove('hidden');
-            jitsiContainer.style.display = 'flex'; // Ensure it becomes visible as flex container
-
-            const domain = 'meet.jit.si';
-            const options = {
-                roomName: jitsiRoomName, // Use the unique Jitsi room name
-                width: '100%',
-                height: '100%',
-                parentNode: document.querySelector('#jitsi-meet-api'),
-                userInfo: {
-                    displayName: currentUsername
-                },
-                configOverwrite: {
-                    // Core settings that should already be false
-                    startWithAudioMuted: false,
-                    startWithVideoMuted: false,
-                    disableSelfView: false,
-                    enableClosePage: false,
-                    enableWelcomePage: false,
-                    startSilent: false,
-
-                    // AGGRESSIVE SETTINGS TO BYPASS AUTHENTICATION/LOBBY ON PUBLIC JITSI INSTANCE
-                    // Explicitly disable prejoin and lobby
-                    prejoinPageEnabled: false,
-                    enableLobby: false,
-                    // These are crucial for unauthenticated access
-                    requireDisplayName: false, // Ensure display name is not strictly required for authentication
-                    enableUserRolesBasedOnToken: false, // We are not providing JWT tokens
-                    openBridgeChannel: true, // Should ensure connection is open
-                    // Hide any dialogs that might implicitly block connection for unauthenticated users
-                    doNotDisplayLobbyChat: true,
-                    // More settings to ensure public room behavior
-                    tokenAuthUrl: null, // No authentication server
-                    disableDeepLinking: true,
-                    disableProfile: true,
-                    readOnlyName: true,
-                    // Prevent any implied moderation that might require auth
-                    disableModeratorIndicator: true,
-                    remoteVideoMenu: {
-                        disableKick: true,
-                        disableForceMute: true,
-                        disableGrantModerator: true, // Ensure no moderator grants
-                        disablePrivateChat: true, // No private chat for simplicity
-                    },
-                    p2p: {
-                        enabled: true,
-                        stunServers: [
-                            { urls: 'stun:stun.l.google.com:19302' },
-                            { urls: 'stun:stun1.l.google.com:19302' },
-                            { urls: 'stun:stun2.l.google.com:19302' },
-                        ],
-                        preferPrivateEstablishment: false,
-                    },
-                    analytics: {
-                        disabled: true,
-                    },
-                    disablePoweredBy: true,
-                    autoPinLobby: false,
-                    channelLastN: -1,
-                    enableLayerSuspension: false,
-                    stereo: false,
-                    enforceReadonly: false,
-                    disablePolls: true,
-                    disableReactions: true,
-                    e2ee: {
-                        enabled: false // Crucial for public rooms without JWT auth. If true, it might require specific server setup.
-                    },
-                    // Even more specific overrides if previous ones don't work
-                    inviteMore: false, // Hide invite button
-                    peopleEnabled: false, // Hide people panel if it causes issues
-                    startAudioOnly: false, // Ensure video attempts to start
-                    startVideoOnly: false, // Ensure audio also starts
-                },
-                interfaceConfigOverwrite: {
-                    APP_NAME: 'Paritalk',
-                    DEFAULT_BACKGROUND: '#F9F9F9',
-                    NATIVE_APP_NAME: 'Paritalk',
-                    TOOLBAR_BUTTONS: [
-                        'microphone', 'camera', 'desktop', 'fullscreen',
-                        'fodeviceselection', 'hangup', 'profile', 'chat',
-                        'settings', 'tileview', 'toggle-raise-hand',
-                        'videoquality', 'filmstrip',
-                    ],
-                    HIDE_INVITE_MORE_TOOLBAR_BUTTON: true,
-                    HIDE_LOBBY_MODE_BUTTON: true,
-                    JITSI_WATERMARK_LINK: 'https://meet.jit.si',
-                    DISABLE_JOIN_LEAVE_NOTIFICATIONS: true,
-                    ENFORCE_PREJOIN_PAGE: false,
-                    DISABLE_AUDIO_LEVEL_INDICATOR: false,
-                    ENABLE_REMOTE_MUTE: true,
-                    SETTINGS_SECTIONS: ['devices', 'language', 'profile', 'calendar'],
-                    SHOW_JITSI_WATERMARK: false,
-                    SHOW_POWERED_BY: false,
-                    // Hide any UI elements that might imply authentication or moderation
-                    SETTINGS_SECTIONS: ['devices', 'language'], // Only essential settings
-                    SHOW_CHROME_EXTENSION_BANNER: false,
-                    SHOW_DEEPLINKING_LOGO: false,
-                    TOOLBAR_ALWAYS_VISIBLE: true, // Ensure toolbar is always there
-                }
-            };
-
-            try {
-                jitsiApi = new JitsiMeetExternalAPI(domain, options);
-
-                jitsiApi.addEventListener('iframe-ready', () => {
-                    console.log("Jitsi iFrame is ready.");
-                });
-                jitsiApi.addEventListener('participantJoined', (participant) => {
-                    console.log("Jitsi: Participant joined:", participant);
-                });
-
-                jitsiApi.addEventListener('readyToClose', () => {
-                    console.log('Jitsi Event: readyToClose event fired. Calling endVideoCall.');
-                    hangUpCall();
-                });
-                jitsiApi.addEventListener('videoConferenceLeft', () => {
-                    console.log("Jitsi: Video conference left.");
-                    hangUpCall();
-                });
-                jitsiApi.addEventListener('participantLeft', (participant) => {
-                    console.log("Jitsi: Participant left:", participant);
-                });
-
-                // Add event listener for CONNECTION_FAILED to log the error specifically
-                jitsiApi.addEventListener('conference.connectionFailed', (error) => {
-                    console.error("Jitsi Conference Connection Failed:", error);
-                    alert(`Video call connection failed: ${error.message || error.error}`);
-                    hangUpCall();
-                });
-
-                console.log("Jitsi API initialized and event listeners attached.");
-
-            } catch (error) {
-                console.error("Error initializing Jitsi API:", error);
-                alert('Failed to start video call. Please check console for details.');
-                hangUpCall();
-            }
-        }
-
-
-        function hangUpCall() {
-            if (jitsiApi) {
-                jitsiApi.dispose();
-                jitsiApi = null;
-                console.log("Jitsi API disposed.");
-            }
+        // Callback when Jitsi conference ends or needs to be closed
+        function onJitsiConferenceEnded() {
+            console.log("onJitsiConferenceEnded triggered. Hiding Jitsi container.");
             jitsiContainer.classList.add('hidden');
-            jitsiContainer.style.display = 'none'; // Hide properly
-
-            // Add system message to chat that video call has ended (only if there was an active call)
+            jitsiContainer.style.display = 'none';
+            // Also ensure to clear currentCallId if it was active
             if (currentCallId) {
                 push(messagesRef, {
                     type: 'system',
@@ -767,33 +519,64 @@
                     callId: currentCallId,
                     timestamp: serverTimestamp()
                 });
-                currentCallId = null; // Clear the active call ID
-            }
-
-            // Remove the dynamically added Jitsi script if it exists
-            const jitsiScript = document.querySelector('script[src="https://meet.jit.si/external_api.js"]');
-            if (jitsiScript) {
-                jitsiScript.remove();
-                jitsiScriptLoaded = false; // Reset flag
-                console.log("Jitsi API script removed from DOM.");
+                currentCallId = null;
             }
         }
 
+        // Callback for Jitsi errors to display in chat.html's modal
+        function onJitsiConferenceError(errorMessage) {
+            console.error("Jitsi Error Handler:", errorMessage);
+            showConfirmationModal(`Video Call Error: ${errorMessage || 'Unknown error.'}`);
+            // Force hangup if an error occurs to reset state
+            hangUpCall(onJitsiConferenceEnded); // Use the imported hangUpCall
+        }
+
+        async function handleStartVideoCall() {
+            const confirmed = await showConfirmationModal('Are you sure you want to start a video call?');
+            if (!confirmed) {
+                console.log("Video call initiation cancelled by user.");
+                return;
+            }
+
+            try {
+                // Use the imported loadJitsiScript function
+                await loadJitsiScript();
+
+                // Generate a unique call ID for this session
+                const callId = `${currentRoomCode}-${Date.now()}`;
+                currentCallId = callId;
+
+                // Add system message to chat that video call has started
+                await push(messagesRef, {
+                    type: 'system',
+                    action: 'videoCallStarted',
+                    text: `${currentUsername} started a video call.`,
+                    callId: callId,
+                    timestamp: serverTimestamp()
+                });
+
+                // Use the imported initializeJitsiInstance function
+                initializeJitsiInstance(currentRoomCode, currentUsername, jitsiContainer, onJitsiConferenceEnded, onJitsiConferenceError);
+
+            } catch (error) {
+                console.error("Error preparing for video call:", error);
+                onJitsiConferenceError('Could not start video call. Check console for details.');
+            }
+        }
+
+
         // --- Event Listeners ---
 
-        // Send message on button click
         sendMessageButton.addEventListener('click', () => {
             sendMessage(messageInput.value);
         });
 
-        // Send message on Enter key press
         messageInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
                 sendMessage(messageInput.value);
             }
         });
 
-        // Handle typing status
         messageInput.addEventListener('input', () => {
             if (typingTimeout) {
                 clearTimeout(typingTimeout);
@@ -801,10 +584,9 @@
             updateTypingStatus(true);
             typingTimeout = setTimeout(() => {
                 updateTypingStatus(false);
-            }, 3000); // User stops typing after 3 seconds
+            }, 3000);
         });
 
-        // Handle blur to reset typing status
         messageInput.addEventListener('blur', () => {
             if (typingTimeout) {
                 clearTimeout(typingTimeout);
@@ -812,13 +594,12 @@
             updateTypingStatus(false);
         });
 
-        // Start video call
-        videoCallButton.addEventListener('click', startVideoCall);
+        // Use the new handleStartVideoCall wrapper
+        videoCallButton.addEventListener('click', handleStartVideoCall);
 
-        // Hang up video call
-        hangupButton.addEventListener('click', hangUpCall);
+        // Use the imported hangUpCall, passing the callback for UI cleanup
+        hangupButton.addEventListener('click', () => hangUpCall(onJitsiConferenceEnded));
 
-        // Leave room (NO CONFIRMATION)
         if (leaveRoomButton) {
             leaveRoomButton.addEventListener('click', handleLeaveRoom);
             console.log("Leave Room button event listener attached.");
@@ -826,65 +607,60 @@
             console.error("Leave Room button element not found!");
         }
 
-        // Attach file button click
         attachFileButton.addEventListener('click', () => {
-            fileInput.click(); // Trigger the hidden file input
+            fileInput.click();
         });
 
-        // Handle file input change
         fileInput.addEventListener('change', async (event) => {
             const file = event.target.files[0];
             if (file) {
                 console.log("Uploading file:", file.name);
                 try {
                     const uploadedFileDetails = await uploadFile(file);
-                    await sendMessage('', uploadedFileDetails); // Send message with file details
+                    await sendMessage('', uploadedFileDetails);
                     console.log("File message sent!");
                 } catch (error) {
                     console.error("Failed to upload or send file:", error);
                     alert("Failed to send file. Please try again.");
                 } finally {
-                    fileInput.value = ''; // Clear file input value
+                    fileInput.value = '';
                 }
             }
         });
 
-        // Handle clicking on message images/files to open full modal
-        messagesContainer.addEventListener('click', async (event) => { // Added async here
+        messagesContainer.addEventListener('click', async (event) => {
             const imagePreview = event.target.closest('.message-image-preview');
             const filePreview = event.target.closest('.message-file-premium-preview');
             const downloadIcon = event.target.closest('.download-icon');
-            const joinCallButton = event.target.closest('.join-call-button'); // New: Listen for join call button
+            const joinCallButton = event.target.closest('.join-call-button');
 
             if (imagePreview) {
                 const url = imagePreview.dataset.url;
                 const type = imagePreview.dataset.type;
                 showFullMediaModal(url, type);
-            } else if (filePreview && !downloadIcon) { // Ensure clicking on the file name/bubble, not just download icon
+            } else if (filePreview && !downloadIcon) {
                 const url = filePreview.dataset.url;
                 const type = filePreview.dataset.type;
                 const name = filePreview.dataset.name;
                 showFullMediaModal(url, type, name);
-            } else if (joinCallButton) { // Handle join call button click
+            } else if (joinCallButton) {
                 console.log("Join video call button clicked!");
-                // Crucial: Load the Jitsi script first, then initialize
+                const callId = joinCallButton.dataset.callId;
+                // Use the imported load and initialize functions for joining
                 try {
-                    await loadJitsiScript(); // Ensure script is loaded on receiver's side
-                    const callId = joinCallButton.dataset.callId; // Get the callId from the button's data attribute
-                    initializeJitsiInstance(callId); // Then initialize Jitsi with that specific callId
+                    await loadJitsiScript();
+                    initializeJitsiInstance(callId, currentUsername, jitsiContainer, onJitsiConferenceEnded, onJitsiConferenceError);
                 } catch (error) {
                     console.error("Error joining video call:", error);
-                    alert("Failed to join video call. Please try again.");
+                    onJitsiConferenceError("Failed to join video call. Please try again.");
                 }
             }
         });
 
-        // Close full media modal
         fullMediaCloseButton.addEventListener('click', closeFullMediaModal);
 
         // --- Initialization ---
 
-        // Get room code and username from URL parameters
         function getQueryParams() {
             const params = {};
             const queryString = window.location.search.substring(1);
@@ -915,20 +691,18 @@
                     await setupPresence();
                     updateOnlineUsersCount();
 
-                    // Load last 50 messages
                     onValue(query(messagesRef, limitToLast(50), orderByChild('timestamp')), (snapshot) => {
-                        messagesContainer.innerHTML = ''; // Clear existing messages
+                        messagesContainer.innerHTML = '';
                         snapshot.forEach((childSnapshot) => {
                             displayMessage(childSnapshot.val());
                         });
                         scrollToBottom();
-                        loadingOverlay.classList.add('hidden'); // Hide loading overlay when messages are loaded
-                        setTimeout(() => { // Fully remove from DOM after transition
+                        loadingOverlay.classList.add('hidden');
+                        setTimeout(() => {
                             loadingOverlay.style.display = 'none';
                         }, 300);
                     });
 
-                    // Add a system message for user joining
                     await push(messagesRef, {
                         type: 'system',
                         text: `${currentUsername} has joined the room.`,
@@ -944,7 +718,6 @@
         }
 
 
-        // Handle leaving the room logic (NO CONFIRMATION)
         async function handleLeaveRoom() {
             console.log("Entering handleLeaveRoom function.");
 
@@ -953,9 +726,8 @@
                 console.log("presenceRef is valid:", presenceRef.toString());
                 console.log("currentUserId is valid:", currentUserId);
                 try {
-                    await remove(presenceRef); // Remove user's presence from DB
+                    await remove(presenceRef);
                     console.log("SUCCESS: User presence removed from room:", currentRoomCode);
-                    // Add a system message for user leaving
                     await push(messagesRef, {
                         type: 'system',
                         text: `${currentUsername} has left the room.`,
@@ -968,36 +740,28 @@
             } else {
                 console.warn("WARNING: presenceRef or currentUserId not available. Cannot remove presence.");
             }
-            if (jitsiApi) {
-                hangUpCall(); // Use hangUpCall to properly dispose Jitsi and remove script
-            }
+            // Use the imported hangUpCall function
+            hangUpCall(onJitsiConferenceEnded);
             localStorage.removeItem('paritalk_username');
             localStorage.removeItem('paritalk_roomcode');
                 console.log("Local storage cleared.");
-            window.location.href = 'index.html'; // Redirect to login
+            window.location.href = 'index.html';
             console.log("Redirecting to index.html...");
         }
 
 
-        // Cleanup on page reload/close
         window.addEventListener('beforeunload', async (e) => {
-            // Remove user's presence from Firebase
             if (presenceRef && currentUserId) {
                 console.log("Beforeunload event: Attempting to remove user presence explicitly.");
                 try {
-                    await set(presenceRef, null); // Explicitly remove presence
+                    await set(presenceRef, null);
                     console.log("Presence explicitly removed on beforeunload.");
                 } catch (error) {
                     console.error("Error explicitly removing presence on beforeunload:", error);
                 }
             }
-
-            // Dispose Jitsi API if active
-            if (jitsiApi) {
-                jitsiApi.dispose();
-                jitsiApi = null;
-            }
-
+            // Use the imported hangUpCall function without direct UI callback
+            hangUpCall(() => { /* no-op for beforeunload */ });
             localStorage.removeItem('paritalk_username');
             localStorage.removeItem('paritalk_roomcode');
             console.log("Local storage cleared on beforeunload.");
