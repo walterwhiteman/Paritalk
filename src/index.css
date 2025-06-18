@@ -118,7 +118,7 @@ input:focus, button:focus {
   }
 }
 
-/* Mobile-specific fixes */
+/* Mobile-specific fixes (REMOVED .fixed rule) */
 @media screen and (max-width: 767px) {
   /* Prevent horizontal scroll */
   body {
@@ -136,11 +136,7 @@ input:focus, button:focus {
     min-width: 44px;
   }
 
-  /* Fix sticky positioning on mobile */
-  .fixed {
-    position: -webkit-sticky;
-    position: sticky;
-  }
+  /* The problematic .fixed rule for sticky positioning was here and has been removed! */
 }
 
 /* Android-specific fixes */

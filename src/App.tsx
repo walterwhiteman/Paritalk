@@ -210,13 +210,12 @@ function App() {
   }
 
   return (
-    // MODIFIED: Changed min-h-[100dvh] to h-screen or min-h-screen
-    // AND added style property to use the --vh CSS variable
+    // Main container for the chat interface
     <div
       className={`flex flex-col relative overflow-x-hidden ${
         state.isDarkMode ? 'bg-gray-900' : 'bg-gray-50'
       }`}
-      style={{ height: 'calc(var(--vh, 1vh) * 100)' }} // Using --vh with fallback
+      style={{ height: 'calc(var(--vh, 1vh) * 100)' }} // Using --vh with fallback for consistent mobile viewport height
     >
       {/* Chat Header - Fixed Top */}
       <div className="fixed top-0 left-0 right-0 z-40 bg-white dark:bg-gray-900 shadow-md">
@@ -232,8 +231,7 @@ function App() {
       </div>
       
       {/* Message List - Scrollable Area */}
-      {/* pt-20 pb-20 should already provide enough space */}
-      <div className="flex-1 overflow-y-auto px-2 py-6 space-y-4 pt-20 pb-20 pb-safe">
+      <div className="flex-1 overflow-y-auto px-2 py-6 space-y-4 pt-20"> 
         {messages.map((message) => (
           <MessageBubble
             key={message.id}
@@ -244,6 +242,11 @@ function App() {
           />
         ))}
         
+        {/* MODIFIED: Explicit spacer div height changed from h-24 to h-20 */}
+        {/* h-20 is 80px, very close to your measured input box height of 80.8px. */}
+        {/* pb-safe is included to account for dynamic safe area height on mobile. */}
+        <div className="h-10 pb-safe"></div> 
+
         <div ref={messagesEndRef} />
 
         {partnerTyping && (
