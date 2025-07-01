@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Send, Paperclip, Moon, Sun } from 'lucide-react';
+import { Send, Paperclip } from 'lucide-react';
 
 interface MessageInputProps {
   onSendMessage: (text: string) => void;
@@ -72,7 +72,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
       isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
     } border-t px-4 sm:px-6 py-3 sm:py-4 backdrop-blur-sm`}>
       <form onSubmit={handleSubmit} className="flex items-center space-x-2 sm:space-x-3">
-        <div className="flex space-x-1 sm:space-x-2 flex-shrink-0">
+        <div className="flex-shrink-0">
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
@@ -84,23 +84,6 @@ export const MessageInput: React.FC<MessageInputProps> = ({
             title="Attach file"
           >
             <Paperclip className="w-4 h-4 sm:w-5 sm:h-5" />
-          </button>
-          
-          <button
-            type="button"
-            onClick={onToggleDarkMode}
-            className={`p-2 rounded-xl transition-colors duration-200 ${
-              isDarkMode
-                ? 'text-yellow-400 hover:bg-gray-700'
-                : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
-            }`}
-            title={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
-          >
-            {isDarkMode ? (
-              <Sun className="w-4 h-4 sm:w-5 sm:h-5" />
-            ) : (
-              <Moon className="w-4 h-4 sm:w-5 sm:h-5" />
-            )}
           </button>
         </div>
         
