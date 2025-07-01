@@ -1,8 +1,7 @@
-// src/hooks/useFirebaseChat.ts
 import { useState, useEffect, useRef } from 'react';
 import { ref, push, set, onValue, off, serverTimestamp, onDisconnect } from 'firebase/database';
 import { database } from '../config/firebase';
-import { Message, User } from '../types'; // Assuming these interfaces are correctly defined in ../types
+import { Message, User } from '../types';
 
 export const useFirebaseChat = (roomCode: string, username: string) => {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -12,7 +11,7 @@ export const useFirebaseChat = (roomCode: string, username: string) => {
 
   useEffect(() => {
     const userId = userIdRef.current;
-    const roomRef = ref(database, `rooms/${roomCode}`); // Not directly used in listeners below, but kept for context
+    const roomRef = ref(database, `rooms/${roomCode}`);
     const messagesRef = ref(database, `rooms/${roomCode}/messages`);
     const usersRef = ref(database, `rooms/${roomCode}/users`);
     const userRef = ref(database, `rooms/${roomCode}/users/${userId}`);
@@ -22,14 +21,14 @@ export const useFirebaseChat = (roomCode: string, username: string) => {
       id: userId,
       username,
       isOnline: true,
-      lastSeen: Date.now(), // Store as number
+      lastSeen: Date.now(),
       isTyping: false
     };
 
     set(userRef, userInfo);
     setIsConnected(true);
 
-    // Set user as offline when disconnecting (best effort)
+    // Set user as offline when disconnecting
     onDisconnect(userRef).set({
       ...userInfo,
       isOnline: false,
@@ -42,9 +41,7 @@ export const useFirebaseChat = (roomCode: string, username: string) => {
       if (data) {
         const messagesList = Object.entries(data).map(([key, value]: [string, any]) => ({
           id: key,
-          ...value,
-          // FIX APPLIED HERE: Convert numeric timestamp from Realtime DB to Date object
-          timestamp: new Date(value.timestamp)
+          ...value
         }));
         messagesList.sort((a, b) => a.timestamp - b.timestamp);
         setMessages(messagesList);
@@ -56,19 +53,7 @@ export const useFirebaseChat = (roomCode: string, username: string) => {
     // Listen to users
     const handleUsers = (snapshot: any) => {
       const data = snapshot.val();
-      // Ensure lastSeen is converted if used as Date object elsewhere, or handle as number
-      const parsedUsers: { [key: string]: User } = {};
-      if (data) {
-        for (const id in data) {
-          if (data.hasOwnProperty(id)) {
-            parsedUsers[id] = {
-              ...data[id],
-              // lastSeen: new Date(data[id].lastSeen) // Convert if lastSeen is used as Date
-            };
-          }
-        }
-      }
-      setUsers(parsedUsers || {});
+      setUsers(data || {});
     };
 
     onValue(messagesRef, handleMessages);
@@ -77,7 +62,6 @@ export const useFirebaseChat = (roomCode: string, username: string) => {
     return () => {
       off(messagesRef, 'value', handleMessages);
       off(usersRef, 'value', handleUsers);
-      // Explicitly set user offline on component unmount
       set(userRef, {
         ...userInfo,
         isOnline: false,
@@ -86,15 +70,41 @@ export const useFirebaseChat = (roomCode: string, username: string) => {
     };
   }, [roomCode, username]);
 
+  // Mark messages as delivered when partner comes online
+  useEffect(() => {
+    const userId = userIdRef.current;
+    const currentUser = users[userId];
+    const partnerUser = Object.values(users).find(user => user.id !== userId);
+    
+    if (currentUser && partnerUser && partnerUser.isOnline) {
+      // Mark all undelivered messages from this user as delivered
+      messages.forEach(async (message) => {
+        if (message.sender === username && !message.isDelivered) {
+          const messageRef = ref(database, `rooms/${roomCode}/messages/${message.id}`);
+          await set(messageRef, {
+            ...message,
+            isDelivered: true
+          });
+        }
+      });
+    }
+  }, [users, messages, roomCode, username]);
+
   const sendMessage = async (text: string, type: 'text' | 'image' | 'file' = 'text', fileUrl?: string, fileName?: string) => {
     const messagesRef = ref(database, `rooms/${roomCode}/messages`);
+    const userId = userIdRef.current;
+    const partnerUser = Object.values(users).find(user => user.id !== userId);
+    
     const newMessage: any = {
       text,
       sender: username,
-      timestamp: Date.now(), // Stored as number
-      type
+      timestamp: Date.now(),
+      type,
+      isDelivered: partnerUser?.isOnline || false, // Delivered immediately if partner is online
+      isRead: false
     };
 
+    // Only include fileUrl and fileName if they are defined
     if (fileUrl !== undefined) {
       newMessage.fileUrl = fileUrl;
     }
@@ -118,12 +128,11 @@ export const useFirebaseChat = (roomCode: string, username: string) => {
     }
   };
 
-  // REMOVED: addReaction function, as per your request to remove emoji reactions
-  // const addReaction = async (messageId: string, reaction: string) => {
-  //   const userId = userIdRef.current;
-  //   const reactionRef = ref(database, `rooms/${roomCode}/messages/${messageId}/reactions/${userId}`);
-  //   await set(reactionRef, reaction);
-  // };
+  const addReaction = async (messageId: string, reaction: string) => {
+    const userId = userIdRef.current;
+    const reactionRef = ref(database, `rooms/${roomCode}/messages/${messageId}/reactions/${userId}`);
+    await set(reactionRef, reaction);
+  };
 
   const getPartnerTypingStatus = () => {
     const userId = userIdRef.current;
@@ -143,7 +152,7 @@ export const useFirebaseChat = (roomCode: string, username: string) => {
     isConnected,
     sendMessage,
     setTyping,
-    // REMOVED: addReaction from return
+    addReaction,
     getPartnerTypingStatus,
     getPartnerOnlineStatus
   };
