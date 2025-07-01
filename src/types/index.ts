@@ -7,6 +7,8 @@ export interface Message {
   fileUrl?: string;
   fileName?: string;
   reactions?: { [userId: string]: string };
+  isDelivered?: boolean;
+  isRead?: boolean;
 }
 
 export interface User {
