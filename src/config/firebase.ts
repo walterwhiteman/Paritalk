@@ -3,13 +3,13 @@ import { getDatabase } from 'firebase/database';
 import { getAuth } from 'firebase/auth';
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDRKc-pQiX638Yyxs7yM0J0X15SEqYNxA8",
-  authDomain: "paritalk2.firebaseapp.com",
-  databaseURL: "https://paritalk2-default-rtdb.firebaseio.com",
-  projectId: "paritalk2",
-  storageBucket: "paritalk2.firebasestorage.app",
-  messagingSenderId: "397674011717",
-  appId: "1:397674011717:web:ea38dd11091027cd04972c"
+  apiKey: "AIzaSyA8Yj1Z1Mpv2lyt9SRxJ_w4U04BXt8hajk",
+  authDomain: "paritalk.firebaseapp.com",
+  databaseURL: "https://paritalk-default-rtdb.firebaseio.com",
+  projectId: "paritalk",
+  storageBucket: "paritalk.firebasestorage.app",
+  messagingSenderId: "441945619664",
+  appId: "1:441945619664:web:045e0c872e67e0eb9fb2d5"
 };
 
 // Initialize Firebase
